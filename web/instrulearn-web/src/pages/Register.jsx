@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Form, Input, Button, Checkbox, Divider, Typography } from "antd";
+import { Form, Input, Button, Checkbox, Typography, Select } from "antd";
 import {
   UserOutlined,
   LockOutlined,
-  FacebookOutlined,
-  GoogleOutlined,
+  MailOutlined,
+  PhoneOutlined,
   ArrowRightOutlined,
   CustomerServiceOutlined,
   TrophyOutlined,
@@ -15,13 +15,17 @@ import {
 import "antd/dist/reset.css";
 
 const { Title, Text, Paragraph } = Typography;
+const { Option } = Select;
 
-export default function Login() {
+export default function Register() {
   const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [phone, setPhone] = useState("");
 
-  const handleLogin = (values) => {
-    console.log("Login values:", values);
+  const handleRegister = (values) => {
+    console.log("Register values:", values);
   };
 
   return (
@@ -30,26 +34,20 @@ export default function Login() {
       <div className="w-1/2 flex items-center justify-center p-8 bg-white">
         <div className="w-full max-w-lg">
           <div className="mb-8">
-            <div className="flex items-center mb-8">
-              <div className="w-10 h-10 bg-gradient-to-r from-purple-700 to-purple-900 rounded-lg flex items-center justify-center mr-3">
-                <PlayCircleOutlined className="text-lg text-white" />
-              </div>
-              <Text strong className="text-lg">
-                InstruLearn
-              </Text>
-            </div>
+            <div className="flex items-center mb-8"></div>
+
             <Title level={1} className="text-3xl font-bold mb-3">
-              Chào mừng trở lại
+              Tạo tài khoản mới
             </Title>
             <Text type="secondary" className="text-base">
-              Vui lòng đăng nhập để tiếp tục hành trình âm nhạc của bạn
+              Điền thông tin dưới đây để bắt đầu hành trình âm nhạc của bạn
             </Text>
           </div>
 
           <Form
-            name="login_form"
+            name="register_form"
             initialValues={{ remember: true }}
-            onFinish={handleLogin}
+            onFinish={handleRegister}
             layout="vertical"
             size="large"
           >
@@ -74,10 +72,46 @@ export default function Login() {
             </Form.Item>
 
             <Form.Item
+              name="email"
+              label="Email"
+              rules={[
+                { required: true, message: "Vui lòng nhập email của bạn!" },
+                { type: "email", message: "Email không hợp lệ!" },
+              ]}
+              className="mb-4"
+            >
+              <Input
+                prefix={<MailOutlined className="text-gray-400" />}
+                placeholder="Nhập email của bạn"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="rounded-lg py-2 px-4 h-10"
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="phone"
+              label="Số điện thoại"
+              rules={[
+                { required: true, message: "Vui lòng nhập số điện thoại!" },
+              ]}
+              className="mb-4"
+            >
+              <Input
+                prefix={<PhoneOutlined className="text-gray-400" />}
+                placeholder="Nhập số điện thoại của bạn"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="rounded-lg py-2 px-4 h-10"
+              />
+            </Form.Item>
+
+            <Form.Item
               name="password"
               label="Mật khẩu"
               rules={[
                 { required: true, message: "Vui lòng nhập mật khẩu của bạn!" },
+                { min: 8, message: "Mật khẩu phải có ít nhất 8 ký tự!" },
               ]}
               className="mb-4"
             >
@@ -90,15 +124,57 @@ export default function Login() {
               />
             </Form.Item>
 
-            <Form.Item className="mb-4">
-              <div className="flex justify-between">
-                <Form.Item name="remember" valuePropName="checked" noStyle>
-                  <Checkbox>Ghi nhớ đăng nhập</Checkbox>
-                </Form.Item>
-                <Link to="/forgot-password" className="text-purple-700">
-                  Quên mật khẩu?
+            <Form.Item
+              name="confirmPassword"
+              label="Xác nhận mật khẩu"
+              dependencies={["password"]}
+              rules={[
+                { required: true, message: "Vui lòng xác nhận mật khẩu!" },
+                ({ getFieldValue }) => ({
+                  validator(_, value) {
+                    if (!value || getFieldValue("password") === value) {
+                      return Promise.resolve();
+                    }
+                    return Promise.reject(new Error("Mật khẩu không khớp!"));
+                  },
+                }),
+              ]}
+              className="mb-4"
+            >
+              <Input.Password
+                prefix={<LockOutlined className="text-gray-400" />}
+                placeholder="Xác nhận mật khẩu của bạn"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="rounded-lg py-2 px-4 h-10"
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="agreement"
+              valuePropName="checked"
+              rules={[
+                {
+                  validator: (_, value) =>
+                    value
+                      ? Promise.resolve()
+                      : Promise.reject(
+                          new Error("Bạn phải đồng ý với điều khoản dịch vụ")
+                        ),
+                },
+              ]}
+              className="mb-4"
+            >
+              <Checkbox>
+                Tôi đồng ý với{" "}
+                <Link to="/terms" className="text-purple-700">
+                  Điều khoản dịch vụ
+                </Link>{" "}
+                và{" "}
+                <Link to="/privacy" className="text-purple-700">
+                  Chính sách bảo mật
                 </Link>
-              </div>
+              </Checkbox>
             </Form.Item>
 
             <Form.Item className="mb-4">
@@ -108,57 +184,20 @@ export default function Login() {
                 block
                 className="h-10 rounded-lg font-medium text-base bg-gradient-to-r from-purple-700 to-purple-900 border-none"
               >
-                Đăng nhập
+                Đăng ký
                 <ArrowRightOutlined className="ml-2" />
               </Button>
             </Form.Item>
 
             <Form.Item className="mb-5 text-center">
               <Text>
-                Chưa có tài khoản?{" "}
-                <Link to="/register" className="text-purple-700 font-medium">
-                  Đăng ký ngay
+                Đã có tài khoản?{" "}
+                <Link to="/login" className="text-purple-700 font-medium">
+                  Đăng nhập ngay
                 </Link>
               </Text>
             </Form.Item>
           </Form>
-
-          <Divider plain className="my-5">
-            <Text type="secondary">Hoặc đăng nhập với</Text>
-          </Divider>
-
-          <div className="flex justify-center gap-4 mb-5">
-            <Button
-              icon={<GoogleOutlined className="text-red-600" />}
-              shape="round"
-              size="large"
-              className="flex items-center justify-center px-4 py-1 h-auto shadow-sm"
-            >
-              Google
-            </Button>
-            <Button
-              icon={<FacebookOutlined className="text-blue-600" />}
-              shape="round"
-              size="large"
-              className="flex items-center justify-center px-4 py-1 h-auto shadow-sm"
-            >
-              Facebook
-            </Button>
-          </div>
-
-          <div className="text-center">
-            <Text type="secondary" className="text-xs">
-              Bằng việc đăng nhập, bạn đồng ý với{" "}
-              <Link to="/terms" className="text-purple-700">
-                Điều khoản dịch vụ
-              </Link>{" "}
-              và{" "}
-              <Link to="/privacy" className="text-purple-700">
-                Chính sách bảo mật
-              </Link>{" "}
-              của chúng tôi
-            </Text>
-          </div>
         </div>
       </div>
 
@@ -178,12 +217,13 @@ export default function Login() {
           </div>
 
           <Title level={2} className="text-white font-semibold mb-5">
-            Học nhạc cụ dễ dàng và hiệu quả
+            Bắt đầu hành trình âm nhạc của bạn
           </Title>
 
           <Paragraph className="text-white text-opacity-85 text-base mb-8 leading-relaxed">
-            InstruLearn mang đến cho bạn hành trình khám phá âm nhạc với các bài
-            học trực quan, hướng dẫn chuyên nghiệp và cộng đồng đam mê.
+            Đăng ký tài khoản InstruLearn để mở khóa hơn 10,000 bài học chất
+            lượng cao, nhận phản hồi thời gian thực và kết nối với cộng đồng
+            người học toàn cầu.
           </Paragraph>
 
           {/* Feature list */}
@@ -192,10 +232,10 @@ export default function Login() {
               <VideoCameraOutlined className="text-xl text-white mr-4 mt-1" />
               <div>
                 <Text strong className="text-white text-base block mb-1">
-                  Bài học video HD chất lượng cao
+                  Học mọi lúc, mọi nơi
                 </Text>
                 <Text className="text-white text-opacity-75 text-sm">
-                  Hơn 10,000 video từ các giảng viên âm nhạc hàng đầu
+                  Truy cập từ máy tính, điện thoại hoặc máy tính bảng
                 </Text>
               </div>
             </div>
@@ -204,10 +244,10 @@ export default function Login() {
               <CustomerServiceOutlined className="text-xl text-white mr-4 mt-1" />
               <div>
                 <Text strong className="text-white text-base block mb-1">
-                  Phân tích hiệu suất trực tiếp
+                  Hỗ trợ 1-1 với giáo viên
                 </Text>
                 <Text className="text-white text-opacity-75 text-sm">
-                  Công nghệ AI phân tích và đưa ra phản hồi ngay lập tức
+                  Đặt lịch học trực tuyến với các giáo viên chuyên nghiệp
                 </Text>
               </div>
             </div>
@@ -216,11 +256,10 @@ export default function Login() {
               <TrophyOutlined className="text-xl text-white mr-4 mt-1" />
               <div>
                 <Text strong className="text-white text-base block mb-1">
-                  Lộ trình học cá nhân hóa
+                  Thử thách và phần thưởng
                 </Text>
                 <Text className="text-white text-opacity-75 text-sm">
-                  Phương pháp học tập được điều chỉnh theo trình độ và mục tiêu
-                  của bạn
+                  Nhận huy hiệu khi hoàn thành các thử thách học tập
                 </Text>
               </div>
             </div>
@@ -232,11 +271,12 @@ export default function Login() {
               "
             </div>
             <Paragraph className="text-white text-sm italic mb-2">
-              Tôi đã học đàn guitar trong 3 tháng với InstruLearn và tiến bộ
-              nhanh hơn nhiều so với một năm tự học trước đó.
+              InstruLearn giúp tôi thực hiện được ước mơ chơi piano từ nhỏ. Giao
+              diện dễ sử dụng và cách giảng dạy rõ ràng là điểm mạnh của nền
+              tảng này.
             </Paragraph>
             <Text className="text-white text-opacity-70 text-sm">
-              Minh Tuấn - Học viên đàn guitar
+              Hoàng Linh - Học viên piano
             </Text>
           </div>
         </div>
