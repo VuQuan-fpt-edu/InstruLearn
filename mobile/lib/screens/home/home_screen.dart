@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../auth/login_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -20,6 +22,31 @@ class MyApp extends StatelessWidget {
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({Key? key}) : super(key: key);
+
+  Future<void> _logout(BuildContext context) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('token');
+      await prefs.remove('refreshToken');
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Đã đăng xuất thành công')));
+
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+        (route) => false,
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi khi đăng xuất: ${e.toString()}')),
+      );
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+        (route) => false,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -132,21 +159,52 @@ class HomeScreen extends StatelessWidget {
               mainAxisSpacing: 15,
               crossAxisSpacing: 15,
               children: [
-                _buildMenuItem(title: 'Schedule', icon: Icons.calendar_today),
-                _buildMenuItem(title: 'Library', icon: Icons.book),
                 _buildMenuItem(
+                  context: context,
+                  title: 'Schedule',
+                  icon: Icons.calendar_today,
+                ),
+                _buildMenuItem(
+                  context: context,
+                  title: 'Library',
+                  icon: Icons.book,
+                ),
+                _buildMenuItem(
+                  context: context,
                   title: 'Application',
                   icon: Icons.app_registration,
                 ),
                 _buildMenuItem(
+                  context: context,
                   title: 'Notification',
                   icon: Icons.notifications,
                 ),
-                _buildMenuItem(title: 'Mark Report', icon: Icons.assessment),
-                _buildMenuItem(title: 'Logout', icon: Icons.logout),
-                _buildMenuItem(title: 'đăng ký học kèm', icon: Icons.class_),
-                _buildMenuItem(title: 'Lịch sử đơn học', icon: Icons.history),
-                _buildMenuItem(title: 'Ví', icon: Icons.account_balance_wallet),
+                _buildMenuItem(
+                  context: context,
+                  title: 'Mark Report',
+                  icon: Icons.assessment,
+                ),
+                _buildMenuItem(
+                  context: context,
+                  title: 'đăng ký học kèm',
+                  icon: Icons.class_,
+                ),
+                _buildMenuItem(
+                  context: context,
+                  title: 'Lịch sử đơn học',
+                  icon: Icons.history,
+                ),
+                _buildMenuItem(
+                  context: context,
+                  title: 'Ví',
+                  icon: Icons.account_balance_wallet,
+                ),
+                _buildMenuItem(
+                  context: context,
+                  title: 'Logout',
+                  icon: Icons.logout,
+                  onTap: () => _logout(context),
+                ),
               ],
             ),
           ),
@@ -171,23 +229,48 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildMenuItem({required String title, required IconData icon}) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 30),
-          const SizedBox(height: 8),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 12),
-          ),
-        ],
+  Widget _buildMenuItem({
+    required BuildContext context,
+    required String title,
+    required IconData icon,
+    VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              spreadRadius: 1,
+              blurRadius: 2,
+              offset: const Offset(0, 1),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 30,
+              color: title == 'Logout' ? Colors.red : Colors.blue,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight:
+                    title == 'Logout' ? FontWeight.bold : FontWeight.normal,
+                color: title == 'Logout' ? Colors.red : Colors.black87,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
