@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 import '../auth/login_screen.dart';
 
 void main() {
@@ -20,31 +22,124 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
 
-  Future<void> _logout(BuildContext context) async {
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  String fullName = 'Loading...';
+  String email = 'Loading...';
+  String username = 'Loading...';
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserProfile();
+  }
+
+  Future<void> _fetchUserProfile() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      if (token == null) {
+        _navigateToLogin();
+        return;
+      }
+
+      final response = await http.get(
+        Uri.parse(
+          'https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Auth/Profile',
+        ),
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['isSucceed'] == true) {
+          setState(() {
+            fullName = data['data']['fullName'] ?? 'Không có thông tin';
+            email = data['data']['email'] ?? 'Không có thông tin';
+            username = data['data']['username'] ?? 'Không có thông tin';
+            isLoading = false;
+          });
+        } else {
+          setState(() {
+            fullName = 'Không thể tải thông tin';
+            email = 'Không thể tải thông tin';
+            username = 'Không thể tải thông tin';
+            isLoading = false;
+          });
+          _showErrorMessage(
+            data['message'] ?? 'Không thể tải thông tin người dùng',
+          );
+        }
+      } else if (response.statusCode == 401) {
+        _showErrorMessage(
+          'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
+        );
+        _logout();
+      } else {
+        setState(() {
+          fullName = 'Không thể tải thông tin';
+          email = 'Không thể tải thông tin';
+          username = 'Không thể tải thông tin';
+          isLoading = false;
+        });
+        _showErrorMessage('Lỗi kết nối: ${response.statusCode}');
+      }
+    } catch (e) {
+      setState(() {
+        fullName = 'Không thể tải thông tin';
+        email = 'Không thể tải thông tin';
+        username = 'Không thể tải thông tin';
+        isLoading = false;
+      });
+      _showErrorMessage('Lỗi: ${e.toString()}');
+    }
+  }
+
+  void _showErrorMessage(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    }
+  }
+
+  void _navigateToLogin() {
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
+      (route) => false,
+    );
+  }
+
+  Future<void> _logout() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('token');
       await prefs.remove('refreshToken');
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Đã đăng xuất thành công')));
-
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
-        (route) => false,
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Đã đăng xuất thành công')),
+        );
+        _navigateToLogin();
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi khi đăng xuất: ${e.toString()}')),
-      );
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
-        (route) => false,
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi khi đăng xuất: ${e.toString()}')),
+        );
+        _navigateToLogin();
+      }
     }
   }
 
@@ -94,28 +189,36 @@ class HomeScreen extends StatelessWidget {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(15),
                       ),
-                      child: const Center(
-                        child: Text(
-                          'UwU',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
+                      child:
+                          isLoading
+                              ? const CircularProgressIndicator()
+                              : Center(
+                                child: Text(
+                                  username.isNotEmpty
+                                      ? username[0].toUpperCase()
+                                      : 'U',
+                                  style: const TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 10),
 
-                const Text(
-                  'This is your Full Name',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                Text(
+                  isLoading ? 'Loading...' : fullName,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 5),
-                const Text(
-                  'This is your Email Address',
-                  style: TextStyle(fontSize: 14),
+                Text(
+                  isLoading ? 'Loading...' : email,
+                  style: const TextStyle(fontSize: 14),
                 ),
                 const SizedBox(height: 5),
                 const Text(
@@ -203,7 +306,7 @@ class HomeScreen extends StatelessWidget {
                   context: context,
                   title: 'Logout',
                   icon: Icons.logout,
-                  onTap: () => _logout(context),
+                  onTap: () => _logout(),
                 ),
               ],
             ),
