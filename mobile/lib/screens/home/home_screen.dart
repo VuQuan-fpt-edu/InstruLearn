@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import '../auth/login_screen.dart';
+import 'profile_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -34,6 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String email = 'Loading...';
   String username = 'Loading...';
   bool isLoading = true;
+  int _currentIndex = 0;
 
   @override
   void initState() {
@@ -318,7 +320,23 @@ class _HomeScreenState extends State<HomeScreen> {
         type: BottomNavigationBarType.fixed,
         selectedItemColor: Colors.blue[800],
         unselectedItemColor: Colors.grey,
-        currentIndex: 0,
+        currentIndex: _currentIndex,
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+
+          if (index == 1) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ProfileScreen()),
+            ).then((_) {
+              setState(() {
+                _currentIndex = 0;
+              });
+            });
+          }
+        },
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
