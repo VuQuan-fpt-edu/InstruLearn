@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import '../auth/login_screen.dart';
 import 'profile_screen.dart';
+import '../service/buy_course_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -120,6 +121,13 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (context) => const LoginScreen()),
       (route) => false,
+    );
+  }
+
+  void _navigateToBuyCourse() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const BuyCourseScreen()),
     );
   }
 
@@ -257,6 +265,31 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
+          // Thêm hai nút lớn cho "Mua khóa học" và "Đăng ký lớp học"
+          Padding(
+            padding: const EdgeInsets.all(15.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _buildFeatureButton(
+                    title: 'Mua khóa học',
+                    icon: Icons.school,
+                    onTap: _navigateToBuyCourse,
+                    color: Colors.blue[700]!,
+                  ),
+                ),
+                const SizedBox(width: 15),
+                Expanded(
+                  child: _buildFeatureButton(
+                    title: 'Đăng ký lớp học',
+                    icon: Icons.class_outlined,
+                    color: Colors.green[700]!,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
           Expanded(
             child: GridView.count(
               padding: const EdgeInsets.all(20),
@@ -346,6 +379,48 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Setting'),
         ],
+      ),
+    );
+  }
+
+  Widget _buildFeatureButton({
+    required String title,
+    required IconData icon,
+    VoidCallback? onTap,
+    required Color color,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 80,
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.3),
+              spreadRadius: 1,
+              blurRadius: 3,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 32, color: Colors.white),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
