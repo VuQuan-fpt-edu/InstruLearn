@@ -1,6 +1,14 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import { Form, Input, Button, Checkbox, Divider, Typography } from "antd";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  Form,
+  Input,
+  Button,
+  Checkbox,
+  Divider,
+  Typography,
+  message,
+} from "antd";
 import {
   UserOutlined,
   LockOutlined,
@@ -13,20 +21,31 @@ import {
   PlayCircleOutlined,
 } from "@ant-design/icons";
 import "antd/dist/reset.css";
+import { login } from "../api/auth";
 
 const { Title, Text, Paragraph } = Typography;
 
 export default function Login() {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const navigate = useNavigate();
 
-  const handleLogin = (values) => {
-    console.log("Login values:", values);
+  const handleLogin = async (values) => {
+    try {
+      const response = await login({
+        username: values.username,
+        password: values.password,
+      });
+      message.success("Đăng nhập thành công!");
+      navigate("/");
+    } catch (error) {
+      message.error(
+        "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin đăng nhập!"
+      );
+      navigate("/404");
+    }
   };
 
   return (
     <div className="w-full h-screen flex overflow-hidden">
-      {/* Left Side - Form */}
       <div className="w-1/2 flex items-center justify-center p-8 bg-white">
         <div className="w-full max-w-lg">
           <div className="mb-8">
@@ -67,8 +86,6 @@ export default function Login() {
               <Input
                 prefix={<UserOutlined className="text-gray-400" />}
                 placeholder="Nhập tên đăng nhập của bạn"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
                 className="rounded-lg py-2 px-4 h-10"
               />
             </Form.Item>
@@ -84,8 +101,6 @@ export default function Login() {
               <Input.Password
                 prefix={<LockOutlined className="text-gray-400" />}
                 placeholder="Nhập mật khẩu của bạn"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
                 className="rounded-lg py-2 px-4 h-10"
               />
             </Form.Item>
@@ -161,17 +176,13 @@ export default function Login() {
           </div>
         </div>
       </div>
-
-      {/* Right Side - Info */}
       <div className="w-1/2 bg-gradient-to-br from-purple-700 to-indigo-900 flex flex-col items-center justify-center p-8 relative overflow-hidden">
-        {/* Background Elements */}
         <div className="absolute inset-0 opacity-10 bg-radial-light"></div>
 
         <div className="absolute top-1/12 right-1/12 w-20 h-32 rounded-3xl bg-white bg-opacity-10 transform -rotate-12"></div>
         <div className="absolute bottom-1/6 left-1/12 w-32 h-32 rounded-full bg-white bg-opacity-10 transform rotate-12"></div>
         <div className="absolute bottom-1/4 right-1/6 w-40 h-10 rounded-xl bg-white bg-opacity-10 transform -rotate-3"></div>
 
-        {/* Content */}
         <div className="text-center z-10 max-w-lg">
           <div className="w-32 h-32 mx-auto mb-8 bg-white bg-opacity-20 rounded-xl flex items-center justify-center shadow-lg">
             <PlayCircleOutlined className="text-6xl text-white" />
@@ -186,7 +197,6 @@ export default function Login() {
             học trực quan, hướng dẫn chuyên nghiệp và cộng đồng đam mê.
           </Paragraph>
 
-          {/* Feature list */}
           <div className="text-left mb-8">
             <div className="flex items-start mb-3">
               <VideoCameraOutlined className="text-xl text-white mr-4 mt-1" />
@@ -226,7 +236,6 @@ export default function Login() {
             </div>
           </div>
 
-          {/* Testimonial */}
           <div className="bg-white bg-opacity-10 rounded-xl p-5 relative">
             <div className="absolute -top-3 left-6 text-4xl text-white text-opacity-30 font-serif leading-none">
               "
