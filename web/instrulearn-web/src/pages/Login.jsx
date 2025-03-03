@@ -8,6 +8,7 @@ import {
   Divider,
   Typography,
   message,
+  Spin,
 } from "antd";
 import {
   UserOutlined,
@@ -27,20 +28,59 @@ const { Title, Text, Paragraph } = Typography;
 
 export default function Login() {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const handleLogin = async (values) => {
+    setLoading(true);
+    setErrorMessage("");
+
     try {
       const response = await login({
         username: values.username,
         password: values.password,
       });
-      message.success("Đăng nhập thành công!");
-      navigate("/");
+
+      // Kiểm tra response từ hàm login (đã được xử lý trong auth.js)
+      if (response && response.token) {
+        message.success("Đăng nhập thành công!");
+        navigate("/");
+      } else {
+        setErrorMessage("Không nhận được token xác thực từ máy chủ");
+        message.error("Đăng nhập thất bại. Vui lòng thử lại sau.");
+      }
     } catch (error) {
+      console.error("Login error:", error);
+
+      // Display more specific error messages based on the error
+      if (error.response) {
+        switch (error.response.status) {
+          case 400:
+            setErrorMessage("Tên đăng nhập hoặc mật khẩu không hợp lệ");
+            break;
+          case 401:
+            setErrorMessage("Tên đăng nhập hoặc mật khẩu không chính xác");
+            break;
+          case 404:
+            setErrorMessage("Không tìm thấy tài khoản");
+            break;
+          case 500:
+            setErrorMessage("Lỗi máy chủ. Vui lòng thử lại sau");
+            break;
+          default:
+            setErrorMessage("Đăng nhập thất bại. Vui lòng thử lại sau");
+        }
+      } else {
+        setErrorMessage(
+          "Lỗi kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng"
+        );
+      }
+
       message.error(
         "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin đăng nhập!"
       );
-      navigate("/404");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -64,6 +104,12 @@ export default function Login() {
               Vui lòng đăng nhập để tiếp tục hành trình âm nhạc của bạn
             </Text>
           </div>
+
+          {errorMessage && (
+            <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-md border border-red-200">
+              {errorMessage}
+            </div>
+          )}
 
           <Form
             name="login_form"
@@ -122,9 +168,11 @@ export default function Login() {
                 htmlType="submit"
                 block
                 className="h-10 rounded-lg font-medium text-base bg-gradient-to-r from-purple-700 to-purple-900 border-none"
+                loading={loading}
+                disabled={loading}
               >
-                Đăng nhập
-                <ArrowRightOutlined className="ml-2" />
+                {loading ? "Đang đăng nhập..." : "Đăng nhập"}
+                {!loading && <ArrowRightOutlined className="ml-2" />}
               </Button>
             </Form.Item>
 

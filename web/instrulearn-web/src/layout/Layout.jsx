@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useLocation, Outlet } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useLocation, Outlet, useNavigate } from "react-router-dom";
 import {
   Layout,
   Menu,
@@ -10,6 +10,8 @@ import {
   Input,
   Divider,
   Typography,
+  message,
+  Spin,
 } from "antd";
 import {
   HomeOutlined,
@@ -26,14 +28,58 @@ import {
   FacebookOutlined,
   YoutubeOutlined,
   TwitterOutlined,
+  LoginOutlined,
 } from "@ant-design/icons";
+import { getCurrentUser } from "../api/auth"; // Import the getCurrentUser function
 
 const { Header, Content, Footer } = Layout;
 const { Title, Text, Paragraph } = Typography;
 
 export default function AppLayout({ children }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const [searchVisible, setSearchVisible] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // Kiểm tra trạng thái đăng nhập và lấy thông tin người dùng khi component mount
+  useEffect(() => {
+    const checkLoginStatus = async () => {
+      const token = localStorage.getItem("authToken");
+      if (token) {
+        try {
+          // Lấy thông tin người dùng hiện tại
+          setLoading(true);
+          const userData = await getCurrentUser();
+          setCurrentUser(userData);
+          setIsLoggedIn(true);
+        } catch (error) {
+          console.error("Error fetching user data:", error);
+          message.error("Lỗi xác thực, vui lòng đăng nhập lại");
+          localStorage.removeItem("authToken");
+          setIsLoggedIn(false);
+          setCurrentUser(null);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        setIsLoggedIn(false);
+        setCurrentUser(null);
+        setLoading(false);
+      }
+    };
+
+    checkLoginStatus();
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("authToken");
+    setIsLoggedIn(false);
+    setCurrentUser(null);
+    message.success("Đã đăng xuất thành công");
+    navigate("/");
+  };
 
   const userMenu = (
     <Menu>
@@ -44,7 +90,7 @@ export default function AppLayout({ children }) {
         <Link to="/settings">Cài đặt</Link>
       </Menu.Item>
       <Menu.Divider />
-      <Menu.Item key="logout" icon={<LogoutOutlined />}>
+      <Menu.Item key="logout" icon={<LogoutOutlined />} onClick={handleLogout}>
         Đăng xuất
       </Menu.Item>
     </Menu>
@@ -74,6 +120,10 @@ export default function AppLayout({ children }) {
       </Menu.Item>
     </Menu>
   );
+
+  const handleLogin = () => {
+    navigate("/login");
+  };
 
   return (
     <Layout className="min-h-screen">
@@ -126,26 +176,43 @@ export default function AppLayout({ children }) {
             />
           )}
 
-          <Dropdown overlay={notificationMenu} trigger={["click"]}>
-            <Badge count={3} className="mr-4">
-              <Button
-                type="text"
-                icon={<BellOutlined className="text-xl" />}
-                className="flex items-center justify-center"
-              />
-            </Badge>
-          </Dropdown>
+          {loading ? (
+            <Spin size="small" className="mr-4" />
+          ) : isLoggedIn && currentUser ? (
+            <>
+              <Dropdown overlay={notificationMenu} trigger={["click"]}>
+                <Badge count={3} className="mr-4">
+                  <Button
+                    type="text"
+                    icon={<BellOutlined className="text-xl" />}
+                    className="flex items-center justify-center"
+                  />
+                </Badge>
+              </Dropdown>
 
-          <Dropdown overlay={userMenu} trigger={["click"]}>
-            <div className="flex items-center cursor-pointer">
-              <Avatar
-                size="default"
-                icon={<UserOutlined />}
-                className="bg-purple-700"
-              />
-              <span className="ml-2 hidden md:inline">Học viên</span>
-            </div>
-          </Dropdown>
+              <Dropdown overlay={userMenu} trigger={["click"]}>
+                <div className="flex items-center cursor-pointer">
+                  <Avatar
+                    size="default"
+                    icon={<UserOutlined />}
+                    className="bg-purple-700"
+                  />
+                  <span className="ml-2 hidden md:inline">
+                    {currentUser.username || "Người dùng"}
+                  </span>
+                </div>
+              </Dropdown>
+            </>
+          ) : (
+            <Button
+              type="primary"
+              icon={<LoginOutlined />}
+              onClick={handleLogin}
+              className="bg-purple-700 hover:bg-purple-800"
+            >
+              Đăng nhập
+            </Button>
+          )}
         </div>
       </Header>
 
