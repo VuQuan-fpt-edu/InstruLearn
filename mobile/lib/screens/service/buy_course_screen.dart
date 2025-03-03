@@ -55,17 +55,14 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
   bool isLoading = true;
   String errorMessage = '';
 
-  // Khai báo các biến để lưu trữ bộ lọc
   String searchQuery = '';
   double? minRating;
   int? minPrice;
   int? maxPrice;
   String? selectedType;
 
-  // Danh sách các loại nhạc cụ duy nhất
   List<String> instrumentTypes = [];
 
-  // Controller cho text field tìm kiếm
   final TextEditingController _searchController = TextEditingController();
 
   @override
@@ -104,24 +101,62 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
       );
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['isSucceed'] == true) {
-          final List<dynamic> coursesData = data['data'];
-          setState(() {
-            courses = coursesData.map((json) => Course.fromJson(json)).toList();
-            filteredCourses = List.from(courses);
-            isLoading = false;
+        try {
+          final data = json.decode(response.body);
 
-            // Lấy danh sách các loại nhạc cụ duy nhất
-            instrumentTypes =
-                courses.map((course) => course.typeName).toSet().toList()
-                  ..sort();
-          });
-        } else {
+          if (data is List) {
+            setState(() {
+              courses = data.map((json) => Course.fromJson(json)).toList();
+              filteredCourses = List.from(courses);
+              isLoading = false;
+
+              instrumentTypes =
+                  courses.map((course) => course.typeName).toSet().toList()
+                    ..sort();
+            });
+          } else if (data['isSucceed'] != null) {
+            var isSucceed = data['isSucceed'];
+            if (isSucceed == true || isSucceed == "true") {
+              final List<dynamic> coursesData = data['data'];
+              setState(() {
+                courses =
+                    coursesData.map((json) => Course.fromJson(json)).toList();
+                filteredCourses = List.from(courses);
+                isLoading = false;
+
+                instrumentTypes =
+                    courses.map((course) => course.typeName).toSet().toList()
+                      ..sort();
+              });
+            } else {
+              setState(() {
+                isLoading = false;
+                errorMessage =
+                    data['message'] ?? 'Không thể tải danh sách khóa học';
+              });
+            }
+          } else if (data['data'] != null && data['data'] is List) {
+            final List<dynamic> coursesData = data['data'];
+            setState(() {
+              courses =
+                  coursesData.map((json) => Course.fromJson(json)).toList();
+              filteredCourses = List.from(courses);
+              isLoading = false;
+
+              instrumentTypes =
+                  courses.map((course) => course.typeName).toSet().toList()
+                    ..sort();
+            });
+          } else {
+            setState(() {
+              isLoading = false;
+              errorMessage = 'Định dạng dữ liệu không hợp lệ';
+            });
+          }
+        } catch (e) {
           setState(() {
             isLoading = false;
-            errorMessage =
-                data['message'] ?? 'Không thể tải danh sách khóa học';
+            errorMessage = 'Lỗi xử lý dữ liệu: ${e.toString()}';
           });
         }
       } else if (response.statusCode == 401) {
@@ -143,12 +178,10 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
     }
   }
 
-  // Áp dụng bộ lọc vào danh sách khóa học
   void _applyFilters() {
     setState(() {
       filteredCourses =
           courses.where((course) {
-            // Lọc theo từ khóa tìm kiếm
             final matchesSearch =
                 searchQuery.isEmpty ||
                 course.courseName.toLowerCase().contains(
@@ -161,17 +194,14 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
                   searchQuery.toLowerCase(),
                 );
 
-            // Lọc theo rating
             final matchesRating =
                 minRating == null || course.rating >= minRating!;
 
-            // Lọc theo giá
             final matchesMinPrice =
                 minPrice == null || course.price >= minPrice!;
             final matchesMaxPrice =
                 maxPrice == null || course.price <= maxPrice!;
 
-            // Lọc theo loại nhạc cụ
             final matchesType =
                 selectedType == null || course.typeName == selectedType;
 
@@ -184,9 +214,7 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
     });
   }
 
-  // Hiển thị dialog để chọn bộ lọc
   void _showFilterDialog() {
-    // Giá trị tạm thời để lưu các lựa chọn trong dialog
     double? tempMinRating = minRating;
     int? tempMinPrice = minPrice;
     int? tempMaxPrice = maxPrice;
@@ -204,7 +232,6 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Lọc theo rating
                     const Text(
                       'Rating tối thiểu:',
                       style: TextStyle(fontWeight: FontWeight.bold),
@@ -224,7 +251,6 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
 
                     const SizedBox(height: 20),
 
-                    // Lọc theo khoảng giá
                     const Text(
                       'Khoảng giá:',
                       style: TextStyle(fontWeight: FontWeight.bold),
@@ -271,7 +297,6 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
 
                     const SizedBox(height: 20),
 
-                    // Lọc theo loại nhạc cụ
                     const Text(
                       'Loại nhạc cụ:',
                       style: TextStyle(fontWeight: FontWeight.bold),
@@ -286,7 +311,6 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
                         });
                       },
                       items: [
-                        // Thêm lựa chọn "Tất cả"
                         const DropdownMenuItem<String>(
                           value: null,
                           child: Text('Tất cả'),
@@ -313,7 +337,6 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
                 ),
                 TextButton(
                   onPressed: () {
-                    // Áp dụng bộ lọc
                     setState(() {
                       minRating = tempMinRating;
                       minPrice = tempMinPrice;
@@ -327,7 +350,6 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
                 ),
                 TextButton(
                   onPressed: () {
-                    // Xóa bộ lọc
                     setState(() {
                       minRating = null;
                       minPrice = null;
@@ -360,7 +382,6 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
         title: const Text('Mua khóa học'),
         backgroundColor: const Color(0xFF8C9EFF),
         actions: [
-          // Nút hiển thị dialog lọc
           IconButton(
             icon: const Icon(Icons.filter_list),
             onPressed: _showFilterDialog,
@@ -369,7 +390,6 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
       ),
       body: Column(
         children: [
-          // Thanh tìm kiếm
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: TextField(
@@ -405,7 +425,6 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
             ),
           ),
 
-          // Hiển thị các bộ lọc đã chọn
           if (minRating != null ||
               minPrice != null ||
               maxPrice != null ||
@@ -458,7 +477,6 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
               ),
             ),
 
-          // Hiển thị số lượng kết quả
           Padding(
             padding: const EdgeInsets.symmetric(
               horizontal: 12.0,
@@ -474,7 +492,6 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
                   ),
                 ),
                 const Spacer(),
-                // Nút sắp xếp
                 PopupMenuButton<String>(
                   icon: const Row(
                     children: [
@@ -533,7 +550,6 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
             ),
           ),
 
-          // Phần còn lại của giao diện
           Expanded(
             child:
                 isLoading
@@ -621,7 +637,6 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
     );
   }
 
-  // Widget hiển thị chip cho bộ lọc
   Widget _buildFilterChip(String label, VoidCallback onDelete) {
     return Padding(
       padding: const EdgeInsets.only(right: 8.0),

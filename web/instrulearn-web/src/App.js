@@ -14,6 +14,8 @@ import CourseManagement from "./pages/CourseManagement";
 import CourseDetail from "./pages/CourseDetail";
 import CourseContentDetail from "./pages/CourseContentDetail";
 import ItemTypeManagement from "./pages/ItemTypeManagement";
+import CourseHomeDetails from "./pages/CourseHomeDetails";
+import Search from "./pages/Search";
 
 export default function App() {
   return (
@@ -41,6 +43,8 @@ export default function App() {
           element={<CourseContentDetail />}
         />
         <Route path="/item-type" element={<ItemTypeManagement />} />
+        <Route path="/course/:id" element={<CourseHomeDetails />} />
+        <Route path="/search" element={<Search />} />
       </Routes>
     </Router>
   );
