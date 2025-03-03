@@ -409,12 +409,10 @@ class _CourseQnAWidgetState extends State<CourseQnAWidget> {
               style: const TextStyle(fontSize: 15),
             ),
             const SizedBox(height: 8),
-            // Replies section
             if (question.replies.isNotEmpty) ...[
               const Divider(),
               ...question.replies.map((reply) => _buildReplyItem(reply)),
             ],
-            // Reply button
             TextButton.icon(
               icon: const Icon(Icons.reply, size: 16),
               label: const Text('Trả lời'),

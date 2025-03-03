@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import '../service/detail/course_details_screen.dart';
+import 'detail/course_details_screen.dart';
 
 class Course {
   final int courseId;
@@ -29,13 +29,13 @@ class Course {
 
   factory Course.fromJson(Map<String, dynamic> json) {
     return Course(
-      courseId: json['courseId'] as int,
+      courseId: (json['courseId'] as num).toInt(),
       courseName: json['courseName'] as String,
       courseDescription: json['courseDescription'] as String,
       headline: json['headline'] as String,
       rating: (json['rating'] as num).toDouble(),
-      price: json['price'] as int,
-      discount: json['discount'] as int,
+      price: (json['price'] as num).toInt(),
+      discount: (json['discount'] as num).toInt(),
       imageUrl: json['imageUrl'] as String,
       typeName: json['typeName'] as String,
     );
@@ -622,7 +622,7 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
                               crossAxisCount: 2,
                               crossAxisSpacing: 8,
                               mainAxisSpacing: 10,
-                              childAspectRatio: 0.8,
+                              childAspectRatio: 0.7,
                             ),
                         itemCount: filteredCourses.length,
                         itemBuilder: (context, index) {
@@ -674,12 +674,12 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
               ),
               child: Image.network(
                 course.imageUrl,
-                height: 120,
+                height: 100,
                 width: double.infinity,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
                   return Container(
-                    height: 120,
+                    height: 100,
                     width: double.infinity,
                     color: Colors.grey[300],
                     child: const Icon(
@@ -694,7 +694,7 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
 
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.all(8.0),
+                padding: const EdgeInsets.all(6.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -708,7 +708,7 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
                             Flexible(
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
+                                  horizontal: 4,
                                   vertical: 2,
                                 ),
                                 decoration: BoxDecoration(
@@ -718,7 +718,7 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
                                 child: Text(
                                   course.typeName,
                                   style: TextStyle(
-                                    fontSize: 10,
+                                    fontSize: 9,
                                     color: Colors.blue[800],
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -739,7 +739,7 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
                                   course.rating.toString(),
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 11,
+                                    fontSize: 10,
                                   ),
                                 ),
                               ],
@@ -747,27 +747,27 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
                           ],
                         ),
 
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 6),
 
                         Text(
                           course.courseName,
                           style: const TextStyle(
-                            fontSize: 13,
+                            fontSize: 12,
                             fontWeight: FontWeight.bold,
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
 
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 2),
 
                         Text(
                           course.headline,
                           style: const TextStyle(
-                            fontSize: 11,
+                            fontSize: 10,
                             color: Colors.black87,
                           ),
-                          maxLines: 2,
+                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ],
@@ -779,13 +779,13 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
                         Text(
                           _formatCurrency(course.price),
                           style: const TextStyle(
-                            fontSize: 13,
+                            fontSize: 12,
                             fontWeight: FontWeight.bold,
                             color: Colors.blue,
                           ),
                         ),
 
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 4),
 
                         SizedBox(
                           width: double.infinity,
@@ -806,14 +806,14 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
                                 horizontal: 6,
                                 vertical: 0,
                               ),
-                              minimumSize: const Size(0, 32),
+                              minimumSize: const Size(0, 28),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(6),
                               ),
                             ),
                             child: const Text(
                               'Mua ngay',
-                              style: TextStyle(fontSize: 12),
+                              style: TextStyle(fontSize: 11),
                             ),
                           ),
                         ),
