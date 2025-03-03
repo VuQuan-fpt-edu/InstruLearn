@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../buy_course_screen.dart';
+import 'course_feedback_widget.dart';
+import 'course_qna_widget.dart';
 
 class CourseContent {
   final int contentId;
@@ -416,6 +418,8 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
               ],
             ),
           ),
+          CourseFeedbackWidget(courseId: widget.course.courseId),
+          CourseQnAWidget(courseId: widget.course.courseId),
         ],
       ),
     );
