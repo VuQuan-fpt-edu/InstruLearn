@@ -20,7 +20,7 @@ import {
   FilterOutlined,
   ClearOutlined,
 } from "@ant-design/icons";
-import SearchBar from "../components/SearchBar";
+import SearchBar from "../../components/SearchBar";
 
 export default function Search() {
   const location = useLocation();

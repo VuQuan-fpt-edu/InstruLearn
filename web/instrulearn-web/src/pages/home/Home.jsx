@@ -8,7 +8,7 @@ import {
 } from "@ant-design/icons";
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import SearchBar from "../components/SearchBar";
+import SearchBar from "../../components/SearchBar";
 
 export default function Home() {
   const [courses, setCourses] = useState([]);
