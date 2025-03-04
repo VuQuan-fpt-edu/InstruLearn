@@ -6,7 +6,7 @@ import Home from "./pages/home/Home";
 import Page404 from "./pages/error/404";
 import AdminDashboard from "./pages/admin/AdminDashBoard";
 import StaffDashboard from "./pages/staff/StaffDashBoard";
-import Profile from "./pages/home/Profile";
+import Profile from "./pages/home/profile/Profile";
 import TestFireBase from "./pages/TestFireBase";
 import InstrumentManagement from "./pages/staff/InstrumentManagement";
 import AddCourse from "./pages/staff/AddCourse";

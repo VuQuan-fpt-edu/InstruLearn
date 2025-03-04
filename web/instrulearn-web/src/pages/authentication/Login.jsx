@@ -41,9 +41,17 @@ export default function Login() {
         password: values.password,
       });
       if (response && response.token) {
+        // Store the authentication token
+        localStorage.setItem("authToken", response.token);
+
         message.success("Đăng nhập thành công!");
         const userProfile = await getCurrentUser();
+
+        // Store additional user information
         localStorage.setItem("role", userProfile.role);
+        localStorage.setItem("learnerId", userProfile.learnerId);
+        localStorage.setItem("username", userProfile.username);
+
         if (userProfile.role === "Admin") {
           navigate("/admin");
         }
