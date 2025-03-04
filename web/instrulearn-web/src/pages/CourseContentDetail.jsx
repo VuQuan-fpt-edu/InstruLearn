@@ -120,7 +120,6 @@ const CourseContentDetail = () => {
       if (response.data?.isSucceed) {
         message.success("Thêm nội dung mới thành công");
         setAddItemModalVisible(false);
-        // Sau khi thêm thành công, tải lại chi tiết để cập nhật danh sách items
         fetchContentDetail();
       } else {
         message.error(response.data?.message || "Thêm nội dung thất bại");
@@ -137,7 +136,6 @@ const CourseContentDetail = () => {
     }
   };
 
-  // Xử lý sự kiện chỉnh sửa nội dung
   const handleEditItem = (item) => {
     setSelectedItem(item);
     editForm.setFieldsValue({
@@ -147,7 +145,6 @@ const CourseContentDetail = () => {
     setEditItemModalVisible(true);
   };
 
-  // Xử lý gửi yêu cầu cập nhật nội dung
   const handleEditItemSubmit = async () => {
     try {
       const values = await editForm.validateFields();
@@ -167,7 +164,6 @@ const CourseContentDetail = () => {
       if (response.data?.isSucceed) {
         message.success("Cập nhật nội dung thành công");
         setEditItemModalVisible(false);
-        // Sau khi cập nhật thành công, tải lại chi tiết để cập nhật danh sách items
         fetchContentDetail();
       } else {
         message.error(response.data?.message || "Cập nhật nội dung thất bại");
@@ -184,12 +180,10 @@ const CourseContentDetail = () => {
     }
   };
 
-  // Xác nhận xóa nội dung
   const showDeleteConfirm = (item) => {
     setItemToDelete(item);
     setDeleteConfirmVisible(true);
   };
-  // Xử lý sự kiện xóa nội dung
   const handleDeleteItem = async (itemId) => {
     setDeleteLoading(true);
     try {
@@ -199,7 +193,6 @@ const CourseContentDetail = () => {
 
       if (response.data?.isSucceed) {
         message.success("Xóa nội dung thành công");
-        // Sau khi xóa thành công, tải lại chi tiết để cập nhật danh sách items
         fetchContentDetail();
       } else {
         message.error(response.data?.message || "Xóa nội dung thất bại");
@@ -230,7 +223,6 @@ const CourseContentDetail = () => {
 
   const renderItemContent = (item) => {
     if (item.itemTypeId === 1) {
-      // Video
       return (
         <div className="mt-2">
           <div className="mb-2">
@@ -255,7 +247,6 @@ const CourseContentDetail = () => {
         </div>
       );
     } else {
-      // Doc or other types
       return (
         <div className="mt-2">
           <div className="mb-2">
@@ -380,8 +371,6 @@ const CourseContentDetail = () => {
               </Button>
             </div>
           )}
-
-          {/* Modal thêm nội dung mới */}
           <Modal
             title="Thêm nội dung mới"
             open={addItemModalVisible}
@@ -431,8 +420,6 @@ const CourseContentDetail = () => {
               </Form.Item>
             </Form>
           </Modal>
-
-          {/* Modal chỉnh sửa nội dung */}
           <Modal
             title="Chỉnh sửa nội dung"
             open={editItemModalVisible}
