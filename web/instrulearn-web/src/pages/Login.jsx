@@ -40,8 +40,6 @@ export default function Login() {
         username: values.username,
         password: values.password,
       });
-
-      // Kiểm tra response từ hàm login (đã được xử lý trong auth.js)
       if (response && response.token) {
         message.success("Đăng nhập thành công!");
         navigate("/");
@@ -52,7 +50,6 @@ export default function Login() {
     } catch (error) {
       console.error("Login error:", error);
 
-      // Display more specific error messages based on the error
       if (error.response) {
         switch (error.response.status) {
           case 400:

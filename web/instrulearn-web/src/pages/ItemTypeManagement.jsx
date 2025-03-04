@@ -259,7 +259,6 @@ const ItemTypeManagement = () => {
             </Card>
           </div>
 
-          {/* Add Item Type Modal */}
           <Modal
             title="Thêm loại nội dung"
             open={addModalVisible}
@@ -293,8 +292,6 @@ const ItemTypeManagement = () => {
               </Form.Item>
             </Form>
           </Modal>
-
-          {/* Edit Item Type Modal */}
           <Modal
             title="Sửa loại nội dung"
             open={editModalVisible}

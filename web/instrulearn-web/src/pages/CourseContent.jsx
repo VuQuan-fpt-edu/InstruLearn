@@ -12,10 +12,10 @@ import {
 } from "antd";
 import { BookOutlined, FileTextOutlined } from "@ant-design/icons";
 import axios from "axios";
-import { useNavigate } from "react-router-dom"; // Thêm useNavigate để điều hướng
+import { useNavigate } from "react-router-dom";
 
 const CourseContent = ({ courseId }) => {
-  const navigate = useNavigate(); // Hook điều hướng
+  const navigate = useNavigate();
   const [courseContents, setCourseContents] = useState([]);
   const [contentLoading, setContentLoading] = useState(true);
   const [contentModalVisible, setContentModalVisible] = useState(false);
@@ -32,7 +32,6 @@ const CourseContent = ({ courseId }) => {
   const fetchCourseContents = async () => {
     setContentLoading(true);
     try {
-      // First try to get content from the course API response
       const courseResponse = await axios.get(
         `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Course/${courseId}`
       );
@@ -46,7 +45,6 @@ const CourseContent = ({ courseId }) => {
       ) {
         setCourseContents(courseResponse.data.data.courseContents);
       } else {
-        // Fallback to the original courseContent API if needed
         const contentResponse = await axios.get(
           "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/CourseContent/get-all"
         );
@@ -56,7 +54,6 @@ const CourseContent = ({ courseId }) => {
           contentResponse.data.isSucceed &&
           contentResponse.data.data
         ) {
-          // Filter content by courseId
           const filteredContents = contentResponse.data.data.filter(
             (content) => content.courseId === parseInt(courseId)
           );
@@ -71,7 +68,6 @@ const CourseContent = ({ courseId }) => {
     }
   };
 
-  // Thêm nội dung khóa học mới
   const handleAddContent = async (values) => {
     try {
       const contentData = {
@@ -100,7 +96,6 @@ const CourseContent = ({ courseId }) => {
     }
   };
 
-  // Cập nhật nội dung khóa học
   const handleUpdateContent = async (values) => {
     if (!selectedContent) return;
 
@@ -133,7 +128,6 @@ const CourseContent = ({ courseId }) => {
     }
   };
 
-  // Xóa nội dung khóa học
   const handleDeleteContent = async (contentId) => {
     try {
       const response = await axios.delete(
@@ -163,13 +157,12 @@ const CourseContent = ({ courseId }) => {
   };
 
   const openEditContentModal = (content, e) => {
-    e.stopPropagation(); // Ngăn chặn sự kiện click lan tỏa đến item cha
+    e.stopPropagation();
     setSelectedContent(content);
     contentForm.setFieldsValue({ heading: content.heading });
     setEditContentModalVisible(true);
   };
 
-  // Hàm xử lý điều hướng đến trang chi tiết
   const navigateToContentDetail = (contentId) => {
     navigate(`/course-content-detail/${contentId}`);
   };
@@ -214,10 +207,10 @@ const CourseContent = ({ courseId }) => {
                   <Popconfirm
                     title="Bạn có chắc chắn muốn xóa nội dung này?"
                     onConfirm={(e) => {
-                      e.stopPropagation(); // Ngăn chặn sự kiện click lan tỏa
+                      e.stopPropagation();
                       handleDeleteContent(item.contentId);
                     }}
-                    onCancel={(e) => e.stopPropagation()} // Ngăn chặn sự kiện click lan tỏa
+                    onCancel={(e) => e.stopPropagation()}
                     okText="Có"
                     cancelText="Không"
                   >
@@ -225,7 +218,7 @@ const CourseContent = ({ courseId }) => {
                       key="delete"
                       type="link"
                       danger
-                      onClick={(e) => e.stopPropagation()} // Ngăn chặn sự kiện click lan tỏa
+                      onClick={(e) => e.stopPropagation()}
                     >
                       Xóa
                     </Button>
@@ -252,7 +245,6 @@ const CourseContent = ({ courseId }) => {
         )}
       </Card>
 
-      {/* Modal thêm nội dung khóa học */}
       <Modal
         title="Thêm nội dung khóa học"
         open={contentModalVisible}
@@ -283,7 +275,6 @@ const CourseContent = ({ courseId }) => {
         </Form>
       </Modal>
 
-      {/* Modal chỉnh sửa nội dung khóa học */}
       <Modal
         title="Chỉnh sửa nội dung khóa học"
         open={editContentModalVisible}
