@@ -10,14 +10,40 @@ import {
   Row,
   Col,
   InputNumber,
-  Upload,
   Divider,
   Typography,
+  Progress,
 } from "antd";
-import { PlusOutlined, FileImageOutlined } from "@ant-design/icons";
+import {
+  PlusOutlined,
+  FileImageOutlined,
+  UploadOutlined,
+} from "@ant-design/icons";
 import axios from "axios";
 import SSidebar from "../components/StaffSidebar";
 import SHeader from "../components/StaffHeader";
+import { initializeApp } from "firebase/app";
+import {
+  getStorage,
+  ref,
+  uploadBytesResumable,
+  getDownloadURL,
+} from "firebase/storage";
+
+// Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyB4EaRe-CrB3u7lYm2HZmHqIjE6E_PtaFM",
+  authDomain: "sdn-project-aba8a.firebaseapp.com",
+  projectId: "sdn-project-aba8a",
+  storageBucket: "sdn-project-aba8a.appspot.com",
+  messagingSenderId: "953028355031",
+  appId: "1:953028355031:web:7dfc4f2a85c932e507e192",
+  measurementId: "G-63KQ2X3RCL",
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const storage = getStorage(app);
 
 const { Content } = Layout;
 const { Option } = Select;
@@ -30,6 +56,12 @@ const AddCourse = () => {
   const [loading, setLoading] = useState(false);
   const [previewImage, setPreviewImage] = useState("");
   const [form] = Form.useForm();
+
+  // Firebase upload states
+  const [uploadFile, setUploadFile] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState("");
 
   useEffect(() => {
     fetchInstrumentTypes();
@@ -52,37 +84,118 @@ const AddCourse = () => {
   const handleSubmit = async (values) => {
     setLoading(true);
     try {
+      // Ensure all numeric values are actually numbers
+      const payload = {
+        ...values,
+        rating: Number(values.rating),
+        price: Number(values.price),
+        discount: Number(values.discount),
+        typeId: Number(values.typeId),
+      };
+
+      console.log("Submitting payload:", payload);
+
       const response = await axios.post(
         "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Course/create",
-        values
+        payload
       );
-      message.success("Khóa học đã được thêm thành công!");
-      form.resetFields();
-      setPreviewImage("");
+
+      if (response.data.isSucceed) {
+        message.success("Khóa học đã được thêm thành công!");
+        form.resetFields();
+        setPreviewImage("");
+        setUploadFile(null);
+        setUploadProgress(0);
+        setUploadStatus("");
+      } else {
+        message.error(
+          `Thêm khóa học thất bại: ${
+            response.data.message || "Lỗi không xác định"
+          }`
+        );
+      }
     } catch (error) {
       console.error("Error creating course:", error);
-      message.error("Có lỗi xảy ra khi thêm khóa học.");
+      const errorMsg =
+        error.response?.data?.message || "Có lỗi xảy ra khi thêm khóa học.";
+      message.error(errorMsg);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleImageChange = (info) => {
-    if (info.file.status === "done") {
-      setPreviewImage(info.file.response.url);
-      form.setFieldsValue({ imageUrl: info.file.response.url });
+  const handleFileSelect = (e) => {
+    if (e.target.files[0]) {
+      const file = e.target.files[0];
+
+      // Validate file is an image
+      if (!file.type.startsWith("image/")) {
+        message.error("Vui lòng chỉ chọn file hình ảnh");
+        return;
+      }
+
+      // Validate file size (maximum 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        message.error("Kích thước file không được vượt quá 5MB");
+        return;
+      }
+
+      setUploadFile(file);
+
+      // Create a preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewImage(reader.result);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
-  const handleUrlChange = (e) => {
-    setPreviewImage(e.target.value);
-  };
-
-  const normFile = (e) => {
-    if (Array.isArray(e)) {
-      return e;
+  const handleUploadImage = () => {
+    if (!uploadFile) {
+      message.error("Vui lòng chọn file hình ảnh trước");
+      return;
     }
-    return e?.fileList;
+
+    setIsUploading(true);
+    setUploadProgress(0);
+    setUploadStatus("Đang tải ảnh lên...");
+
+    // Create a storage reference with a unique filename
+    const storageRef = ref(
+      storage,
+      `course-images/${Date.now()}-${uploadFile.name}`
+    );
+
+    // Upload the file
+    const uploadTask = uploadBytesResumable(storageRef, uploadFile);
+
+    // Monitor upload progress
+    uploadTask.on(
+      "state_changed",
+      (snapshot) => {
+        const progress = Math.round(
+          (snapshot.bytesTransferred / snapshot.totalBytes) * 100
+        );
+        setUploadProgress(progress);
+      },
+      (error) => {
+        console.error("Upload error:", error);
+        message.error("Tải ảnh lên thất bại");
+        setUploadStatus("Tải ảnh thất bại");
+        setIsUploading(false);
+      },
+      () => {
+        // Upload complete, get download URL
+        getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+          // Set the imageUrl field with the Firebase URL
+          form.setFieldsValue({ imageUrl: downloadURL });
+          setUploadStatus("Tải ảnh thành công!");
+          setIsUploading(false);
+          message.success("Tải ảnh lên thành công");
+        });
+      }
+    );
   };
 
   return (
@@ -229,19 +342,64 @@ const AddCourse = () => {
                     rules={[
                       {
                         required: true,
-                        message: "Vui lòng nhập URL hình ảnh!",
-                      },
-                      {
-                        type: "url",
-                        message: "Vui lòng nhập đúng định dạng URL!",
+                        message: "Vui lòng tải lên hình ảnh!",
                       },
                     ]}
+                    hidden={true}
                   >
-                    <Input
-                      onChange={handleUrlChange}
-                      placeholder="https://example.com/image.jpg"
-                    />
+                    <Input disabled />
                   </Form.Item>
+
+                  {/* Image upload section */}
+                  <div className="mb-4 border rounded-md p-4">
+                    <Text strong>Tải ảnh lên</Text>
+
+                    <div className="mt-3 mb-3">
+                      <input
+                        type="file"
+                        onChange={handleFileSelect}
+                        accept="image/*"
+                        className="block w-full text-sm border border-gray-300 rounded p-2"
+                      />
+                    </div>
+
+                    {uploadFile && !isUploading && (
+                      <div className="mt-2 mb-2">
+                        <Button
+                          type="primary"
+                          onClick={handleUploadImage}
+                          icon={<UploadOutlined />}
+                          block
+                        >
+                          Tải ảnh lên
+                        </Button>
+                      </div>
+                    )}
+
+                    {isUploading && (
+                      <div className="mt-2">
+                        <Progress
+                          percent={uploadProgress}
+                          size="small"
+                          status="active"
+                        />
+                        <Text
+                          type="secondary"
+                          className="block mt-1 text-center"
+                        >
+                          {uploadStatus}
+                        </Text>
+                      </div>
+                    )}
+
+                    {uploadStatus === "Tải ảnh thành công!" && !isUploading && (
+                      <div className="mt-2">
+                        <Text type="success">
+                          Ảnh đã được tải lên thành công!
+                        </Text>
+                      </div>
+                    )}
+                  </div>
 
                   <div className="mt-4 mb-4">
                     {previewImage ? (
@@ -277,7 +435,13 @@ const AddCourse = () => {
                 <Button
                   type="default"
                   className="mr-4"
-                  onClick={() => form.resetFields()}
+                  onClick={() => {
+                    form.resetFields();
+                    setPreviewImage("");
+                    setUploadFile(null);
+                    setUploadProgress(0);
+                    setUploadStatus("");
+                  }}
                 >
                   Làm mới
                 </Button>
@@ -287,6 +451,7 @@ const AddCourse = () => {
                   size="large"
                   loading={loading}
                   icon={<PlusOutlined />}
+                  disabled={!form.getFieldValue("imageUrl")}
                 >
                   Thêm khóa học
                 </Button>
