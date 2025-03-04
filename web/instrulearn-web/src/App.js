@@ -1,21 +1,21 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import AppLayout from "./layout/Layout";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import Home from "./pages/Home";
-import Page404 from "./pages/404";
-import AdminDashboard from "./pages/AdminDashBoard";
-import StaffDashboard from "./pages/StaffDashBoard";
-import Profile from "./pages/Profile";
+import Login from "./pages/authentication/Login";
+import Register from "./pages/authentication/Register";
+import Home from "./pages/home/Home";
+import Page404 from "./pages/error/404";
+import AdminDashboard from "./pages/admin/AdminDashBoard";
+import StaffDashboard from "./pages/staff/StaffDashBoard";
+import Profile from "./pages/home/Profile";
 import TestFireBase from "./pages/TestFireBase";
-import InstrumentManagement from "./pages/InstrumentManagement";
-import AddCourse from "./pages/AddCourse";
-import CourseManagement from "./pages/CourseManagement";
-import CourseDetail from "./pages/CourseDetail";
-import CourseContentDetail from "./pages/CourseContentDetail";
-import ItemTypeManagement from "./pages/ItemTypeManagement";
-import CourseHomeDetails from "./pages/CourseHomeDetails";
-import Search from "./pages/Search";
+import InstrumentManagement from "./pages/staff/InstrumentManagement";
+import AddCourse from "./pages/staff/AddCourse";
+import CourseManagement from "./pages/staff/CourseManagement";
+import CourseDetail from "./pages/staff/CourseDetail";
+import CourseContentDetail from "./pages/staff/CourseContentDetail";
+import ItemTypeManagement from "./pages/staff/ItemTypeManagement";
+import CourseHomeDetails from "./pages/home/CourseHomeDetails";
+import Search from "./pages/home/Search";
 import StaffManagement from "./pages/admin/StaffManagement";
 
 export default function App() {

@@ -6,8 +6,8 @@ import {
   CalendarOutlined,
   FileTextOutlined,
 } from "@ant-design/icons";
-import SSidebar from "../components/StaffSidebar";
-import SHeader from "../components/StaffHeader";
+import SSidebar from "../../components/StaffSidebar";
+import SHeader from "../../components/StaffHeader";
 
 const { Content } = Layout;
 

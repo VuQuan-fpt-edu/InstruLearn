@@ -30,8 +30,8 @@ import {
   FileImageOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
-import SSidebar from "../components/StaffSidebar";
-import SHeader from "../components/StaffHeader";
+import SSidebar from "../../components/StaffSidebar";
+import SHeader from "../../components/StaffHeader";
 import { initializeApp } from "firebase/app";
 import {
   getStorage,
@@ -417,6 +417,8 @@ const CourseContentDetail = () => {
         return <VideoCameraOutlined />;
       case 2:
         return <FileTextOutlined />;
+      case 3:
+        return <FileImageOutlined />;
       default:
         return <FileTextOutlined />;
     }

@@ -22,7 +22,7 @@ import {
   PlayCircleOutlined,
 } from "@ant-design/icons";
 import "antd/dist/reset.css";
-import { login, getCurrentUser } from "../api/auth";
+import { login, getCurrentUser } from "../../api/auth";
 
 const { Title, Text, Paragraph } = Typography;
 
