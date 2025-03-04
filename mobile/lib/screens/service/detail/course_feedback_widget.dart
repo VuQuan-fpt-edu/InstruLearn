@@ -384,12 +384,10 @@ class _CourseFeedbackWidgetState extends State<CourseFeedbackWidget> {
               style: const TextStyle(fontSize: 15),
             ),
             const SizedBox(height: 8),
-            // Replies section
             if (feedback.replies.isNotEmpty) ...[
               const Divider(),
               ...feedback.replies.map((reply) => _buildReplyItem(reply)),
             ],
-            // Reply button
             TextButton.icon(
               icon: const Icon(Icons.reply, size: 16),
               label: const Text('Phản hồi'),

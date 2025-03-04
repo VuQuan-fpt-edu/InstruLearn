@@ -225,7 +225,6 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Course Image
           AspectRatio(
             aspectRatio: 16 / 9,
             child: Image.network(
@@ -246,13 +245,11 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
             ),
           ),
 
-          // Course Info Section
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Category and Rating
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -291,7 +288,6 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
 
                 const SizedBox(height: 16),
 
-                // Course Name
                 Text(
                   widget.course.courseName,
                   style: const TextStyle(
@@ -302,7 +298,6 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
 
                 const SizedBox(height: 8),
 
-                // Course Headline
                 Text(
                   widget.course.headline,
                   style: const TextStyle(fontSize: 16, color: Colors.black87),
@@ -310,7 +305,6 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
 
                 const SizedBox(height: 16),
 
-                // Price Information
                 Row(
                   children: [
                     Text(
@@ -346,7 +340,6 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
 
                 const Divider(height: 32),
 
-                // Course Description
                 const Text(
                   'Mô tả khóa học',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -359,7 +352,6 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
 
                 const Divider(height: 32),
 
-                // Course Contents
                 const Text(
                   'Nội dung khóa học',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
