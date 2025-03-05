@@ -51,7 +51,6 @@ class _WalletScreenState extends State<WalletScreen> {
             balance = data['data']['balance'].toDouble();
             isLoading = false;
 
-            // Fetch transaction history
             _fetchTransactionHistory();
           });
         }
@@ -148,7 +147,6 @@ class _WalletScreenState extends State<WalletScreen> {
       if (data['isSucceed'] == true) {
         final paymentUrl = data['data']['paymentUrl'];
 
-        // Mở WebView để hiển thị trang thanh toán
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (context) => PaymentScreen(paymentUrl: paymentUrl),
@@ -173,23 +171,19 @@ class _WalletScreenState extends State<WalletScreen> {
         return;
       }
 
-      // Parse the withdraw amount
       final amount = int.tryParse(_withdrawController.text.trim());
       if (amount == null || amount <= 0) {
         _showErrorMessage('Số tiền không hợp lệ');
         return;
       }
 
-      // Check if withdrawal amount exceeds balance
       if (amount > balance) {
         _showErrorMessage('Số dư không đủ');
         return;
       }
 
-      // Close the dialog
       Navigator.of(context).pop();
 
-      // Show loading indicator
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -209,19 +203,16 @@ class _WalletScreenState extends State<WalletScreen> {
         body: json.encode({'learnerId': widget.learnerId, 'amount': amount}),
       );
 
-      // Close loading indicator
       Navigator.of(context).pop();
 
       final data = json.decode(response.body);
       if (data['isSucceed'] == true) {
-        // Refresh wallet details
         _fetchWalletDetails();
         _showErrorMessage('Rút tiền thành công');
       } else {
         _showErrorMessage(data['message'] ?? 'Lỗi rút tiền');
       }
     } catch (e) {
-      // Close loading indicator if still open
       Navigator.of(context).pop();
       _showErrorMessage('Lỗi: ${e.toString()}');
     }
