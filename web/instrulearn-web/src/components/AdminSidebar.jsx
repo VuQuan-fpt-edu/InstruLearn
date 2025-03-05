@@ -10,6 +10,7 @@ import {
   DashboardOutlined,
   SearchOutlined,
 } from "@ant-design/icons";
+import { useNavigate } from "react-router-dom";
 
 const { Sider } = Layout;
 const { Search } = Input;
@@ -20,16 +21,33 @@ const ASidebar = ({
   onMenuSelect,
   toggleCollapsed,
 }) => {
+  const navigate = useNavigate();
+
+  const handleMenuSelect = ({ key }) => {
+    onMenuSelect(key);
+    if (key === "dashboard") {
+      navigate("/admin");
+    }
+    if (key === "staff") {
+      navigate("/staff-management");
+    }
+    if (key === "manager") {
+      navigate("/add-course");
+    }
+    if (key === "learner") {
+      navigate("/course-management");
+    }
+  };
   const menuItems = [
     { key: "dashboard", icon: <DashboardOutlined />, label: "Tổng quan" },
     {
-      key: "lessons",
+      key: "accounts",
       icon: <BookOutlined />,
-      label: "Bài học",
+      label: "Tài khoản",
       children: [
-        { key: "all-lessons", label: "Tất cả bài học" },
-        { key: "add-lesson", label: "Thêm bài học" },
-        { key: "categories", label: "Danh mục" },
+        { key: "staff", label: "Tài khoản Staff" },
+        { key: "manager", label: "Tài khoản Manager" },
+        { key: "learner", label: "Tài khoản Learner" },
       ],
     },
     {
@@ -81,7 +99,7 @@ const ASidebar = ({
         theme="dark"
         mode="inline"
         selectedKeys={[selectedMenu]}
-        onSelect={({ key }) => onMenuSelect(key)}
+        onSelect={handleMenuSelect}
         items={menuItems}
       />
       <div className="absolute bottom-0 w-full p-4 border-t border-gray-700">

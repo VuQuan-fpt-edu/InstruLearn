@@ -22,7 +22,7 @@ import {
   PlayCircleOutlined,
 } from "@ant-design/icons";
 import "antd/dist/reset.css";
-import { login } from "../api/auth";
+import { login, getCurrentUser } from "../../api/auth";
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -41,8 +41,26 @@ export default function Login() {
         password: values.password,
       });
       if (response && response.token) {
+        // Store the authentication token
+        localStorage.setItem("authToken", response.token);
+
         message.success("Đăng nhập thành công!");
-        navigate("/");
+        const userProfile = await getCurrentUser();
+
+        // Store additional user information
+        localStorage.setItem("role", userProfile.role);
+        localStorage.setItem("learnerId", userProfile.learnerId);
+        localStorage.setItem("username", userProfile.username);
+
+        if (userProfile.role === "Admin") {
+          navigate("/admin");
+        }
+        if (userProfile.role === "Staff") {
+          navigate("/staff");
+        }
+        if (userProfile.role === "Learner") {
+          navigate("/");
+        }
       } else {
         setErrorMessage("Không nhận được token xác thực từ máy chủ");
         message.error("Đăng nhập thất bại. Vui lòng thử lại sau.");

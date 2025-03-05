@@ -1,11 +1,8 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Card,
   Avatar,
   Typography,
-  Divider,
-  Spin,
-  Alert,
   Button,
   Row,
   Col,
@@ -15,9 +12,7 @@ import {
   message,
   Tag,
   Input,
-  Empty,
-  Progress,
-  Tooltip,
+  Alert,
 } from "antd";
 import {
   UserOutlined,
@@ -29,13 +24,17 @@ import {
   CalendarOutlined,
   BookOutlined,
   TrophyOutlined,
-  ArrowRightOutlined,
   CheckCircleOutlined,
+  WalletOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
-const { Title, Text, Paragraph } = Typography;
+import EnrolledCourses from "./MyCourse";
+import Achievements from "./Achievements";
+import WalletComponent from "./MyWallet";
+
+const { Title, Text } = Typography;
 
 const Profile = () => {
   const [profile, setProfile] = useState(null);
@@ -137,7 +136,6 @@ const Profile = () => {
 
   const handleSaveProfile = async () => {
     try {
-      // Giả lập API call để cập nhật
       await new Promise((resolve) => setTimeout(resolve, 800));
       setProfile(editedData);
       setEditing(false);
@@ -388,112 +386,7 @@ const Profile = () => {
           <BookOutlined className="mr-2" /> Khoá học của tôi
         </span>
       ),
-      children: (
-        <Card className="shadow-sm border border-gray-100">
-          <div className="flex justify-between items-center mb-6">
-            <Title level={4} className="mb-0">
-              Khoá học đã đăng ký ({enrolledCourses.length})
-            </Title>
-            <Button
-              type="primary"
-              className="bg-purple-700 hover:bg-purple-800"
-              icon={<BookOutlined />}
-              onClick={() => navigate("/courses")}
-            >
-              Khám phá thêm khoá học
-            </Button>
-          </div>
-          {enrolledCourses.length > 0 ? (
-            <div className="space-y-6">
-              {enrolledCourses.map((course) => (
-                <Card
-                  key={course.id}
-                  className="bg-gray-50 hover:shadow-md transition-all duration-300 border border-gray-200 overflow-hidden"
-                >
-                  <Row gutter={[24, 16]} align="middle">
-                    <Col xs={24} md={16}>
-                      <div className="flex items-center mb-3">
-                        <div className="w-16 h-16 bg-purple-200 rounded-lg flex items-center justify-center text-purple-700 text-2xl mr-4">
-                          {course.name.includes("Guitar") ? (
-                            "🎸"
-                          ) : course.name.includes("Piano") ? (
-                            "🎹"
-                          ) : (
-                            <BookOutlined />
-                          )}
-                        </div>
-                        <div>
-                          <Title level={4} className="mb-0">
-                            {course.name}
-                          </Title>
-                          <div className="text-gray-500 mt-1">
-                            <Tooltip title="Ngày truy cập gần nhất">
-                              <CalendarOutlined className="mr-1" />{" "}
-                              {course.lastAccessed}
-                            </Tooltip>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="mb-3">
-                        <div className="flex justify-between mb-1">
-                          <Text strong>Tiến độ học tập</Text>
-                          <Text strong>
-                            {course.completedLessons}/{course.totalLessons} bài
-                            học
-                          </Text>
-                        </div>
-                        <Progress
-                          percent={course.progress}
-                          status="active"
-                          strokeColor={{
-                            from: "#7c3aed",
-                            to: "#a78bfa",
-                          }}
-                        />
-                      </div>
-                    </Col>
-                    <Col
-                      xs={24}
-                      md={8}
-                      className="flex flex-col items-center md:items-end"
-                    >
-                      <Button
-                        type="primary"
-                        className="bg-purple-700 hover:bg-purple-800 w-full md:w-auto"
-                        size="large"
-                        icon={<ArrowRightOutlined />}
-                      >
-                        Tiếp tục học
-                      </Button>
-                      <Button
-                        type="link"
-                        className="text-purple-700 hover:text-purple-900 mt-2"
-                      >
-                        Xem chứng chỉ
-                      </Button>
-                    </Col>
-                  </Row>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <Empty
-              description="Bạn chưa đăng ký khoá học nào"
-              className="py-12"
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-            >
-              <Button
-                type="primary"
-                className="bg-purple-700 hover:bg-purple-800"
-                size="large"
-                onClick={() => navigate("/courses")}
-              >
-                Khám phá khoá học
-              </Button>
-            </Empty>
-          )}
-        </Card>
-      ),
+      children: <EnrolledCourses courses={enrolledCourses} />,
     },
     {
       key: "3",
@@ -502,54 +395,16 @@ const Profile = () => {
           <TrophyOutlined className="mr-2" /> Thành tích
         </span>
       ),
-      children: (
-        <Card className="shadow-sm border border-gray-100">
-          <Title level={4} className="mb-6">
-            Thành tích đạt được ({achievements.length})
-          </Title>
-          <Row gutter={[16, 16]}>
-            {achievements.map((achievement) => (
-              <Col xs={24} sm={12} md={8} key={achievement.id}>
-                <Card
-                  className="bg-gray-50 hover:shadow-md transition-all duration-300 border border-gray-200 h-full"
-                  hoverable
-                >
-                  <div className="flex flex-col items-center text-center">
-                    <div className="mb-4 bg-purple-100 p-4 rounded-full text-purple-700 text-3xl">
-                      {achievement.icon}
-                    </div>
-                    <Title level={4} className="mb-1">
-                      {achievement.name}
-                    </Title>
-                    <Text type="secondary" className="mb-3">
-                      Đạt được: {achievement.date}
-                    </Text>
-                    <Divider className="my-3" />
-                    <Text className="text-gray-600">
-                      {achievement.description}
-                    </Text>
-                  </div>
-                </Card>
-              </Col>
-            ))}
-            <Col xs={24} sm={12} md={8}>
-              <Card className="border-dashed border-2 border-gray-300 h-full flex items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors duration-300 cursor-pointer">
-                <div className="text-center p-6">
-                  <div className="bg-gray-200 rounded-full p-4 inline-block mb-4">
-                    <TrophyOutlined className="text-3xl text-gray-500" />
-                  </div>
-                  <Title level={5} className="text-gray-600 mb-1">
-                    Thành tích tiếp theo
-                  </Title>
-                  <Text className="text-gray-500 block">
-                    Hoàn thành thêm bài học để mở khoá thành tích mới
-                  </Text>
-                </div>
-              </Card>
-            </Col>
-          </Row>
-        </Card>
+      children: <Achievements achievements={achievements} />,
+    },
+    {
+      key: "4",
+      label: (
+        <span className="flex items-center text-base">
+          <WalletOutlined className="mr-2" /> Ví của tôi
+        </span>
       ),
+      children: <WalletComponent />,
     },
   ];
 

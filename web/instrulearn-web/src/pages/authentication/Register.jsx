@@ -22,7 +22,7 @@ import {
   UserAddOutlined,
 } from "@ant-design/icons";
 import "antd/dist/reset.css";
-import { register } from "../api/auth";
+import { register } from "../../api/auth";
 
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;

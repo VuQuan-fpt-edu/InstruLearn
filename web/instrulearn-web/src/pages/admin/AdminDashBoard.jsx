@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Layout, Table, Button } from "antd";
-import ASidebar from "../components/AdminSidebar";
-import AHeader from "../components/AdminHeader";
+import ASidebar from "../../components/AdminSidebar";
+import AHeader from "../../components/AdminHeader";
 
 const { Content } = Layout;
 

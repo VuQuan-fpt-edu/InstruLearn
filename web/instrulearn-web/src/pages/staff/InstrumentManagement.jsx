@@ -2,8 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Layout, Table, Button, Modal, Form, Input, message } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import axios from "axios";
-import SSidebar from "../components/StaffSidebar";
-import SHeader from "../components/StaffHeader";
+import SSidebar from "../../components/StaffSidebar";
+import SHeader from "../../components/StaffHeader";
 
 const { Content } = Layout;
 
