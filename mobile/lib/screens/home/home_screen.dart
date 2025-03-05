@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import '../auth/login_screen.dart';
 import 'profile_screen.dart';
 import '../service/buy_course_screen.dart';
+import '../service/wallet_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -37,6 +38,9 @@ class _HomeScreenState extends State<HomeScreen> {
   String username = 'Loading...';
   bool isLoading = true;
   int _currentIndex = 0;
+  int learnerId = 0;
+  double walletBalance = 0;
+  bool isBalanceVisible = false;
 
   @override
   void initState() {
@@ -68,11 +72,14 @@ class _HomeScreenState extends State<HomeScreen> {
         final data = json.decode(response.body);
         if (data['isSucceed'] == true) {
           setState(() {
+            learnerId = data['data']['learnerId'];
             fullName = data['data']['fullName'] ?? 'Không có thông tin';
             email = data['data']['email'] ?? 'Không có thông tin';
             username = data['data']['username'] ?? 'Không có thông tin';
             isLoading = false;
           });
+
+          _fetchWalletBalance();
         } else {
           setState(() {
             fullName = 'Không thể tải thông tin';
@@ -106,6 +113,36 @@ class _HomeScreenState extends State<HomeScreen> {
         isLoading = false;
       });
       _showErrorMessage('Lỗi: ${e.toString()}');
+    }
+  }
+
+  Future<void> _fetchWalletBalance() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      if (token == null || learnerId == 0) return;
+
+      final response = await http.get(
+        Uri.parse(
+          'https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/wallet/$learnerId',
+        ),
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['isSucceed'] == true) {
+          setState(() {
+            walletBalance = data['data']['balance'].toDouble();
+          });
+        }
+      }
+    } catch (e) {
+      _showErrorMessage('Lỗi tải số dư ví: ${e.toString()}');
     }
   }
 
@@ -235,9 +272,21 @@ class _HomeScreenState extends State<HomeScreen> {
                   'Số dư hiện tại trong ví:',
                   style: TextStyle(fontSize: 14),
                 ),
-                const Text(
-                  '********** VND',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      isBalanceVisible = !isBalanceVisible;
+                    });
+                  },
+                  child: Text(
+                    isBalanceVisible
+                        ? '${walletBalance.toStringAsFixed(0)} VND'
+                        : '********** VND',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
 
                 const SizedBox(height: 20),
@@ -265,7 +314,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          // Thêm hai nút lớn cho "Mua khóa học" và "Đăng ký lớp học"
           Padding(
             padding: const EdgeInsets.all(15.0),
             child: Row(
@@ -336,6 +384,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   context: context,
                   title: 'Ví',
                   icon: Icons.account_balance_wallet,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder:
+                            (context) => WalletScreen(learnerId: learnerId),
+                      ),
+                    );
+                  },
                 ),
                 _buildMenuItem(
                   context: context,
