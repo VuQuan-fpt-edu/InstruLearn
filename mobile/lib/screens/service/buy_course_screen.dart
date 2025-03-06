@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'detail/course_details_screen.dart';
+import 'filter_screen.dart';
 
 class Course {
   final int courseId;
@@ -14,6 +15,7 @@ class Course {
   final int discount;
   final String imageUrl;
   final String typeName;
+  final int durationInHours;
 
   Course({
     required this.courseId,
@@ -25,6 +27,7 @@ class Course {
     required this.discount,
     required this.imageUrl,
     required this.typeName,
+    this.durationInHours = 0,
   });
 
   factory Course.fromJson(Map<String, dynamic> json) {
@@ -38,12 +41,58 @@ class Course {
       discount: (json['discount'] as num).toInt(),
       imageUrl: json['imageUrl'] as String,
       typeName: json['typeName'] as String,
+      durationInHours:
+          json['durationInHours'] != null
+              ? (json['durationInHours'] as num).toInt()
+              : 0,
+    );
+  }
+}
+
+class FilterOptions {
+  double? minRating;
+  int minPrice;
+  int maxPrice;
+  String? selectedType;
+  String? selectedDuration;
+  String sortOption;
+  int? selectedTypeId;
+
+  FilterOptions({
+    this.minRating,
+    this.minPrice = 0,
+    this.maxPrice = 5000000,
+    this.selectedType,
+    this.selectedDuration,
+    this.sortOption = 'Xếp hạng',
+    this.selectedTypeId,
+  });
+
+  FilterOptions copyWith({
+    double? minRating,
+    int? minPrice,
+    int? maxPrice,
+    String? selectedType,
+    String? selectedDuration,
+    String? sortOption,
+    int? selectedTypeId,
+  }) {
+    return FilterOptions(
+      minRating: minRating ?? this.minRating,
+      minPrice: minPrice ?? this.minPrice,
+      maxPrice: maxPrice ?? this.maxPrice,
+      selectedType: selectedType ?? this.selectedType,
+      selectedDuration: selectedDuration ?? this.selectedDuration,
+      sortOption: sortOption ?? this.sortOption,
+      selectedTypeId: selectedTypeId ?? this.selectedTypeId,
     );
   }
 }
 
 class BuyCourseScreen extends StatefulWidget {
-  const BuyCourseScreen({Key? key}) : super(key: key);
+  final Course? course;
+
+  const BuyCourseScreen({Key? key, this.course}) : super(key: key);
 
   @override
   State<BuyCourseScreen> createState() => _BuyCourseScreenState();
@@ -57,11 +106,11 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
 
   String searchQuery = '';
   double? minRating;
-  int? minPrice;
-  int? maxPrice;
+  int minPrice = 0;
+  int maxPrice = 5000000;
   String? selectedType;
-
-  List<String> instrumentTypes = [];
+  String? selectedDuration;
+  String sortOption = 'Xếp hạng';
 
   final TextEditingController _searchController = TextEditingController();
 
@@ -109,10 +158,6 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
               courses = data.map((json) => Course.fromJson(json)).toList();
               filteredCourses = List.from(courses);
               isLoading = false;
-
-              instrumentTypes =
-                  courses.map((course) => course.typeName).toSet().toList()
-                    ..sort();
             });
           } else if (data['isSucceed'] != null) {
             var isSucceed = data['isSucceed'];
@@ -123,10 +168,6 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
                     coursesData.map((json) => Course.fromJson(json)).toList();
                 filteredCourses = List.from(courses);
                 isLoading = false;
-
-                instrumentTypes =
-                    courses.map((course) => course.typeName).toSet().toList()
-                      ..sort();
               });
             } else {
               setState(() {
@@ -142,10 +183,6 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
                   coursesData.map((json) => Course.fromJson(json)).toList();
               filteredCourses = List.from(courses);
               isLoading = false;
-
-              instrumentTypes =
-                  courses.map((course) => course.typeName).toSet().toList()
-                    ..sort();
             });
           } else {
             setState(() {
@@ -197,224 +234,130 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
             final matchesRating =
                 minRating == null || course.rating >= minRating!;
 
-            final matchesMinPrice =
-                minPrice == null || course.price >= minPrice!;
-            final matchesMaxPrice =
-                maxPrice == null || course.price <= maxPrice!;
+            final matchesMinPrice = course.price >= minPrice;
+            final matchesMaxPrice = course.price <= maxPrice;
 
             final matchesType =
                 selectedType == null || course.typeName == selectedType;
+
+            final matchesDuration =
+                selectedDuration == null ||
+                _matchesDuration(course.durationInHours, selectedDuration!);
 
             return matchesSearch &&
                 matchesRating &&
                 matchesMinPrice &&
                 matchesMaxPrice &&
-                matchesType;
+                matchesType &&
+                matchesDuration;
           }).toList();
+      _applySorting();
     });
   }
 
-  void _showFilterDialog() {
-    double? tempMinRating = minRating;
-    int? tempMinPrice = minPrice;
-    int? tempMaxPrice = maxPrice;
-    String? tempSelectedType = selectedType;
+  bool _matchesDuration(int hours, String durationFilter) {
+    switch (durationFilter) {
+      case '0-1 giờ':
+        return hours >= 0 && hours <= 1;
+      case '1-3 giờ':
+        return hours > 1 && hours <= 3;
+      case '6-17 giờ':
+        return hours >= 6 && hours <= 17;
+      case 'Hơn 17 giờ':
+        return hours > 17;
+      default:
+        return true;
+    }
+  }
 
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('Lọc khóa học'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Rating tối thiểu:',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    Slider(
-                      value: tempMinRating ?? 0,
-                      min: 0,
-                      max: 5,
-                      divisions: 10,
-                      label: tempMinRating?.toStringAsFixed(1) ?? '0.0',
-                      onChanged: (value) {
-                        setDialogState(() {
-                          tempMinRating = value;
-                        });
-                      },
-                    ),
+  void _applySorting() {
+    switch (sortOption) {
+      case 'Xếp hạng':
+        filteredCourses.sort((a, b) => b.rating.compareTo(a.rating));
+        break;
+      case 'Giá: Thấp đến cao':
+        filteredCourses.sort((a, b) => a.price.compareTo(b.price));
+        break;
+      case 'Giá: Cao đến thấp':
+        filteredCourses.sort((a, b) => b.price.compareTo(a.price));
+        break;
+      case 'Tên: A-Z':
+        filteredCourses.sort((a, b) => a.courseName.compareTo(b.courseName));
+        break;
+    }
+  }
 
-                    const SizedBox(height: 20),
-
-                    const Text(
-                      'Khoảng giá:',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            decoration: const InputDecoration(
-                              labelText: 'Giá tối thiểu',
-                              hintText: '0',
-                              border: OutlineInputBorder(),
-                            ),
-                            keyboardType: TextInputType.number,
-                            controller: TextEditingController(
-                              text: tempMinPrice?.toString() ?? '',
-                            ),
-                            onChanged: (value) {
-                              tempMinPrice =
-                                  value.isNotEmpty ? int.tryParse(value) : null;
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: TextField(
-                            decoration: const InputDecoration(
-                              labelText: 'Giá tối đa',
-                              hintText: '1.000.000',
-                              border: OutlineInputBorder(),
-                            ),
-                            keyboardType: TextInputType.number,
-                            controller: TextEditingController(
-                              text: tempMaxPrice?.toString() ?? '',
-                            ),
-                            onChanged: (value) {
-                              tempMaxPrice =
-                                  value.isNotEmpty ? int.tryParse(value) : null;
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    const Text(
-                      'Loại nhạc cụ:',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    DropdownButton<String>(
-                      isExpanded: true,
-                      value: tempSelectedType,
-                      hint: const Text('Tất cả loại nhạc cụ'),
-                      onChanged: (String? newValue) {
-                        setDialogState(() {
-                          tempSelectedType = newValue;
-                        });
-                      },
-                      items: [
-                        const DropdownMenuItem<String>(
-                          value: null,
-                          child: Text('Tất cả'),
-                        ),
-                        ...instrumentTypes.map<DropdownMenuItem<String>>((
-                          String value,
-                        ) {
-                          return DropdownMenuItem<String>(
-                            value: value,
-                            child: Text(value),
-                          );
-                        }).toList(),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  child: const Text('Hủy'),
-                ),
-                TextButton(
-                  onPressed: () {
-                    setState(() {
-                      minRating = tempMinRating;
-                      minPrice = tempMinPrice;
-                      maxPrice = tempMaxPrice;
-                      selectedType = tempSelectedType;
-                    });
-                    _applyFilters();
-                    Navigator.of(context).pop();
-                  },
-                  child: const Text('Áp dụng'),
-                ),
-                TextButton(
-                  onPressed: () {
-                    setState(() {
-                      minRating = null;
-                      minPrice = null;
-                      maxPrice = null;
-                      selectedType = null;
-                      searchQuery = '';
-                      _searchController.clear();
-                      filteredCourses = List.from(courses);
-                    });
-                    Navigator.of(context).pop();
-                  },
-                  child: const Text('Xóa bộ lọc'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+  void _openFilterScreen() async {
+    final currentFilters = FilterOptions(
+      minRating: minRating,
+      minPrice: minPrice,
+      maxPrice: maxPrice,
+      selectedType: selectedType,
+      selectedDuration: selectedDuration,
+      sortOption: sortOption,
     );
+
+    final result = await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder:
+            (context) => FilterScreen(
+              initialFilters: currentFilters,
+              courseCount: filteredCourses.length,
+            ),
+      ),
+    );
+
+    if (result != null && result is FilterOptions) {
+      setState(() {
+        minRating = result.minRating;
+        minPrice = result.minPrice;
+        maxPrice = result.maxPrice;
+        selectedType = result.selectedType;
+        selectedDuration = result.selectedDuration;
+        sortOption = result.sortOption;
+      });
+      _applyFilters();
+    }
   }
 
   String _formatCurrency(int amount) {
-    return '${amount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')} VND';
+    return '${amount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')} đ';
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mua khóa học'),
-        backgroundColor: const Color(0xFF8C9EFF),
+        title: const Text('Purchase'),
+        backgroundColor: Colors.blue,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.filter_list),
-            onPressed: _showFilterDialog,
+            onPressed: _openFilterScreen,
           ),
         ],
       ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
+          Container(
+            padding: const EdgeInsets.all(10),
+            color: Colors.grey[200],
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Tìm kiếm khóa học...',
+                hintText: 'Search for your Course.....',
                 prefixIcon: const Icon(Icons.search),
-                suffixIcon:
-                    searchQuery.isNotEmpty
-                        ? IconButton(
-                          icon: const Icon(Icons.clear),
-                          onPressed: () {
-                            setState(() {
-                              _searchController.clear();
-                              searchQuery = '';
-                              _applyFilters();
-                            });
-                          },
-                        )
-                        : null,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
+                suffixIcon: const Icon(Icons.menu),
                 filled: true,
                 fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(30),
+                  borderSide: BorderSide.none,
+                ),
               ),
               onChanged: (value) {
                 setState(() {
@@ -422,131 +365,6 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
                   _applyFilters();
                 });
               },
-            ),
-          ),
-
-          if (minRating != null ||
-              minPrice != null ||
-              maxPrice != null ||
-              selectedType != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    if (minRating != null)
-                      _buildFilterChip(
-                        'Rating ≥ ${minRating!.toStringAsFixed(1)}',
-                        () {
-                          setState(() {
-                            minRating = null;
-                            _applyFilters();
-                          });
-                        },
-                      ),
-                    if (minPrice != null)
-                      _buildFilterChip(
-                        'Giá từ ${_formatCurrency(minPrice!)}',
-                        () {
-                          setState(() {
-                            minPrice = null;
-                            _applyFilters();
-                          });
-                        },
-                      ),
-                    if (maxPrice != null)
-                      _buildFilterChip(
-                        'Giá đến ${_formatCurrency(maxPrice!)}',
-                        () {
-                          setState(() {
-                            maxPrice = null;
-                            _applyFilters();
-                          });
-                        },
-                      ),
-                    if (selectedType != null)
-                      _buildFilterChip('Loại: $selectedType', () {
-                        setState(() {
-                          selectedType = null;
-                          _applyFilters();
-                        });
-                      }),
-                  ],
-                ),
-              ),
-            ),
-
-          Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 12.0,
-              vertical: 4.0,
-            ),
-            child: Row(
-              children: [
-                Text(
-                  'Đã tìm thấy ${filteredCourses.length} khóa học',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-                const Spacer(),
-                PopupMenuButton<String>(
-                  icon: const Row(
-                    children: [
-                      Icon(Icons.sort),
-                      SizedBox(width: 4),
-                      Text('Sắp xếp', style: TextStyle(fontSize: 14)),
-                    ],
-                  ),
-                  onSelected: (String value) {
-                    setState(() {
-                      switch (value) {
-                        case 'price_asc':
-                          filteredCourses.sort(
-                            (a, b) => a.price.compareTo(b.price),
-                          );
-                          break;
-                        case 'price_desc':
-                          filteredCourses.sort(
-                            (a, b) => b.price.compareTo(a.price),
-                          );
-                          break;
-                        case 'rating_desc':
-                          filteredCourses.sort(
-                            (a, b) => b.rating.compareTo(a.rating),
-                          );
-                          break;
-                        case 'name_asc':
-                          filteredCourses.sort(
-                            (a, b) => a.courseName.compareTo(b.courseName),
-                          );
-                          break;
-                      }
-                    });
-                  },
-                  itemBuilder:
-                      (BuildContext context) => <PopupMenuEntry<String>>[
-                        const PopupMenuItem<String>(
-                          value: 'price_asc',
-                          child: Text('Giá: Thấp đến cao'),
-                        ),
-                        const PopupMenuItem<String>(
-                          value: 'price_desc',
-                          child: Text('Giá: Cao đến thấp'),
-                        ),
-                        const PopupMenuItem<String>(
-                          value: 'rating_desc',
-                          child: Text('Rating: Cao nhất'),
-                        ),
-                        const PopupMenuItem<String>(
-                          value: 'name_asc',
-                          child: Text('Tên: A-Z'),
-                        ),
-                      ],
-                ),
-              ],
             ),
           ),
 
@@ -601,9 +419,10 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
                             onPressed: () {
                               setState(() {
                                 minRating = null;
-                                minPrice = null;
-                                maxPrice = null;
+                                minPrice = 0;
+                                maxPrice = 5000000;
                                 selectedType = null;
+                                selectedDuration = null;
                                 searchQuery = '';
                                 _searchController.clear();
                                 filteredCourses = List.from(courses);
@@ -614,22 +433,14 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
                         ],
                       ),
                     )
-                    : Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: GridView.builder(
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              crossAxisSpacing: 8,
-                              mainAxisSpacing: 10,
-                              childAspectRatio: 0.7,
-                            ),
-                        itemCount: filteredCourses.length,
-                        itemBuilder: (context, index) {
-                          final course = filteredCourses[index];
-                          return _buildCourseCard(course);
-                        },
-                      ),
+                    : ListView.separated(
+                      itemCount: filteredCourses.length,
+                      separatorBuilder:
+                          (context, index) => const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final course = filteredCourses[index];
+                        return _buildCourseListItem(course);
+                      },
                     ),
           ),
         ],
@@ -637,190 +448,76 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
     );
   }
 
-  Widget _buildFilterChip(String label, VoidCallback onDelete) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 8.0),
-      child: Chip(
-        label: Text(label, style: const TextStyle(fontSize: 12)),
-        deleteIcon: const Icon(Icons.close, size: 16),
-        onDeleted: onDelete,
-        backgroundColor: Colors.blue[100],
-        deleteIconColor: Colors.blue[800],
-        labelStyle: TextStyle(color: Colors.blue[800]),
-        visualDensity: VisualDensity.compact,
-      ),
-    );
-  }
-
-  Widget _buildCourseCard(Course course) {
+  Widget _buildCourseListItem(Course course) {
     return GestureDetector(
       onTap: () {
-        Navigator.push(
-          context,
+        Navigator.of(context).push(
           MaterialPageRoute(
             builder: (context) => CourseDetailsScreen(course: course),
           ),
         );
       },
-      child: Card(
-        elevation: 3,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        child: Column(
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(10),
-              ),
+              borderRadius: BorderRadius.circular(4),
               child: Image.network(
                 course.imageUrl,
-                height: 100,
-                width: double.infinity,
+                width: 80,
+                height: 60,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
                   return Container(
-                    height: 100,
-                    width: double.infinity,
+                    width: 80,
+                    height: 60,
                     color: Colors.grey[300],
-                    child: const Icon(
-                      Icons.broken_image,
-                      size: 40,
-                      color: Colors.grey,
-                    ),
+                    child: const Icon(Icons.broken_image, color: Colors.grey),
                   );
                 },
               ),
             ),
-
+            const SizedBox(width: 12),
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(6.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Flexible(
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 4,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.blue[100],
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  course.typeName,
-                                  style: TextStyle(
-                                    fontSize: 9,
-                                    color: Colors.blue[800],
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 1,
-                                ),
-                              ),
-                            ),
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.star,
-                                  size: 12,
-                                  color: Colors.amber[700],
-                                ),
-                                const SizedBox(width: 2),
-                                Text(
-                                  course.rating.toString(),
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 10,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 6),
-
-                        Text(
-                          course.courseName,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-
-                        const SizedBox(height: 2),
-
-                        Text(
-                          course.headline,
-                          style: const TextStyle(
-                            fontSize: 10,
-                            color: Colors.black87,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    course.courseName,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
                     ),
-
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _formatCurrency(course.price),
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue,
-                          ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      ...List.generate(
+                        5,
+                        (index) => Icon(
+                          Icons.star,
+                          size: 14,
+                          color:
+                              index < course.rating.floor()
+                                  ? Colors.orange
+                                  : Colors.grey[300],
                         ),
-
-                        const SizedBox(height: 4),
-
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'Đã thêm khóa học ${course.courseName} vào giỏ hàng',
-                                  ),
-                                  duration: const Duration(seconds: 2),
-                                ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue[700],
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 0,
-                              ),
-                              minimumSize: const Size(0, 28),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                            ),
-                            child: const Text(
-                              'Mua ngay',
-                              style: TextStyle(fontSize: 11),
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _formatCurrency(course.price),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ],
