@@ -6,6 +6,8 @@ import '../auth/login_screen.dart';
 import 'profile_screen.dart';
 import '../service/buy_course_screen.dart';
 import '../service/wallet_screen.dart';
+import '../service/schedule_screen.dart';
+import '../service/tutoring_registration_form.dart';
 
 void main() {
   runApp(const MyApp());
@@ -320,10 +322,18 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Expanded(
                   child: _buildFeatureButton(
-                    title: 'Mua khóa học',
-                    icon: Icons.school,
-                    onTap: _navigateToBuyCourse,
-                    color: Colors.blue[700]!,
+                    title: 'Đăng ký học theo yêu cầu',
+                    icon: Icons.class_,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (context) => const TutoringRegistrationForm(),
+                        ),
+                      );
+                    },
+                    color: Colors.red[700]!,
                   ),
                 ),
                 const SizedBox(width: 15),
@@ -331,7 +341,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: _buildFeatureButton(
                     title: 'Đăng ký lớp học',
                     icon: Icons.class_outlined,
-                    color: Colors.green[700]!,
+                    onTap: () {
+                      // Implement the logic for enrolling in a class
+                    },
+                    color: Colors.red[700]!,
                   ),
                 ),
               ],
@@ -349,6 +362,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   context: context,
                   title: 'Schedule',
                   icon: Icons.calendar_today,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ScheduleScreen(),
+                      ),
+                    );
+                  },
                 ),
                 _buildMenuItem(
                   context: context,
@@ -372,8 +393,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 _buildMenuItem(
                   context: context,
-                  title: 'đăng ký học kèm',
-                  icon: Icons.class_,
+                  title: 'Mua gói tự học Online',
+                  icon: Icons.school,
+                  onTap: _navigateToBuyCourse,
                 ),
                 _buildMenuItem(
                   context: context,
