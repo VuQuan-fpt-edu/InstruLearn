@@ -5,6 +5,13 @@ import 'package:http/http.dart' as http;
 import '../auth/login_screen.dart';
 import 'profile_screen.dart';
 import '../service/buy_course_screen.dart';
+import '../service/wallet_screen.dart';
+import '../service/schedule_screen.dart';
+import '../service/tutoring_registration_form.dart';
+import '../service/application_screen.dart';
+import '../service/notification_screen.dart';
+import '../service/library_screen.dart';
+import '../service/class_registration.dart';
 
 void main() {
   runApp(const MyApp());
@@ -37,6 +44,9 @@ class _HomeScreenState extends State<HomeScreen> {
   String username = 'Loading...';
   bool isLoading = true;
   int _currentIndex = 0;
+  int learnerId = 0;
+  double walletBalance = 0;
+  bool isBalanceVisible = false;
 
   @override
   void initState() {
@@ -68,11 +78,14 @@ class _HomeScreenState extends State<HomeScreen> {
         final data = json.decode(response.body);
         if (data['isSucceed'] == true) {
           setState(() {
+            learnerId = data['data']['learnerId'];
             fullName = data['data']['fullName'] ?? 'Không có thông tin';
             email = data['data']['email'] ?? 'Không có thông tin';
             username = data['data']['username'] ?? 'Không có thông tin';
             isLoading = false;
           });
+
+          _fetchWalletBalance();
         } else {
           setState(() {
             fullName = 'Không thể tải thông tin';
@@ -106,6 +119,36 @@ class _HomeScreenState extends State<HomeScreen> {
         isLoading = false;
       });
       _showErrorMessage('Lỗi: ${e.toString()}');
+    }
+  }
+
+  Future<void> _fetchWalletBalance() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      if (token == null || learnerId == 0) return;
+
+      final response = await http.get(
+        Uri.parse(
+          'https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/wallet/$learnerId',
+        ),
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['isSucceed'] == true) {
+          setState(() {
+            walletBalance = data['data']['balance'].toDouble();
+          });
+        }
+      }
+    } catch (e) {
+      _showErrorMessage('Lỗi tải số dư ví: ${e.toString()}');
     }
   }
 
@@ -235,9 +278,21 @@ class _HomeScreenState extends State<HomeScreen> {
                   'Số dư hiện tại trong ví:',
                   style: TextStyle(fontSize: 14),
                 ),
-                const Text(
-                  '********** VND',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      isBalanceVisible = !isBalanceVisible;
+                    });
+                  },
+                  child: Text(
+                    isBalanceVisible
+                        ? '${walletBalance.toStringAsFixed(0)} VND'
+                        : '********** VND',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
 
                 const SizedBox(height: 20),
@@ -265,17 +320,24 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          // Thêm hai nút lớn cho "Mua khóa học" và "Đăng ký lớp học"
           Padding(
             padding: const EdgeInsets.all(15.0),
             child: Row(
               children: [
                 Expanded(
                   child: _buildFeatureButton(
-                    title: 'Mua khóa học',
-                    icon: Icons.school,
-                    onTap: _navigateToBuyCourse,
-                    color: Colors.blue[700]!,
+                    title: 'Đăng ký học theo yêu cầu',
+                    icon: Icons.class_,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (context) => const TutoringRegistrationForm(),
+                        ),
+                      );
+                    },
+                    color: Colors.red[700]!,
                   ),
                 ),
                 const SizedBox(width: 15),
@@ -283,7 +345,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: _buildFeatureButton(
                     title: 'Đăng ký lớp học',
                     icon: Icons.class_outlined,
-                    color: Colors.green[700]!,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ClassRegistrationScreen(),
+                        ),
+                      );
+                    },
+                    color: Colors.red[700]!,
                   ),
                 ),
               ],
@@ -301,21 +371,53 @@ class _HomeScreenState extends State<HomeScreen> {
                   context: context,
                   title: 'Schedule',
                   icon: Icons.calendar_today,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ScheduleScreen(),
+                      ),
+                    );
+                  },
                 ),
                 _buildMenuItem(
                   context: context,
                   title: 'Library',
                   icon: Icons.book,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const LibraryScreen(),
+                      ),
+                    );
+                  },
                 ),
                 _buildMenuItem(
                   context: context,
                   title: 'Application',
                   icon: Icons.app_registration,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ApplicationScreen(),
+                      ),
+                    );
+                  },
                 ),
                 _buildMenuItem(
                   context: context,
                   title: 'Notification',
                   icon: Icons.notifications,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const NotificationScreen(),
+                      ),
+                    );
+                  },
                 ),
                 _buildMenuItem(
                   context: context,
@@ -324,8 +426,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 _buildMenuItem(
                   context: context,
-                  title: 'đăng ký học kèm',
-                  icon: Icons.class_,
+                  title: 'Mua gói tự học Online',
+                  icon: Icons.school,
+                  onTap: _navigateToBuyCourse,
                 ),
                 _buildMenuItem(
                   context: context,
@@ -336,6 +439,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   context: context,
                   title: 'Ví',
                   icon: Icons.account_balance_wallet,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder:
+                            (context) => WalletScreen(learnerId: learnerId),
+                      ),
+                    );
+                  },
                 ),
                 _buildMenuItem(
                   context: context,
