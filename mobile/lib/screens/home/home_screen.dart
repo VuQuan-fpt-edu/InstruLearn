@@ -8,6 +8,10 @@ import '../service/buy_course_screen.dart';
 import '../service/wallet_screen.dart';
 import '../service/schedule_screen.dart';
 import '../service/tutoring_registration_form.dart';
+import '../service/application_screen.dart';
+import '../service/notification_screen.dart';
+import '../service/library_screen.dart';
+import '../service/class_registration.dart';
 
 void main() {
   runApp(const MyApp());
@@ -342,7 +346,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     title: 'Đăng ký lớp học',
                     icon: Icons.class_outlined,
                     onTap: () {
-                      // Implement the logic for enrolling in a class
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ClassRegistrationScreen(),
+                        ),
+                      );
                     },
                     color: Colors.red[700]!,
                   ),
@@ -375,16 +384,40 @@ class _HomeScreenState extends State<HomeScreen> {
                   context: context,
                   title: 'Library',
                   icon: Icons.book,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const LibraryScreen(),
+                      ),
+                    );
+                  },
                 ),
                 _buildMenuItem(
                   context: context,
                   title: 'Application',
                   icon: Icons.app_registration,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ApplicationScreen(),
+                      ),
+                    );
+                  },
                 ),
                 _buildMenuItem(
                   context: context,
                   title: 'Notification',
                   icon: Icons.notifications,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const NotificationScreen(),
+                      ),
+                    );
+                  },
                 ),
                 _buildMenuItem(
                   context: context,
