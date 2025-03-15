@@ -1,5 +1,5 @@
-import React from "react";
-import { Layout, Button, Avatar, Dropdown, Badge } from "antd";
+import React, { useState, useEffect } from "react";
+import { Layout, Button, Avatar, Dropdown, Badge, message } from "antd";
 import {
   MenuUnfoldOutlined,
   MenuFoldOutlined,
@@ -8,10 +8,48 @@ import {
   SettingOutlined,
   LogoutOutlined,
 } from "@ant-design/icons";
+import { useNavigate } from "react-router-dom";
+import { getCurrentUser } from "../../api/auth";
 
 const { Header } = Layout;
 
 const SHeader = ({ collapsed, toggleCollapsed, selectedMenu }) => {
+  const [username, setUsername] = useState("Staff");
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Fetch current user's information when component mounts
+    const fetchUserInfo = async () => {
+      try {
+        const userProfile = await getCurrentUser();
+        setUsername(userProfile.username);
+      } catch (error) {
+        console.error("Error fetching user profile:", error);
+        message.error("Không thể tải thông tin người dùng");
+      }
+    };
+
+    fetchUserInfo();
+  }, []);
+
+  const handleMenuClick = (key) => {
+    switch (key) {
+      case "profile":
+        navigate("/staff-profile");
+        break;
+      case "settings":
+        navigate("/settings");
+        break;
+      case "logout":
+        // Clear local storage and navigate to login
+        localStorage.clear();
+        navigate("/login");
+        break;
+      default:
+        break;
+    }
+  };
+
   const userMenuItems = [
     { key: "profile", icon: <UserOutlined />, label: "Hồ sơ" },
     { key: "settings", icon: <SettingOutlined />, label: "Cài đặt tài khoản" },
@@ -47,7 +85,12 @@ const SHeader = ({ collapsed, toggleCollapsed, selectedMenu }) => {
       </div>
       <div className="flex items-center space-x-4">
         <Dropdown
-          menu={{ items: notificationItems }}
+          menu={{
+            items: notificationItems,
+            onClick: ({ key }) => {
+              // Add notification handling logic if needed
+            },
+          }}
           placement="bottomRight"
           arrow
         >
@@ -55,10 +98,17 @@ const SHeader = ({ collapsed, toggleCollapsed, selectedMenu }) => {
             <Button type="text" icon={<BellOutlined />} />
           </Badge>
         </Dropdown>
-        <Dropdown menu={{ items: userMenuItems }} placement="bottomRight" arrow>
+        <Dropdown
+          menu={{
+            items: userMenuItems,
+            onClick: ({ key }) => handleMenuClick(key),
+          }}
+          placement="bottomRight"
+          arrow
+        >
           <div className="flex items-center cursor-pointer">
             <Avatar icon={<UserOutlined />} />
-            <span className="ml-2 hidden md:inline">Trần Văn A</span>
+            <span className="ml-2 hidden md:inline">{username}</span>
           </div>
         </Dropdown>
       </div>
