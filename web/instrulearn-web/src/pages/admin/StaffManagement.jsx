@@ -11,8 +11,8 @@ import {
   message,
 } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
-import ASidebar from "../../components/AdminSidebar";
-import AHeader from "../../components/AdminHeader";
+import ASidebar from "../../components/admin/AdminSidebar";
+import AHeader from "../../components/admin/AdminHeader";
 
 const { Content } = Layout;
 

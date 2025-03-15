@@ -20,8 +20,8 @@ import {
   FileTextOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
-import SSidebar from "../../components/StaffSidebar";
-import SHeader from "../../components/StaffHeader";
+import SSidebar from "../../components/staff/StaffSidebar";
+import SHeader from "../../components/staff/StaffHeader";
 
 const { Content } = Layout;
 const { Title } = Typography;
