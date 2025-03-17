@@ -20,8 +20,8 @@ import {
   FileTextOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
-import SSidebar from "../../components/staff/StaffSidebar";
-import SHeader from "../../components/staff/StaffHeader";
+import StaffSidebar from "../../components/staff/StaffSidebar";
+import StaffHeader from "../../components/staff/StaffHeader";
 
 const { Content } = Layout;
 const { Title } = Typography;
@@ -30,7 +30,7 @@ const ItemTypeManagement = () => {
   const [form] = Form.useForm();
   const [editForm] = Form.useForm();
   const [collapsed, setCollapsed] = useState(false);
-  const [selectedMenu, setSelectedMenu] = useState("settings");
+  const [selectedMenu, setSelectedMenu] = useState("item-type");
   const [itemTypes, setItemTypes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [addModalVisible, setAddModalVisible] = useState(false);
@@ -209,20 +209,25 @@ const ItemTypeManagement = () => {
   ];
 
   return (
-    <Layout className="h-screen">
-      <SSidebar
+    <Layout className="min-h-screen">
+      <StaffSidebar
         collapsed={collapsed}
+        setCollapsed={setCollapsed}
         selectedMenu={selectedMenu}
-        onMenuSelect={setSelectedMenu}
-        toggleCollapsed={() => setCollapsed(!collapsed)}
       />
-      <Layout>
-        <SHeader
-          collapsed={collapsed}
-          toggleCollapsed={() => setCollapsed(!collapsed)}
-          selectedMenu={selectedMenu}
-        />
-        <Content className="p-6 bg-gray-50 overflow-auto">
+      <Layout
+        style={{
+          marginLeft: collapsed ? "80px" : "250px",
+          transition: "all 0.2s",
+        }}
+      >
+        <StaffHeader collapsed={collapsed} setCollapsed={setCollapsed} />
+        <Content
+          className="p-6 bg-gray-50"
+          style={{
+            marginTop: "64px",
+          }}
+        >
           <div className="space-y-6">
             <Card
               bordered={false}

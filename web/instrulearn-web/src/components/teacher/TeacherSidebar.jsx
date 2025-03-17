@@ -51,6 +51,9 @@ const TeacherSidebar = ({
       case "class-progress":
         navigate("/teacher/class-progress");
         break;
+      case "makeup-class":
+        navigate("/teacher/makeup-class");
+        break;
       default:
         break;
     }
@@ -69,7 +72,7 @@ const TeacherSidebar = ({
       children: [
         { key: "center-schedule", label: "Lịch ở trung tâm" },
         { key: "private-schedule", label: "Lịch dạy tại nhà" },
-        { key: "schedule-change", label: "Yêu cầu thay đổi" },
+        { key: "makeup-class", label: "Yêu cầu thay đổi" },
       ],
     },
     {

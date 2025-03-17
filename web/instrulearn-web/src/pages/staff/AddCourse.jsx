@@ -20,8 +20,8 @@ import {
   UploadOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
-import SSidebar from "../../components/staff/StaffSidebar";
-import SHeader from "../../components/staff/StaffHeader";
+import StaffSidebar from "../../components/staff/StaffSidebar";
+import StaffHeader from "../../components/staff/StaffHeader";
 import { initializeApp } from "firebase/app";
 import {
   getStorage,
@@ -200,19 +200,24 @@ const AddCourse = () => {
 
   return (
     <Layout className="min-h-screen">
-      <SSidebar
+      <StaffSidebar
         collapsed={collapsed}
+        setCollapsed={setCollapsed}
         selectedMenu={selectedMenu}
-        onMenuSelect={setSelectedMenu}
-        toggleCollapsed={() => setCollapsed(!collapsed)}
       />
-      <Layout>
-        <SHeader
-          collapsed={collapsed}
-          toggleCollapsed={() => setCollapsed(!collapsed)}
-          selectedMenu={selectedMenu}
-        />
-        <Content className="p-6 bg-gray-50">
+      <Layout
+        style={{
+          marginLeft: collapsed ? "80px" : "250px",
+          transition: "all 0.2s",
+        }}
+      >
+        <StaffHeader collapsed={collapsed} setCollapsed={setCollapsed} />
+        <Content
+          className="p-6 bg-gray-50"
+          style={{
+            marginTop: "64px",
+          }}
+        >
           <Card className="shadow-md">
             <Title level={2} className="text-center mb-6">
               Thêm Khóa Học Mới

@@ -1,85 +1,149 @@
 import React from "react";
 import { Layout, Menu, Avatar, Input } from "antd";
 import {
+  DashboardOutlined,
   BookOutlined,
   ScheduleOutlined,
   SolutionOutlined,
   MessageOutlined,
   FileTextOutlined,
-  DashboardOutlined,
   UserOutlined,
   SearchOutlined,
+  TeamOutlined,
+  BellOutlined,
+  SettingOutlined,
+  CalendarOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 
 const { Sider } = Layout;
 const { Search } = Input;
 
-const SSidebar = ({
-  collapsed,
-  selectedMenu,
-  onMenuSelect,
-  toggleCollapsed,
-}) => {
+const StaffSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
   const navigate = useNavigate();
 
   const handleMenuSelect = ({ key }) => {
-    onMenuSelect(key);
-    if (key === "musical instrument-type") {
-      navigate("/instrument-management");
-    }
-    if (key === "dashboard") {
-      navigate("/staff");
-    }
-    if (key === "add-course") {
-      navigate("/add-course");
-    }
-    if (key === "course-management") {
-      navigate("/course-management");
-    }
-    if (key === "item-type") {
-      navigate("/item-type");
+    switch (key) {
+      case "dashboard":
+        navigate("/staff");
+        break;
+      case "course-management":
+        navigate("/staff/course-management");
+        break;
+      case "add-course":
+        navigate("/staff/add-course");
+        break;
+      case "musical instrument-type":
+        navigate("/staff/instrument-management");
+        break;
+      case "item-type":
+        navigate("/staff/item-type");
+        break;
+      case "teacher-center-schedule":
+        navigate("/staff/teacher-center-schedule");
+        break;
+      case "teacher-personal-schedule":
+        navigate("/staff/teacher-personal-schedule");
+        break;
+      case "student-center-schedule":
+        navigate("/staff/student-center-schedule");
+        break;
+      case "student-personal-schedule":
+        navigate("/staff/student-personal-schedule");
+        break;
+      case "schedule-requests":
+        navigate("/staff/schedule-requests");
+        break;
+      case "makeup-requests":
+        navigate("/staff/makeup-requests");
+        break;
+      case "class-progress":
+        navigate("/staff/class-progress");
+        break;
+      case "assessments":
+        navigate("/staff/assessments");
+        break;
+      case "grades":
+        navigate("/staff/grades");
+        break;
+      case "student-messages":
+        navigate("/staff/student-messages");
+        break;
+      case "announcements":
+        navigate("/staff/announcements");
+        break;
+      case "resources":
+        navigate("/staff/resources");
+        break;
+      case "teacher-personal-schedule":
+        navigate("/staff/teacher-personal-schedule");
+        break;
+      case "student-personal-schedule":
+        navigate("/staff/student-personal-schedule");
+        break;
+      case "makeup-class-requests":
+        navigate("/staff/makeup-class-requests");
+        break;
+      case "booking1-1-requests":
+        navigate("/staff/booking1-1-requests");
+        break;
+      case "class-requests":
+        navigate("/staff/center-class-registration");
+        break;
+      default:
+        break;
     }
   };
 
   const menuItems = [
-    { key: "dashboard", icon: <DashboardOutlined />, label: "Tổng quan" },
     {
-      key: "courses",
+      key: "dashboard",
+      icon: <DashboardOutlined />,
+      label: "Tổng quan",
+    },
+    {
+      key: "course-management",
       icon: <BookOutlined />,
-      label: "Khoá học",
+      label: "Quản lý khóa học",
       children: [
-        { key: "course-management", label: "Quản lý khóa học" },
-        { key: "add-course", label: "Thêm khóa học" },
-        { key: "student-progress", label: "Tiến độ học viên" },
+        { key: "course-management", label: "Quản lý gói khóa học" },
+        { key: "add-course", label: "Thêm gói khóa học" },
+        { key: "musical instrument-type", label: "Quản lý nhạc cụ" },
+        { key: "item-type", label: "Nội dung gói khóa học" },
       ],
     },
     {
-      key: "musical instruments",
-      icon: <BookOutlined />,
-      label: "Nhạc cụ",
-      children: [{ key: "musical instrument-type", label: "Loại nhạc cụ" }],
-    },
-    {
-      key: "item type",
-      icon: <BookOutlined />,
-      label: "Định dạng",
-      children: [{ key: "item-type", label: "Loại định dạng" }],
-    },
-    {
-      key: "schedules",
+      key: "teacher-schedules",
       icon: <ScheduleOutlined />,
-      label: "Lịch dạy",
+      label: "Lịch dạy giáo viên",
       children: [
-        { key: "upcoming-classes", label: "Lớp sắp tới" },
-        { key: "calendar", label: "Lịch tháng" },
-        { key: "schedule-requests", label: "Yêu cầu thay đổi" },
+        { key: "teacher-center-schedule", label: "Lịch dạy Trung tâm" },
+        { key: "teacher-personal-schedule", label: "Lịch dạy tại nhà" },
       ],
     },
     {
-      key: "progress",
+      key: "student-schedules",
+      icon: <CalendarOutlined />,
+      label: "Lịch học học viên",
+      children: [
+        { key: "student-center-schedule", label: "Lịch học Trung tâm" },
+        { key: "student-personal-schedule", label: "Lịch học tại nhà" },
+      ],
+    },
+    {
+      key: "schedule-changes",
+      icon: <BellOutlined />,
+      label: "Yêu cầu",
+      children: [
+        { key: "class-requests", label: "Tham gia lớp" },
+        { key: "makeup-class-requests", label: "Yêu cầu học bù" },
+        { key: "booking1-1-requests", label: "Học 1-1" },
+      ],
+    },
+    {
+      key: "progress-tracking",
       icon: <SolutionOutlined />,
-      label: "Theo dõi lớp học",
+      label: "Theo dõi học tập",
       children: [
         { key: "class-progress", label: "Tiến độ lớp" },
         { key: "assessments", label: "Đánh giá" },
@@ -95,7 +159,11 @@ const SSidebar = ({
         { key: "announcements", label: "Thông báo" },
       ],
     },
-    { key: "resources", icon: <FileTextOutlined />, label: "Tài nguyên" },
+    {
+      key: "resources",
+      icon: <FileTextOutlined />,
+      label: "Tài nguyên",
+    },
   ];
 
   return (
@@ -103,9 +171,13 @@ const SSidebar = ({
       width={250}
       collapsible
       collapsed={collapsed}
-      onCollapse={toggleCollapsed}
-      className="shadow-lg"
-      style={{ background: "#001529" }}
+      onCollapse={(value) => setCollapsed(value)}
+      className="shadow-lg overflow-auto fixed left-0 top-0 bottom-0"
+      style={{
+        background: "#001529",
+        height: "100vh",
+        zIndex: 999,
+      }}
     >
       <div className="flex items-center justify-center py-4 h-16">
         <div className="text-white text-xl font-bold">
@@ -127,14 +199,22 @@ const SSidebar = ({
         selectedKeys={[selectedMenu]}
         onSelect={handleMenuSelect}
         items={menuItems}
+        style={{
+          height: "calc(100vh - 180px)",
+          overflowY: "auto",
+          overflowX: "hidden",
+        }}
       />
-      <div className="absolute bottom-0 w-full p-4 border-t border-gray-700">
+      <div
+        className="fixed bottom-0 w-[250px] p-4 border-t border-gray-700 bg-[#001529]"
+        style={{ width: collapsed ? 80 : 250 }}
+      >
         {!collapsed && (
           <div className="flex items-center">
             <Avatar size="large" icon={<UserOutlined />} />
             <div className="ml-3 text-white">
-              <div className="font-medium">Trần Văn A</div>
-              <div className="text-xs text-gray-400">Giảng viên</div>
+              <div className="font-medium">Nguyễn Thị Nhân Viên</div>
+              <div className="text-xs text-gray-400">Nhân viên quản lý</div>
             </div>
           </div>
         )}
@@ -143,4 +223,4 @@ const SSidebar = ({
   );
 };
 
-export default SSidebar;
+export default StaffSidebar;

@@ -22,15 +22,15 @@ import {
 } from "@ant-design/icons";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import SSidebar from "../../components/staff/StaffSidebar";
-import SHeader from "../../components/staff/StaffHeader";
+import StaffSidebar from "../../components/staff/StaffSidebar";
+import StaffHeader from "../../components/staff/StaffHeader";
 
 const { Content } = Layout;
 const { Title } = Typography;
 
 const CourseManagement = () => {
   const [collapsed, setCollapsed] = useState(false);
-  const [selectedMenu, setSelectedMenu] = useState("courses");
+  const [selectedMenu, setSelectedMenu] = useState("course-management");
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState("");
@@ -84,7 +84,7 @@ const CourseManagement = () => {
   };
 
   const handleAddCourse = () => {
-    navigate("/add-course");
+    navigate("/staff/add-course");
   };
 
   const handleEditCourse = (courseId, e) => {
@@ -166,20 +166,25 @@ const CourseManagement = () => {
   ];
 
   return (
-    <Layout className="h-screen">
-      <SSidebar
+    <Layout className="min-h-screen">
+      <StaffSidebar
         collapsed={collapsed}
+        setCollapsed={setCollapsed}
         selectedMenu={selectedMenu}
-        onMenuSelect={setSelectedMenu}
-        toggleCollapsed={() => setCollapsed(!collapsed)}
       />
-      <Layout>
-        <SHeader
-          collapsed={collapsed}
-          toggleCollapsed={() => setCollapsed(!collapsed)}
-          selectedMenu={selectedMenu}
-        />
-        <Content className="p-6 bg-gray-50">
+      <Layout
+        style={{
+          marginLeft: collapsed ? "80px" : "250px",
+          transition: "all 0.2s",
+        }}
+      >
+        <StaffHeader collapsed={collapsed} setCollapsed={setCollapsed} />
+        <Content
+          className="p-6 bg-gray-50"
+          style={{
+            marginTop: "64px",
+          }}
+        >
           <Card>
             <div className="flex justify-between items-center mb-4">
               <Title level={4}>Quản lý khóa học</Title>

@@ -29,8 +29,8 @@ import {
   PlayCircleOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
-import SSidebar from "../../components/staff/StaffSidebar";
-import SHeader from "../../components/staff/StaffHeader";
+import StaffSidebar from "../../components/staff/StaffSidebar";
+import StaffHeader from "../../components/staff/StaffHeader";
 import dayjs from "dayjs";
 
 const { Content } = Layout;
@@ -64,15 +64,14 @@ const generateFakeBookings = () => {
     "Thứ 7",
     "Chủ nhật",
   ];
-  const slots = [
-    "8:00 - 9:30",
-    "10:00 - 11:30",
-    "13:00 - 14:30",
-    "15:00 - 16:30",
-    "17:00 - 18:30",
-    "19:00 - 20:30",
+  const slots = ["8:00 ", "10:00 ", "13:00 ", "15:00 ", "17:00 ", "19:00 "];
+  const levels = [
+    "Chưa biết gì",
+    "1-3 tháng",
+    "3-6 tháng",
+    "1 năm",
+    "Hơn 1 năm",
   ];
-  const levels = ["1 ngày", "1 tháng", "1 năm", "Hơn 1 năm"];
   const statuses = ["pending", "accepted", "rejected"];
 
   // Create one detailed example as requested
@@ -85,9 +84,9 @@ const generateFakeBookings = () => {
     teacherId: 2,
     teacherName: "Trần Thị Bình",
     bookingDay: "Thứ 3",
-    bookingSlot: "15:00 - 16:30",
+    bookingSlot: "15:00 ",
     numberOfSlots: 12,
-    proficiencyLevel: "1 tháng",
+    proficiencyLevel: "1-3 tháng",
     learningRequirements:
       "Muốn học các bản nhạc cổ điển và luyện kỹ thuật chơi piano cơ bản",
     bookingDate: dayjs().add(2, "day").format(),
@@ -122,7 +121,7 @@ const generateFakeBookings = () => {
         .format(),
       status: statuses[Math.floor(Math.random() * statuses.length)],
       videoUploadUrl:
-        level !== "1 ngày"
+        level !== "Chưa biết gì"
           ? `https://example.com/uploads/video_${i + 1}.mp4`
           : null,
       courseName: `Khóa học ${
@@ -138,9 +137,9 @@ const generateFakeBookings = () => {
   return [detailedExample, ...randomBookings];
 };
 
-const BookingManagement = () => {
+const Booking11Management = () => {
   const [collapsed, setCollapsed] = useState(false);
-  const [selectedMenu, setSelectedMenu] = useState("bookings");
+  const [selectedMenu, setSelectedMenu] = useState("booking-management");
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState("");
@@ -316,15 +315,17 @@ const BookingManagement = () => {
       key: "proficiencyLevel",
       render: (level) => {
         let color = "default";
-        if (level === "1 ngày") color = "cyan";
-        if (level === "1 tháng") color = "purple";
-        if (level === "1 năm") color = "orange";
+        if (level === "Chưa biết gì") color = "cyan";
+        if (level === "1-3 tháng") color = "purple";
+        if (level === "3-6 tháng") color = "orange";
+        if (level === "1 năm") color = "red";
         if (level === "Hơn 1 năm") color = "red";
         return <Tag color={color}>{level}</Tag>;
       },
       filters: [
-        { text: "1 ngày", value: "1 ngày" },
-        { text: "1 tháng", value: "1 tháng" },
+        { text: "Chưa biết gì", value: "Chưa biết gì" },
+        { text: "1-3 tháng", value: "1-3 tháng" },
+        { text: "3-6 tháng ", value: "3-6 tháng" },
         { text: "1 năm", value: "1 năm" },
         { text: "Hơn 1 năm", value: "Hơn 1 năm" },
       ],
@@ -335,7 +336,8 @@ const BookingManagement = () => {
       key: "video",
       render: (_, record) => (
         <>
-          {record.videoUploadUrl && record.proficiencyLevel !== "1 ngày" ? (
+          {record.videoUploadUrl &&
+          record.proficiencyLevel !== "Chưa biết gì" ? (
             <Button
               type="link"
               icon={<PlayCircleOutlined />}
@@ -415,23 +417,20 @@ const BookingManagement = () => {
   ];
 
   return (
-    <Layout className="h-screen">
-      <SSidebar
+    <Layout style={{ minHeight: "100vh" }}>
+      <StaffSidebar
         collapsed={collapsed}
+        setCollapsed={setCollapsed}
         selectedMenu={selectedMenu}
-        onMenuSelect={setSelectedMenu}
-        toggleCollapsed={() => setCollapsed(!collapsed)}
       />
-      <Layout>
-        <SHeader
-          collapsed={collapsed}
-          toggleCollapsed={() => setCollapsed(!collapsed)}
-          selectedMenu={selectedMenu}
-        />
-        <Content className="p-6 bg-gray-50">
+      <Layout
+        style={{ marginLeft: collapsed ? 80 : 250, transition: "all 0.2s" }}
+      >
+        <StaffHeader collapsed={collapsed} setCollapsed={setCollapsed} />
+        <Content style={{ margin: "24px 16px", padding: 24 }}>
           <Card>
             <div className="flex justify-between items-center mb-4">
-              <Title level={4}>Quản lý lịch học 1-1</Title>
+              <Title level={4}>Quản lý đơn học 1-1</Title>
               <Space>
                 <Input
                   placeholder="Tìm kiếm..."
@@ -668,7 +667,7 @@ const BookingManagement = () => {
             </div>
 
             {selectedBooking.videoUploadUrl &&
-              selectedBooking.proficiencyLevel !== "1 ngày" && (
+              selectedBooking.proficiencyLevel !== "Chưa biết gì" && (
                 <div>
                   <p className="font-bold">Video đã tải lên:</p>
                   <Button
@@ -811,4 +810,4 @@ const BookingManagement = () => {
   );
 };
 
-export default BookingManagement;
+export default Booking11Management;
