@@ -24,8 +24,8 @@ import {
   SearchOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
-import SSidebar from "../../components/staff/StaffSidebar";
-import SHeader from "../../components/staff/StaffHeader";
+import StaffSidebar from "../../components/staff/StaffSidebar";
+import StaffHeader from "../../components/staff/StaffHeader";
 
 const { Content } = Layout;
 const { Title } = Typography;
@@ -80,7 +80,7 @@ const generateFakeScheduleData = () => {
   });
 };
 
-const TeacherScheduleManagement = () => {
+const TeacherCenterSchedule = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [selectedMenu, setSelectedMenu] = useState("teacher-schedule");
   const [schedules, setSchedules] = useState([]);
@@ -247,23 +247,28 @@ const TeacherScheduleManagement = () => {
   ];
 
   return (
-    <Layout className="h-screen">
-      <SSidebar
+    <Layout>
+      <StaffSidebar
         collapsed={collapsed}
-        selectedMenu={selectedMenu}
-        onMenuSelect={setSelectedMenu}
-        toggleCollapsed={() => setCollapsed(!collapsed)}
+        setCollapsed={setCollapsed}
+        selectedMenu="teacher-schedules"
       />
-      <Layout>
-        <SHeader
-          collapsed={collapsed}
-          toggleCollapsed={() => setCollapsed(!collapsed)}
-          selectedMenu={selectedMenu}
-        />
-        <Content className="p-6 bg-gray-50">
+      <Layout
+        style={{
+          marginLeft: collapsed ? "80px" : "250px",
+          transition: "all 0.2s",
+        }}
+      >
+        <StaffHeader collapsed={collapsed} setCollapsed={setCollapsed} />
+        <Content
+          className="p-6 min-h-screen bg-gray-50"
+          style={{
+            marginTop: "64px",
+          }}
+        >
           <Card>
             <div className="flex justify-between items-center mb-4">
-              <Title level={4}>Quản Lý Lịch Giảng Dạy</Title>
+              <Title level={4}>Quản Lý Lịch Giảng Dạy Trung Tâm</Title>
               <Space>
                 <Input
                   placeholder="Tìm kiếm..."
@@ -463,4 +468,4 @@ const TeacherScheduleManagement = () => {
   );
 };
 
-export default TeacherScheduleManagement;
+export default TeacherCenterSchedule;

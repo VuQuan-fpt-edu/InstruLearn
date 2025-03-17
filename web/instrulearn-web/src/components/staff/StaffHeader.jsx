@@ -1,19 +1,28 @@
 import React, { useState, useEffect } from "react";
-import { Layout, Button, Avatar, Dropdown, Badge, message } from "antd";
 import {
-  MenuUnfoldOutlined,
-  MenuFoldOutlined,
+  Layout,
+  Button,
+  Avatar,
+  Dropdown,
+  Badge,
+  message,
+  Typography,
+} from "antd";
+import {
+  MenuOutlined,
   BellOutlined,
   UserOutlined,
   SettingOutlined,
   LogoutOutlined,
+  CalendarOutlined,
+  MessageOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { getCurrentUser } from "../../api/auth";
 
 const { Header } = Layout;
 
-const SHeader = ({ collapsed, toggleCollapsed, selectedMenu }) => {
+const StaffHeader = ({ collapsed, toggleCollapsed, selectedMenu }) => {
   const [username, setUsername] = useState("Staff");
   const navigate = useNavigate();
 
@@ -35,10 +44,10 @@ const SHeader = ({ collapsed, toggleCollapsed, selectedMenu }) => {
   const handleMenuClick = (key) => {
     switch (key) {
       case "profile":
-        navigate("/staff-profile");
+        navigate("/staff/profile");
         break;
       case "settings":
-        navigate("/settings");
+        navigate("/staff/settings");
         break;
       case "logout":
         // Clear local storage and navigate to login
@@ -51,64 +60,113 @@ const SHeader = ({ collapsed, toggleCollapsed, selectedMenu }) => {
   };
 
   const userMenuItems = [
-    { key: "profile", icon: <UserOutlined />, label: "Hồ sơ" },
+    { key: "profile", icon: <UserOutlined />, label: "Hồ sơ nhân viên" },
     { key: "settings", icon: <SettingOutlined />, label: "Cài đặt tài khoản" },
+    { type: "divider" },
     { key: "logout", icon: <LogoutOutlined />, label: "Đăng xuất" },
   ];
 
   const notificationItems = [
-    { key: "1", label: "Nhắc nhở: Lớp Java bắt đầu sau 30 phút" },
-    { key: "2", label: "Học viên Nguyễn Văn A đã nộp bài tập" },
-    { key: "3", label: "Yêu cầu thay đổi lịch học từ lớp Python" },
+    {
+      key: "1",
+      icon: <CalendarOutlined />,
+      label: "Yêu cầu học bù mới từ giáo viên Nguyễn Văn A",
+      time: "5 phút trước",
+    },
+    {
+      key: "2",
+      icon: <MessageOutlined />,
+      label: "Giáo viên Trần Thị B đã gửi báo cáo tiến độ",
+      time: "30 phút trước",
+    },
+    {
+      key: "3",
+      icon: <CalendarOutlined />,
+      label: "Cần duyệt lịch dạy mới cho lớp Piano nâng cao",
+      time: "1 giờ trước",
+    },
   ];
 
+  const getPageTitle = () => {
+    switch (selectedMenu) {
+      case "dashboard":
+        return "Tổng quan";
+      case "course-management":
+        return "Quản lý gói khóa học";
+      case "add-course":
+        return "Thêm gói khóa học";
+      case "musical instrument-type":
+        return "Quản lý nhạc cụ";
+      case "item-type":
+        return "Nội dung gói khóa học";
+      case "teacher-center-schedule":
+        return "Lịch dạy Trung tâm";
+      case "teacher-personal-schedule":
+        return "Lịch dạy cá nhân";
+      case "schedule-requests":
+        return "Yêu cầu thay đổi";
+      case "student-center-schedule":
+        return "Lịch học Trung tâm";
+      case "student-personal-schedule":
+        return "Lịch học cá nhân";
+      case "class-progress":
+        return "Tiến độ lớp";
+      case "assessments":
+        return "Đánh giá";
+      case "grades":
+        return "Điểm số";
+      case "student-messages":
+        return "Tin nhắn học viên";
+      case "announcements":
+        return "Thông báo";
+      case "resources":
+        return "Tài nguyên";
+      default:
+        return "Staff Portal";
+    }
+  };
+
+  const userMenu = (
+    <MenuOutlined
+      className="text-xl cursor-pointer mr-4"
+      onClick={handleMenuClick}
+    />
+  );
+
   return (
-    <Header className="bg-white shadow px-4 flex items-center justify-between h-16">
+    <Header
+      className="flex items-center justify-between px-6 bg-white shadow-sm"
+      style={{
+        position: "fixed",
+        right: 0,
+        width: `calc(100% - ${collapsed ? "80px" : "250px"})`,
+        marginLeft: 0,
+        height: "64px",
+        zIndex: 998,
+        transition: "all 0.2s",
+      }}
+    >
       <div className="flex items-center">
-        <Button
-          type="text"
-          icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+        <MenuOutlined
+          className="text-xl cursor-pointer mr-4"
           onClick={toggleCollapsed}
-          className="mr-4"
         />
-        <span className="text-lg font-medium">
-          {selectedMenu === "dashboard" && "Tổng quan"}
-          {selectedMenu.includes("courses") && "Quản lý khoá học"}
-          {selectedMenu.includes("schedules") && "Lịch giảng dạy"}
-          {selectedMenu.includes("progress") && "Theo dõi lớp học"}
-          {selectedMenu.includes("communication") && "Liên lạc"}
-          {selectedMenu.includes("resources") && "Tài nguyên"}
-          {selectedMenu.includes("musical instrument-type") &&
-            "Quản lý nhạc cụ"}
-          {selectedMenu.includes("add-course") && "Thêm khóa học"}
-        </span>
+        <Typography.Title level={4} style={{ margin: 0 }}>
+          {getPageTitle()}
+        </Typography.Title>
       </div>
-      <div className="flex items-center space-x-4">
+      <div className="flex items-center">
+        <Badge count={5} className="mr-4">
+          <BellOutlined className="text-xl cursor-pointer" />
+        </Badge>
         <Dropdown
-          menu={{
-            items: notificationItems,
-            onClick: ({ key }) => {
-              // Add notification handling logic if needed
-            },
-          }}
+          overlay={userMenu}
           placement="bottomRight"
-          arrow
-        >
-          <Badge count={3} size="small">
-            <Button type="text" icon={<BellOutlined />} />
-          </Badge>
-        </Dropdown>
-        <Dropdown
-          menu={{
-            items: userMenuItems,
-            onClick: ({ key }) => handleMenuClick(key),
-          }}
-          placement="bottomRight"
-          arrow
+          trigger={["click"]}
         >
           <div className="flex items-center cursor-pointer">
             <Avatar icon={<UserOutlined />} />
-            <span className="ml-2 hidden md:inline">{username}</span>
+            <span className="ml-2">Nguyễn Thị Nhân Viên</span>
           </div>
         </Dropdown>
       </div>
@@ -116,4 +174,4 @@ const SHeader = ({ collapsed, toggleCollapsed, selectedMenu }) => {
   );
 };
 
-export default SHeader;
+export default StaffHeader;

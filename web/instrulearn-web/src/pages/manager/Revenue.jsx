@@ -10,18 +10,14 @@ import {
   Table,
   Space,
   Statistic,
-  Tabs,
   Row,
   Col,
   Tooltip,
-  Divider,
   message,
   Progress,
 } from "antd";
 import {
   BarChartOutlined,
-  LineChartOutlined,
-  PieChartOutlined,
   CalendarOutlined,
   ReloadOutlined,
   DownloadOutlined,
@@ -29,16 +25,17 @@ import {
   DollarCircleOutlined,
   VideoCameraOutlined,
   TeamOutlined,
+  HomeOutlined,
+  ShoppingCartOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import SSidebar from "../../components/staff/StaffSidebar";
-import SHeader from "../../components/staff/StaffHeader";
+import ManagerSidebar from "../../components/manager/ManagerSidebar";
+import ManagerHeader from "../../components/manager/ManagerHeader";
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
-const { TabPane } = Tabs;
 const { Option } = Select;
 
 const RevenueReport = () => {
@@ -47,103 +44,111 @@ const RevenueReport = () => {
   const [loading, setLoading] = useState(true);
   const [reportData, setReportData] = useState(null);
   const [dateRange, setDateRange] = useState([null, null]);
-  const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedInstrument, setSelectedInstrument] = useState("all");
-  const [chartType, setChartType] = useState("bar");
-  const [timeFilter, setTimeFilter] = useState("month");
   const navigate = useNavigate();
 
   // Dữ liệu mẫu - thay thế bằng API call thực tế
   const mockData = {
-    totalRevenue: 12500000,
+    totalRevenue: 25000000,
     categories: {
-      videoLessons: 7500000,
-      liveLessons: 5000000,
+      onlineCourses: 8000000, // Doanh thu từ gói khóa học tự học online
+      centerClasses: 10000000, // Doanh thu từ lớp học tại trung tâm
+      privateLessons: 7000000, // Doanh thu từ học 1-1 tại nhà
+      registrationFees: 500000, // Doanh thu từ phí đăng ký học 1-1 (50k/đơn)
+      depositFees: 1000000, // Doanh thu từ phí giữ chỗ lớp học tại trung tâm (10% học phí)
     },
     monthlyData: [
-      { month: "Tháng 1", videoLessons: 450000, liveLessons: 320000 },
-      { month: "Tháng 2", videoLessons: 520000, liveLessons: 380000 },
-      { month: "Tháng 3", videoLessons: 620000, liveLessons: 420000 },
-      { month: "Tháng 4", videoLessons: 580000, liveLessons: 400000 },
-      { month: "Tháng 5", videoLessons: 750000, liveLessons: 450000 },
-      { month: "Tháng 6", videoLessons: 820000, liveLessons: 480000 },
-      { month: "Tháng 7", videoLessons: 780000, liveLessons: 520000 },
-      { month: "Tháng 8", videoLessons: 850000, liveLessons: 550000 },
-      { month: "Tháng 9", videoLessons: 920000, liveLessons: 580000 },
-      { month: "Tháng 10", videoLessons: 980000, liveLessons: 620000 },
-      { month: "Tháng 11", videoLessons: 1050000, liveLessons: 650000 },
-      { month: "Tháng 12", videoLessons: 1100000, liveLessons: 700000 },
+      {
+        month: "Tháng 1",
+        onlineCourses: 600000,
+        centerClasses: 800000,
+        privateLessons: 500000,
+        registrationFees: 50000,
+        depositFees: 80000,
+      },
+      {
+        month: "Tháng 2",
+        onlineCourses: 650000,
+        centerClasses: 850000,
+        privateLessons: 550000,
+        registrationFees: 45000,
+        depositFees: 85000,
+      },
+      // ... thêm dữ liệu cho các tháng khác
     ],
     instrumentTypes: [
-      { name: "Đàn Guitar", videoRevenue: 3200000, liveRevenue: 2100000 },
-      { name: "Đàn Piano", videoRevenue: 2800000, liveRevenue: 1800000 },
-      { name: "Violin", videoRevenue: 1500000, liveRevenue: 1100000 },
+      {
+        name: "Đàn Guitar",
+        onlineRevenue: 3000000,
+        centerRevenue: 4000000,
+        privateRevenue: 2500000,
+        registrationFees: 200000,
+        depositFees: 400000,
+      },
+      {
+        name: "Đàn Piano",
+        onlineRevenue: 2500000,
+        centerRevenue: 3500000,
+        privateRevenue: 2000000,
+        registrationFees: 150000,
+        depositFees: 350000,
+      },
+      {
+        name: "Violin",
+        onlineRevenue: 2500000,
+        centerRevenue: 2500000,
+        privateRevenue: 2500000,
+        registrationFees: 150000,
+        depositFees: 250000,
+      },
     ],
-    topCourses: [
+    topRevenueSources: [
       {
         id: 1,
-        name: "Guitar cơ bản cho người mới bắt đầu",
-        type: "Đàn Guitar",
-        category: "Video",
-        revenue: 1200000,
-        students: 45,
+        name: "Lớp Piano nâng cao",
+        type: "Lớp học tại trung tâm",
+        revenue: 2500000,
+        students: 15,
       },
       {
         id: 2,
-        name: "Lớp Piano nâng cao",
-        type: "Đàn Piano",
-        category: "Live",
-        revenue: 950000,
-        students: 10,
+        name: "Guitar cơ bản online",
+        type: "Khóa học tự học",
+        revenue: 1800000,
+        students: 45,
       },
       {
         id: 3,
-        name: "Violin cho trẻ em",
-        type: "Violin",
-        category: "Video",
-        revenue: 820000,
-        students: 30,
+        name: "Violin 1-1",
+        type: "Học tại nhà",
+        revenue: 1500000,
+        students: 8,
       },
       {
         id: 4,
-        name: "Khóa Guitar Fingerstyle",
-        type: "Đàn Guitar",
-        category: "Video",
-        revenue: 780000,
-        students: 25,
+        name: "Phí đăng ký học 1-1",
+        type: "Phí đăng ký",
+        revenue: 500000,
+        students: 100,
       },
       {
         id: 5,
-        name: "Piano cổ điển",
-        type: "Đàn Piano",
-        category: "Live",
-        revenue: 720000,
-        students: 8,
+        name: "Phí giữ chỗ lớp học",
+        type: "Phí giữ chỗ",
+        revenue: 1000000,
+        students: 200,
       },
     ],
   };
 
   useEffect(() => {
     fetchRevenueData();
-  }, [selectedCategory, selectedInstrument, dateRange]);
+  }, [selectedInstrument, dateRange]);
 
   const fetchRevenueData = async () => {
     setLoading(true);
     try {
       // Trong thực tế, bạn sẽ gọi API thực tế ở đây
-      // const response = await axios.get(
-      //   "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Report/revenue",
-      //   {
-      //     params: {
-      //       category: selectedCategory,
-      //       instrument: selectedInstrument,
-      //       startDate: dateRange[0] ? dateRange[0].format('YYYY-MM-DD') : undefined,
-      //       endDate: dateRange[1] ? dateRange[1].format('YYYY-MM-DD') : undefined
-      //     }
-      //   }
-      // );
-
-      // Thay thế bằng dữ liệu mẫu
       setTimeout(() => {
         setReportData(mockData);
         setLoading(false);
@@ -167,22 +172,46 @@ const RevenueReport = () => {
       key: "month",
     },
     {
-      title: "Bài học video",
-      dataIndex: "videoLessons",
-      key: "videoLessons",
+      title: "Khóa học tự học",
+      dataIndex: "onlineCourses",
+      key: "onlineCourses",
       render: (value) => `${value.toLocaleString()} VND`,
     },
     {
-      title: "Bài học trực tiếp",
-      dataIndex: "liveLessons",
-      key: "liveLessons",
+      title: "Lớp học tại trung tâm",
+      dataIndex: "centerClasses",
+      key: "centerClasses",
+      render: (value) => `${value.toLocaleString()} VND`,
+    },
+    {
+      title: "Học 1-1 tại nhà",
+      dataIndex: "privateLessons",
+      key: "privateLessons",
+      render: (value) => `${value.toLocaleString()} VND`,
+    },
+    {
+      title: "Phí đăng ký học 1-1",
+      dataIndex: "registrationFees",
+      key: "registrationFees",
+      render: (value) => `${value.toLocaleString()} VND`,
+    },
+    {
+      title: "Phí giữ chỗ lớp học",
+      dataIndex: "depositFees",
+      key: "depositFees",
       render: (value) => `${value.toLocaleString()} VND`,
     },
     {
       title: "Tổng doanh thu",
       key: "total",
       render: (_, record) =>
-        `${(record.videoLessons + record.liveLessons).toLocaleString()} VND`,
+        `${(
+          record.onlineCourses +
+          record.centerClasses +
+          record.privateLessons +
+          record.registrationFees +
+          record.depositFees
+        ).toLocaleString()} VND`,
     },
   ];
 
@@ -194,27 +223,51 @@ const RevenueReport = () => {
       key: "name",
     },
     {
-      title: "Doanh thu từ bài học video",
-      dataIndex: "videoRevenue",
-      key: "videoRevenue",
+      title: "Doanh thu khóa học tự học",
+      dataIndex: "onlineRevenue",
+      key: "onlineRevenue",
       render: (value) => `${value.toLocaleString()} VND`,
     },
     {
-      title: "Doanh thu từ bài học trực tiếp",
-      dataIndex: "liveRevenue",
-      key: "liveRevenue",
+      title: "Doanh thu lớp học tại trung tâm",
+      dataIndex: "centerRevenue",
+      key: "centerRevenue",
+      render: (value) => `${value.toLocaleString()} VND`,
+    },
+    {
+      title: "Doanh thu học 1-1",
+      dataIndex: "privateRevenue",
+      key: "privateRevenue",
+      render: (value) => `${value.toLocaleString()} VND`,
+    },
+    {
+      title: "Phí đăng ký học 1-1",
+      dataIndex: "registrationFees",
+      key: "registrationFees",
+      render: (value) => `${value.toLocaleString()} VND`,
+    },
+    {
+      title: "Phí giữ chỗ lớp học",
+      dataIndex: "depositFees",
+      key: "depositFees",
       render: (value) => `${value.toLocaleString()} VND`,
     },
     {
       title: "Tổng doanh thu",
       key: "total",
       render: (_, record) =>
-        `${(record.videoRevenue + record.liveRevenue).toLocaleString()} VND`,
+        `${(
+          record.onlineRevenue +
+          record.centerRevenue +
+          record.privateRevenue +
+          record.registrationFees +
+          record.depositFees
+        ).toLocaleString()} VND`,
     },
   ];
 
-  // Cột cho bảng Top khóa học
-  const topCoursesColumns = [
+  // Cột cho bảng top nguồn doanh thu
+  const topRevenueColumns = [
     {
       title: "Tên khóa học",
       dataIndex: "name",
@@ -222,23 +275,19 @@ const RevenueReport = () => {
       render: (text) => <span className="font-medium">{text}</span>,
     },
     {
-      title: "Loại nhạc cụ",
+      title: "Loại hình",
       dataIndex: "type",
       key: "type",
-      render: (text) => <span>{text}</span>,
-    },
-    {
-      title: "Danh mục",
-      dataIndex: "category",
-      key: "category",
       render: (text) => (
         <span>
-          {text === "Video" ? (
+          {text === "Khóa học tự học" ? (
             <VideoCameraOutlined style={{ marginRight: 5 }} />
-          ) : (
+          ) : text === "Lớp học tại trung tâm" ? (
             <TeamOutlined style={{ marginRight: 5 }} />
+          ) : (
+            <HomeOutlined style={{ marginRight: 5 }} />
           )}
-          {text === "Video" ? "Bài học video" : "Bài học trực tiếp"}
+          {text}
         </span>
       ),
     },
@@ -261,10 +310,36 @@ const RevenueReport = () => {
   const renderCategoryChart = () => {
     if (!reportData) return <div>Không có dữ liệu</div>;
 
-    const videoPercentage =
-      (reportData.categories.videoLessons / reportData.totalRevenue) * 100;
-    const livePercentage =
-      (reportData.categories.liveLessons / reportData.totalRevenue) * 100;
+    const onlinePercentage =
+      Math.round(
+        (reportData.categories.onlineCourses / reportData.totalRevenue) *
+          100 *
+          100
+      ) / 100;
+    const centerPercentage =
+      Math.round(
+        (reportData.categories.centerClasses / reportData.totalRevenue) *
+          100 *
+          100
+      ) / 100;
+    const privatePercentage =
+      Math.round(
+        (reportData.categories.privateLessons / reportData.totalRevenue) *
+          100 *
+          100
+      ) / 100;
+    const registrationPercentage =
+      Math.round(
+        (reportData.categories.registrationFees / reportData.totalRevenue) *
+          100 *
+          100
+      ) / 100;
+    const depositPercentage =
+      Math.round(
+        (reportData.categories.depositFees / reportData.totalRevenue) *
+          100 *
+          100
+      ) / 100;
 
     return (
       <div>
@@ -286,17 +361,15 @@ const RevenueReport = () => {
                     marginRight: 8,
                   }}
                 ></div>
-                <span>Bài học video</span>
-                <span style={{ marginLeft: "auto" }}>
-                  {videoPercentage.toFixed(1)}%
-                </span>
+                <span>Khóa học tự học</span>
+                {/* <span style={{ marginLeft: "auto" }}>{onlinePercentage}%</span> */}
               </div>
               <Progress
-                percent={videoPercentage}
+                percent={onlinePercentage}
                 strokeColor="rgba(54, 162, 235, 0.6)"
               />
             </div>
-            <div>
+            <div style={{ marginBottom: 16 }}>
               <div
                 style={{
                   display: "flex",
@@ -312,14 +385,86 @@ const RevenueReport = () => {
                     marginRight: 8,
                   }}
                 ></div>
-                <span>Bài học trực tiếp</span>
-                <span style={{ marginLeft: "auto" }}>
-                  {livePercentage.toFixed(1)}%
-                </span>
+                <span>Lớp học tại trung tâm</span>
+                {/* <span style={{ marginLeft: "auto" }}>{centerPercentage}%</span> */}
               </div>
               <Progress
-                percent={livePercentage}
+                percent={centerPercentage}
                 strokeColor="rgba(255, 99, 132, 0.6)"
+              />
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  marginBottom: 8,
+                }}
+              >
+                <div
+                  style={{
+                    width: 20,
+                    height: 20,
+                    backgroundColor: "rgba(75, 192, 192, 0.6)",
+                    marginRight: 8,
+                  }}
+                ></div>
+                <span>Học 1-1 tại nhà</span>
+                {/* <span style={{ marginLeft: "auto" }}>{privatePercentage}%</span> */}
+              </div>
+              <Progress
+                percent={privatePercentage}
+                strokeColor="rgba(75, 192, 192, 0.6)"
+              />
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  marginBottom: 8,
+                }}
+              >
+                <div
+                  style={{
+                    width: 20,
+                    height: 20,
+                    backgroundColor: "rgba(255, 206, 86, 0.6)",
+                    marginRight: 8,
+                  }}
+                ></div>
+                <span>Phí đăng ký học 1-1</span>
+                {/* <span style={{ marginLeft: "auto" }}>
+                  {registrationPercentage}%
+                </span> */}
+              </div>
+              <Progress
+                percent={registrationPercentage}
+                strokeColor="rgba(255, 206, 86, 0.6)"
+              />
+            </div>
+            <div>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  marginBottom: 8,
+                }}
+              >
+                <div
+                  style={{
+                    width: 20,
+                    height: 20,
+                    backgroundColor: "rgba(153, 102, 255, 0.6)",
+                    marginRight: 8,
+                  }}
+                ></div>
+                <span>Phí giữ chỗ lớp học</span>
+                {/* <span style={{ marginLeft: "auto" }}>{depositPercentage}%</span> */}
+              </div>
+              <Progress
+                percent={depositPercentage}
+                strokeColor="rgba(153, 102, 255, 0.6)"
               />
             </div>
           </Col>
@@ -328,68 +473,35 @@ const RevenueReport = () => {
     );
   };
 
-  // Render biểu đồ theo loại đã chọn
-  const renderChart = () => {
-    if (!reportData) return <div>Không có dữ liệu</div>;
-
-    switch (timeFilter) {
-      case "month":
-        return (
-          <Table
-            dataSource={reportData.monthlyData}
-            columns={getMonthlyRevenueColumns()}
-            pagination={false}
-            rowKey="month"
-            size="middle"
-            style={{ marginTop: 16 }}
-          />
-        );
-      case "category":
-        return renderCategoryChart();
-      case "instrument":
-        return (
-          <Table
-            dataSource={reportData.instrumentTypes}
-            columns={getInstrumentRevenueColumns()}
-            pagination={false}
-            rowKey="name"
-            size="middle"
-            style={{ marginTop: 16 }}
-          />
-        );
-      default:
-        return (
-          <Table
-            dataSource={reportData.monthlyData}
-            columns={getMonthlyRevenueColumns()}
-            pagination={false}
-            rowKey="month"
-            size="middle"
-            style={{ marginTop: 16 }}
-          />
-        );
-    }
-  };
-
   return (
-    <Layout className="h-screen">
-      <SSidebar
+    <Layout className="min-h-screen">
+      <ManagerSidebar
         collapsed={collapsed}
         selectedMenu={selectedMenu}
         onMenuSelect={setSelectedMenu}
         toggleCollapsed={() => setCollapsed(!collapsed)}
       />
-      <Layout>
-        <SHeader
+      <Layout
+        style={{
+          marginLeft: collapsed ? "80px" : "250px",
+          transition: "all 0.2s",
+        }}
+      >
+        <ManagerHeader
           collapsed={collapsed}
           toggleCollapsed={() => setCollapsed(!collapsed)}
           selectedMenu={selectedMenu}
         />
-        <Content className="p-6 bg-gray-50">
+        <Content
+          className="p-6 bg-gray-50"
+          style={{
+            marginTop: "64px",
+          }}
+        >
           <div className="mb-6">
             <Title level={3}>Báo cáo doanh thu</Title>
             <Text type="secondary">
-              Thống kê doanh thu theo danh mục khóa học
+              Thống kê doanh thu theo các nguồn thu nhập
             </Text>
           </div>
 
@@ -404,21 +516,6 @@ const RevenueReport = () => {
                     onChange={(dates) => setDateRange(dates)}
                     style={{ width: "100%" }}
                   />
-                </div>
-              </Col>
-              <Col xs={24} sm={12} md={5} lg={4}>
-                <div className="flex items-center">
-                  <FilterOutlined style={{ marginRight: 8 }} />
-                  <span style={{ marginRight: 8 }}>Danh mục:</span>
-                  <Select
-                    value={selectedCategory}
-                    onChange={setSelectedCategory}
-                    style={{ width: "100%" }}
-                  >
-                    <Option value="all">Tất cả</Option>
-                    <Option value="video">Bài học video</Option>
-                    <Option value="live">Bài học trực tiếp</Option>
-                  </Select>
                 </div>
               </Col>
               <Col xs={24} sm={12} md={5} lg={5}>
@@ -437,7 +534,7 @@ const RevenueReport = () => {
                   </Select>
                 </div>
               </Col>
-              <Col xs={24} sm={24} md={6} lg={9}>
+              <Col xs={24} sm={24} md={11} lg={13}>
                 <div className="flex justify-end">
                   <Space>
                     <Tooltip title="Làm mới">
@@ -479,8 +576,8 @@ const RevenueReport = () => {
                   <Col xs={24} sm={12} md={8}>
                     <Card>
                       <Statistic
-                        title="Doanh thu bài học video"
-                        value={reportData.categories.videoLessons}
+                        title="Doanh thu khóa học tự học"
+                        value={reportData.categories.onlineCourses}
                         prefix={<VideoCameraOutlined />}
                         suffix="VND"
                         formatter={(value) => `${value.toLocaleString()}`}
@@ -489,10 +586,10 @@ const RevenueReport = () => {
                       <div className="mt-2 text-xs">
                         <span>
                           {(
-                            (reportData.categories.videoLessons /
+                            (reportData.categories.onlineCourses /
                               reportData.totalRevenue) *
                             100
-                          ).toFixed(1)}
+                          ).toFixed(2)}
                           % tổng doanh thu
                         </span>
                       </div>
@@ -501,8 +598,8 @@ const RevenueReport = () => {
                   <Col xs={24} sm={12} md={8}>
                     <Card>
                       <Statistic
-                        title="Doanh thu bài học trực tiếp"
-                        value={reportData.categories.liveLessons}
+                        title="Doanh thu lớp học tại trung tâm"
+                        value={reportData.categories.centerClasses}
                         prefix={<TeamOutlined />}
                         suffix="VND"
                         formatter={(value) => `${value.toLocaleString()}`}
@@ -511,10 +608,76 @@ const RevenueReport = () => {
                       <div className="mt-2 text-xs">
                         <span>
                           {(
-                            (reportData.categories.liveLessons /
+                            (reportData.categories.centerClasses /
                               reportData.totalRevenue) *
                             100
-                          ).toFixed(1)}
+                          ).toFixed(2)}
+                          % tổng doanh thu
+                        </span>
+                      </div>
+                    </Card>
+                  </Col>
+                  <Col xs={24} sm={12} md={8}>
+                    <Card>
+                      <Statistic
+                        title="Doanh thu học 1-1 tại nhà"
+                        value={reportData.categories.privateLessons}
+                        prefix={<HomeOutlined />}
+                        suffix="VND"
+                        formatter={(value) => `${value.toLocaleString()}`}
+                        valueStyle={{ color: "#722ed1" }}
+                      />
+                      <div className="mt-2 text-xs">
+                        <span>
+                          {(
+                            (reportData.categories.privateLessons /
+                              reportData.totalRevenue) *
+                            100
+                          ).toFixed(2)}
+                          % tổng doanh thu
+                        </span>
+                      </div>
+                    </Card>
+                  </Col>
+                  <Col xs={24} sm={12} md={8}>
+                    <Card>
+                      <Statistic
+                        title="Phí đăng ký học 1-1"
+                        value={reportData.categories.registrationFees}
+                        prefix={<ShoppingCartOutlined />}
+                        suffix="VND"
+                        formatter={(value) => `${value.toLocaleString()}`}
+                        valueStyle={{ color: "#faad14" }}
+                      />
+                      <div className="mt-2 text-xs">
+                        <span>
+                          {(
+                            (reportData.categories.registrationFees /
+                              reportData.totalRevenue) *
+                            100
+                          ).toFixed(2)}
+                          % tổng doanh thu
+                        </span>
+                      </div>
+                    </Card>
+                  </Col>
+                  <Col xs={24} sm={12} md={8}>
+                    <Card>
+                      <Statistic
+                        title="Phí giữ chỗ lớp học"
+                        value={reportData.categories.depositFees}
+                        prefix={<ShoppingCartOutlined />}
+                        suffix="VND"
+                        formatter={(value) => `${value.toLocaleString()}`}
+                        valueStyle={{ color: "#1890ff" }}
+                      />
+                      <div className="mt-2 text-xs">
+                        <span>
+                          {(
+                            (reportData.categories.depositFees /
+                              reportData.totalRevenue) *
+                            100
+                          ).toFixed(2)}
                           % tổng doanh thu
                         </span>
                       </div>
@@ -522,44 +685,41 @@ const RevenueReport = () => {
                   </Col>
                 </Row>
 
-                {/* Biểu đồ */}
+                {/* Biểu đồ phân bố doanh thu */}
                 <Card className="mb-6">
-                  <div className="flex justify-between mb-4">
-                    <Space>
-                      <Select
-                        value={timeFilter}
-                        onChange={setTimeFilter}
-                        style={{ width: 150 }}
-                      >
-                        <Option value="month">Theo tháng</Option>
-                        <Option value="category">Theo danh mục</Option>
-                        <Option value="instrument">Theo nhạc cụ</Option>
-                      </Select>
-                    </Space>
-                    <Space>
-                      {timeFilter !== "category" && (
-                        <>
-                          <Tooltip title="Hiển thị dạng bảng">
-                            <Button
-                              type="primary"
-                              icon={<BarChartOutlined />}
-                            />
-                          </Tooltip>
-                        </>
-                      )}
-                    </Space>
-                  </div>
-                  <div>{renderChart()}</div>
+                  <Title level={4}>Phân bố doanh thu theo nguồn</Title>
+                  {renderCategoryChart()}
                 </Card>
 
-                {/* Bảng khóa học có doanh thu cao */}
-                <Card
-                  title="Top khóa học có doanh thu cao nhất"
-                  className="mb-6"
-                >
+                {/* Bảng doanh thu theo tháng */}
+                <Card className="mb-6">
+                  <Title level={4}>Doanh thu theo tháng</Title>
                   <Table
-                    columns={topCoursesColumns}
-                    dataSource={reportData.topCourses}
+                    dataSource={reportData.monthlyData}
+                    columns={getMonthlyRevenueColumns()}
+                    pagination={false}
+                    rowKey="month"
+                    size="middle"
+                  />
+                </Card>
+
+                {/* Bảng doanh thu theo nhạc cụ */}
+                <Card className="mb-6">
+                  <Title level={4}>Doanh thu theo loại nhạc cụ</Title>
+                  <Table
+                    dataSource={reportData.instrumentTypes}
+                    columns={getInstrumentRevenueColumns()}
+                    pagination={false}
+                    rowKey="name"
+                    size="middle"
+                  />
+                </Card>
+
+                {/* Bảng top nguồn doanh thu */}
+                <Card title="Top nguồn doanh thu" className="mb-6">
+                  <Table
+                    columns={topRevenueColumns}
+                    dataSource={reportData.topRevenueSources}
                     rowKey="id"
                     pagination={false}
                   />
