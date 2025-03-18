@@ -146,11 +146,11 @@ export default function AppLayout({ children }) {
             <Menu.Item key="/" icon={<HomeOutlined />}>
               <Link to="/">Trang chủ</Link>
             </Menu.Item>
-            <Menu.Item key="/courses" icon={<BookOutlined />}>
-              <Link to="/courses">Khóa học</Link>
+            <Menu.Item key="/home-allcourse" icon={<BookOutlined />}>
+              <Link to="/home-allcourse">Khóa học</Link>
             </Menu.Item>
-            <Menu.Item key="/instructors" icon={<TeamOutlined />}>
-              <Link to="/instructors">Giảng viên</Link>
+            <Menu.Item key="/teacher-list" icon={<TeamOutlined />}>
+              <Link to="/teacher-list">Giảng viên</Link>
             </Menu.Item>
             <Menu.Item key="/achievements" icon={<TrophyOutlined />}>
               <Link to="/achievements">Thành tích</Link>
@@ -266,17 +266,17 @@ export default function AppLayout({ children }) {
               </Title>
               <ul className="space-y-2 text-gray-400">
                 <li>
-                  <Link to="/courses" className="hover:text-purple-400">
+                  <Link to="/home-allcourse" className="hover:text-purple-400">
                     Tất cả khóa học
                   </Link>
                 </li>
                 <li>
-                  <Link to="/instruments" className="hover:text-purple-400">
+                  <Link to="/home-allcourse" className="hover:text-purple-400">
                     Nhạc cụ
                   </Link>
                 </li>
                 <li>
-                  <Link to="/instructors" className="hover:text-purple-400">
+                  <Link to="/teacher-list" className="hover:text-purple-400">
                     Giảng viên
                   </Link>
                 </li>

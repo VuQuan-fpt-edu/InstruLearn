@@ -2,14 +2,14 @@ import React, { useState, useEffect } from "react";
 import { Layout, Table, Button, Modal, Form, Input, message } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import axios from "axios";
-import SSidebar from "../../components/StaffSidebar";
-import SHeader from "../../components/StaffHeader";
+import StaffSidebar from "../../components/staff/StaffSidebar";
+import StaffHeader from "../../components/staff/StaffHeader";
 
 const { Content } = Layout;
 
 const InstrumentManagement = () => {
   const [collapsed, setCollapsed] = useState(false);
-  const [selectedMenu, setSelectedMenu] = useState("instruments");
+  const [selectedMenu, setSelectedMenu] = useState("musical instrument-type");
   const [instruments, setInstruments] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingInstrument, setEditingInstrument] = useState(null);
@@ -96,20 +96,25 @@ const InstrumentManagement = () => {
   ];
 
   return (
-    <Layout className="h-screen">
-      <SSidebar
+    <Layout className="min-h-screen">
+      <StaffSidebar
         collapsed={collapsed}
+        setCollapsed={setCollapsed}
         selectedMenu={selectedMenu}
-        onMenuSelect={setSelectedMenu}
-        toggleCollapsed={() => setCollapsed(!collapsed)}
       />
-      <Layout>
-        <SHeader
-          collapsed={collapsed}
-          toggleCollapsed={() => setCollapsed(!collapsed)}
-          selectedMenu={selectedMenu}
-        />
-        <Content className="p-6 bg-gray-50">
+      <Layout
+        style={{
+          marginLeft: collapsed ? "80px" : "250px",
+          transition: "all 0.2s",
+        }}
+      >
+        <StaffHeader collapsed={collapsed} setCollapsed={setCollapsed} />
+        <Content
+          className="p-6 bg-gray-50"
+          style={{
+            marginTop: "64px",
+          }}
+        >
           <Button
             type="primary"
             icon={<PlusOutlined />}
