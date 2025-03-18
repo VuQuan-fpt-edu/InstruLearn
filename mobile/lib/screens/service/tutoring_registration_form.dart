@@ -11,6 +11,8 @@ class TutoringRegistrationForm extends StatefulWidget {
 class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
   // Các biến để lưu trữ lựa chọn của người dùng
   String? selectedInstrument;
+  String? selectedExperience;
+  String? selectedVideoPath;
   Set<String> selectedDays = {};
   TimeOfDay? selectedTime;
   int selectedDuration = 45; // Mặc định 45 phút
@@ -21,6 +23,13 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
 
   // Danh sách các loại nhạc cụ
   final List<String> instruments = ['Piano', 'Violin', 'Guitar'];
+
+  final List<String> experienceLevels = [
+    'Tôi chưa chơi nhạc cụ này bao giờ',
+    'Tôi đã chơi nhạc cụ này vài tháng rồi',
+    'Tôi đã chơi nhạc cụ này được 1 năm rồi',
+    'Tôi đã chơi nhạc cụ này được vài năm rồi',
+  ];
 
   // Danh sách các ngày trong tuần
   final List<String> weekDays = [
@@ -87,6 +96,13 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
             children: [
               _buildSectionTitle('Chọn nhạc cụ'),
               _buildInstrumentSelector(),
+              const SizedBox(height: 24),
+
+              _buildSectionTitle('Kinh nghiệm'),
+              _buildExperienceSelector(),
+              if (selectedExperience != null &&
+                  selectedExperience != 'Tôi chưa chơi nhạc cụ này bao giờ')
+                _buildVideoUploadSection(),
               const SizedBox(height: 24),
 
               _buildSectionTitle('Chọn ngày học'),
@@ -160,6 +176,111 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
             });
           },
         ),
+      ),
+    );
+  }
+
+  Widget _buildExperienceSelector() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey[300]!),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          isExpanded: true,
+          value: selectedExperience,
+          hint: const Text('Chọn kinh nghiệm của bạn'),
+          items:
+              experienceLevels.map((String level) {
+                return DropdownMenuItem<String>(
+                  value: level,
+                  child: Text(level),
+                );
+              }).toList(),
+          onChanged: (String? value) {
+            setState(() {
+              selectedExperience = value;
+              if (value == 'Tôi chưa chơi nhạc cụ này bao giờ') {
+                selectedVideoPath = null;
+              }
+            });
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVideoUploadSection() {
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.blue[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.blue[100]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Bạn có thể chơi một bài nhạc "Nơi này có anh" bằng loại nhạc cụ này và quay video lại để trung tâm có thể đánh giá trình độ hiện tại để soạn một giáo trình phù hợp với bạn',
+            style: TextStyle(fontSize: 14, color: Colors.black87),
+          ),
+          const SizedBox(height: 16),
+          InkWell(
+            onTap: () {
+              // TODO: Implement video upload
+              setState(() {
+                selectedVideoPath = 'video_path.mp4'; // Temporary path
+              });
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFF8C9EFF)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    selectedVideoPath != null
+                        ? Icons.check_circle
+                        : Icons.upload_file,
+                    color: const Color(0xFF8C9EFF),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    selectedVideoPath != null
+                        ? 'Đã tải video lên'
+                        : 'Tải video lên',
+                    style: const TextStyle(
+                      color: Color(0xFF8C9EFF),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (selectedVideoPath != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Row(
+                children: [
+                  const Icon(Icons.check, color: Colors.green, size: 16),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Video đã được tải lên thành công',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -502,9 +623,19 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
   }
 
   void _validateAndSubmit() {
-    // Kiểm tra các điều kiện
     if (selectedInstrument == null) {
       _showError('Vui lòng chọn nhạc cụ');
+      return;
+    }
+
+    if (selectedExperience == null) {
+      _showError('Vui lòng chọn kinh nghiệm của bạn');
+      return;
+    }
+
+    if (selectedExperience != 'Tôi chưa chơi nhạc cụ này bao giờ' &&
+        selectedVideoPath == null) {
+      _showError('Vui lòng tải video đánh giá trình độ lên');
       return;
     }
 
