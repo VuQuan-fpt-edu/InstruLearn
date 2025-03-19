@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import { Layout, Table, Button } from "antd";
-import ASidebar from "../../components/admin/AdminSidebar";
-import AHeader from "../../components/admin/AdminHeader";
+import { Layout, Table, Button, Tag } from "antd";
+import AdminSidebar from "../../components/admin/AdminSidebar";
+import AdminHeader from "../../components/admin/AdminHeader";
 
 const { Content } = Layout;
 
@@ -38,13 +38,37 @@ const AdminDashboard = () => {
   ];
 
   const columns = [
-    { title: "ID", dataIndex: "id", key: "id" },
-    { title: "Tên khoá học", dataIndex: "name", key: "name" },
-    { title: "Giá", dataIndex: "price", key: "price" },
-    { title: "Trạng thái", dataIndex: "status", key: "status" },
+    {
+      title: "ID",
+      dataIndex: "id",
+      key: "id",
+      width: 80,
+    },
+    {
+      title: "Tên khoá học",
+      dataIndex: "name",
+      key: "name",
+      width: "40%",
+    },
+    {
+      title: "Giá",
+      dataIndex: "price",
+      key: "price",
+      width: 150,
+    },
+    {
+      title: "Trạng thái",
+      dataIndex: "status",
+      key: "status",
+      width: 150,
+      render: (status) => (
+        <Tag color={status === "Hoạt động" ? "green" : "orange"}>{status}</Tag>
+      ),
+    },
     {
       title: "Thao tác",
       key: "actions",
+      width: 200,
       render: () => (
         <div className="flex space-x-2">
           <Button type="primary" size="small">
@@ -53,7 +77,7 @@ const AdminDashboard = () => {
           <Button type="default" size="small">
             Xem
           </Button>
-          <Button danger size="small">
+          <Button type="primary" danger size="small">
             Xóa
           </Button>
         </div>
@@ -62,29 +86,43 @@ const AdminDashboard = () => {
   ];
 
   return (
-    <Layout className="h-screen">
-      <ASidebar
+    <Layout style={{ minHeight: "100vh" }}>
+      <AdminSidebar
         collapsed={collapsed}
+        setCollapsed={setCollapsed}
         selectedMenu={selectedMenu}
-        onMenuSelect={setSelectedMenu}
-        toggleCollapsed={toggleCollapsed}
       />
-      <Layout>
-        <AHeader
+      <Layout
+        style={{ marginLeft: collapsed ? 80 : 250, transition: "all 0.2s" }}
+      >
+        <AdminHeader
           collapsed={collapsed}
           toggleCollapsed={toggleCollapsed}
           selectedMenu={selectedMenu}
         />
-        <Content className="p-6 bg-gray-50">
-          <div className="bg-white p-6 rounded-lg shadow mb-6">
-            <h2 className="text-xl font-semibold mb-4">Danh sách khoá học</h2>
-            <Table
-              dataSource={sampleData}
-              columns={columns}
-              pagination={{ pageSize: 10 }}
-              className="border rounded"
-            />
+        <Content
+          style={{
+            margin: "74px 16px 16px",
+            padding: 24,
+            minHeight: 280,
+            background: "#fff",
+            borderRadius: 8,
+          }}
+        >
+          <div className="mb-4">
+            <h2 className="text-2xl font-semibold">Danh sách khoá học</h2>
           </div>
+          <Table
+            dataSource={sampleData}
+            columns={columns}
+            pagination={{
+              pageSize: 10,
+              showTotal: (total, range) =>
+                `${range[0]}-${range[1]} của ${total} mục`,
+            }}
+            bordered
+            size="middle"
+          />
         </Content>
       </Layout>
     </Layout>

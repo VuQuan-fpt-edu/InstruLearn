@@ -255,10 +255,18 @@ const TeacherPersonalSchedule = () => {
         selectedMenu="teacher-personal-schedule"
       />
       <Layout
-        style={{ marginLeft: collapsed ? 80 : 250, transition: "all 0.2s" }}
+        style={{
+          marginLeft: collapsed ? "80px" : "250px",
+          transition: "all 0.2s",
+        }}
       >
         <StaffHeader collapsed={collapsed} setCollapsed={setCollapsed} />
-        <Content style={{ margin: "24px 16px", padding: 24 }}>
+        <Content
+          className="p-6 min-h-screen bg-gray-50"
+          style={{
+            marginTop: "64px",
+          }}
+        >
           <Card>
             <div className="flex justify-between items-center mb-4">
               <Title level={4}>Quản lý lịch dạy tại nhà</Title>

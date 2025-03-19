@@ -54,6 +54,12 @@ const TeacherSidebar = ({
       case "makeup-class":
         navigate("/teacher/makeup-class");
         break;
+      case "student-feedback":
+        navigate("/teacher/student-feedback");
+        break;
+      case "add-class":
+        navigate("/staff/add-class");
+        break;
       default:
         break;
     }
