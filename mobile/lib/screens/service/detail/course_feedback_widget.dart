@@ -24,20 +24,22 @@ class FeedbackReply {
 
   factory FeedbackReply.fromJson(Map<String, dynamic> json) {
     return FeedbackReply(
-      feedbackRepliesId: json['feedbackRepliesId'] as int,
-      feedbackId: json['feedbackId'] as int,
-      accountId: json['accountId'] as String,
-      email: json['email'] as String,
-      role: json['role'] as String,
-      repliesContent: json['repliesContent'] as String,
-      createdAt: DateTime.parse(json['createdAt'] as String),
+      feedbackRepliesId: (json['feedbackRepliesId'] as num?)?.toInt() ?? 0,
+      feedbackId: (json['feedbackId'] as num?)?.toInt() ?? 0,
+      accountId: (json['accountId'] as String?) ?? '',
+      email: (json['email'] as String?) ?? '',
+      role: (json['role'] as String?) ?? '',
+      repliesContent: (json['repliesContent'] as String?) ?? '',
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'] as String)
+          : DateTime.now(),
     );
   }
 }
 
 class CourseFeedback {
   final int feedbackId;
-  final int courseId;
+  final int coursePackageId;
   final String accountId;
   final String email;
   final String role;
@@ -48,7 +50,7 @@ class CourseFeedback {
 
   CourseFeedback({
     required this.feedbackId,
-    required this.courseId,
+    required this.coursePackageId,
     required this.accountId,
     required this.email,
     required this.role,
@@ -60,18 +62,19 @@ class CourseFeedback {
 
   factory CourseFeedback.fromJson(Map<String, dynamic> json) {
     return CourseFeedback(
-      feedbackId: json['feedbackId'] as int,
-      courseId: json['courseId'] as int,
-      accountId: json['accountId'] as String,
-      email: json['email'] as String,
-      role: json['role'] as String,
-      feedbackContent: json['feedbackContent'] as String,
-      rating: json['rating'] as int,
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      replies:
-          (json['replies'] as List<dynamic>)
-              .map((replyJson) => FeedbackReply.fromJson(replyJson))
-              .toList(),
+      feedbackId: (json['feedbackId'] as num?)?.toInt() ?? 0,
+      coursePackageId: (json['coursePackageId'] as num?)?.toInt() ?? 0,
+      accountId: (json['accountId'] as String?) ?? '',
+      email: (json['email'] as String?) ?? '',
+      role: (json['role'] as String?) ?? '',
+      feedbackContent: (json['feedbackContent'] as String?) ?? '',
+      rating: (json['rating'] as num?)?.toInt() ?? 0,
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'] as String)
+          : DateTime.now(),
+      replies: ((json['replies'] as List<dynamic>?) ?? [])
+          .map((replyJson) => FeedbackReply.fromJson(replyJson))
+          .toList(),
     );
   }
 }
@@ -80,7 +83,7 @@ class CourseFeedbackWidget extends StatefulWidget {
   final int courseId;
 
   const CourseFeedbackWidget({Key? key, required this.courseId})
-    : super(key: key);
+      : super(key: key);
 
   @override
   State<CourseFeedbackWidget> createState() => _CourseFeedbackWidgetState();
@@ -152,11 +155,10 @@ class _CourseFeedbackWidgetState extends State<CourseFeedbackWidget> {
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         setState(() {
-          feedbacks =
-              data
-                  .map((json) => CourseFeedback.fromJson(json))
-                  .where((feedback) => feedback.courseId == widget.courseId)
-                  .toList();
+          feedbacks = data
+              .map((json) => CourseFeedback.fromJson(json))
+              .where((feedback) => feedback.coursePackageId == widget.courseId)
+              .toList();
           isLoading = false;
         });
       } else if (response.statusCode == 401) {
@@ -211,7 +213,7 @@ class _CourseFeedbackWidgetState extends State<CourseFeedbackWidget> {
           'Authorization': 'Bearer $token',
         },
         body: json.encode({
-          'courseId': widget.courseId,
+          'coursePackageId': widget.courseId,
           'feedbackContent': _feedbackController.text,
           'rating': _selectedRating,
         }),
@@ -395,45 +397,44 @@ class _CourseFeedbackWidgetState extends State<CourseFeedbackWidget> {
                 showModalBottomSheet(
                   context: context,
                   isScrollControlled: true,
-                  builder:
-                      (context) => Padding(
-                        padding: EdgeInsets.only(
-                          bottom: MediaQuery.of(context).viewInsets.bottom,
-                          left: 16,
-                          right: 16,
-                          top: 16,
+                  builder: (context) => Padding(
+                    padding: EdgeInsets.only(
+                      bottom: MediaQuery.of(context).viewInsets.bottom,
+                      left: 16,
+                      right: 16,
+                      top: 16,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          'Phản hồi đánh giá',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Text(
-                              'Phản hồi đánh giá',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            TextField(
-                              controller: _replyController,
-                              decoration: const InputDecoration(
-                                hintText: 'Nhập phản hồi của bạn...',
-                                border: OutlineInputBorder(),
-                              ),
-                              maxLines: 3,
-                            ),
-                            const SizedBox(height: 16),
-                            ElevatedButton(
-                              onPressed: () {
-                                Navigator.pop(context);
-                                _submitReply(feedback.feedbackId);
-                              },
-                              child: const Text('Gửi phản hồi'),
-                            ),
-                            const SizedBox(height: 16),
-                          ],
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: _replyController,
+                          decoration: const InputDecoration(
+                            hintText: 'Nhập phản hồi của bạn...',
+                            border: OutlineInputBorder(),
+                          ),
+                          maxLines: 3,
                         ),
-                      ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            _submitReply(feedback.feedbackId);
+                          },
+                          child: const Text('Gửi phản hồi'),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                    ),
+                  ),
                 );
               },
             ),
@@ -632,10 +633,9 @@ class _CourseFeedbackWidgetState extends State<CourseFeedbackWidget> {
             )
           else
             Column(
-              children:
-                  feedbacks
-                      .map((feedback) => _buildFeedbackItem(feedback))
-                      .toList(),
+              children: feedbacks
+                  .map((feedback) => _buildFeedbackItem(feedback))
+                  .toList(),
             ),
         ],
       ),

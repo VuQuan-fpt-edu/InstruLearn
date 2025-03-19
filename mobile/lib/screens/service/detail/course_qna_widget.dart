@@ -24,20 +24,22 @@ class QnAReply {
 
   factory QnAReply.fromJson(Map<String, dynamic> json) {
     return QnAReply(
-      replyId: json['replyId'] as int,
-      questionId: json['questionId'] as int,
-      accountId: json['accountId'] as String,
-      email: json['email'] as String,
-      role: json['role'] as String,
-      qnAContent: json['qnAContent'] as String,
-      createdAt: DateTime.parse(json['createdAt'] as String),
+      replyId: (json['replyId'] as num?)?.toInt() ?? 0,
+      questionId: (json['questionId'] as num?)?.toInt() ?? 0,
+      accountId: (json['accountId'] as String?) ?? '',
+      email: (json['email'] as String?) ?? '',
+      role: (json['role'] as String?) ?? '',
+      qnAContent: (json['qnAContent'] as String?) ?? '',
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'] as String)
+          : DateTime.now(),
     );
   }
 }
 
 class CourseQuestion {
   final int questionId;
-  final int courseId;
+  final int coursePackageId;
   final String accountId;
   final String email;
   final String role;
@@ -48,7 +50,7 @@ class CourseQuestion {
 
   CourseQuestion({
     required this.questionId,
-    required this.courseId,
+    required this.coursePackageId,
     required this.accountId,
     required this.email,
     required this.role,
@@ -60,18 +62,19 @@ class CourseQuestion {
 
   factory CourseQuestion.fromJson(Map<String, dynamic> json) {
     return CourseQuestion(
-      questionId: json['questionId'] as int,
-      courseId: json['courseId'] as int,
-      accountId: json['accountId'] as String,
-      email: json['email'] as String,
-      role: json['role'] as String,
-      title: json['title'] as String,
-      questionContent: json['questionContent'] as String,
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      replies:
-          (json['replies'] as List<dynamic>)
-              .map((replyJson) => QnAReply.fromJson(replyJson))
-              .toList(),
+      questionId: (json['questionId'] as num?)?.toInt() ?? 0,
+      coursePackageId: (json['coursePackageId'] as num?)?.toInt() ?? 0,
+      accountId: (json['accountId'] as String?) ?? '',
+      email: (json['email'] as String?) ?? '',
+      role: (json['role'] as String?) ?? '',
+      title: (json['title'] as String?) ?? '',
+      questionContent: (json['questionContent'] as String?) ?? '',
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'] as String)
+          : DateTime.now(),
+      replies: ((json['replies'] as List<dynamic>?) ?? [])
+          .map((replyJson) => QnAReply.fromJson(replyJson))
+          .toList(),
     );
   }
 }
@@ -152,11 +155,10 @@ class _CourseQnAWidgetState extends State<CourseQnAWidget> {
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         setState(() {
-          questions =
-              data
-                  .map((json) => CourseQuestion.fromJson(json))
-                  .where((question) => question.courseId == widget.courseId)
-                  .toList();
+          questions = data
+              .map((json) => CourseQuestion.fromJson(json))
+              .where((question) => question.coursePackageId == widget.courseId)
+              .toList();
           isLoading = false;
         });
       } else if (response.statusCode == 401) {
@@ -214,7 +216,7 @@ class _CourseQnAWidgetState extends State<CourseQnAWidget> {
           'Authorization': 'Bearer $token',
         },
         body: json.encode({
-          'courseId': widget.courseId,
+          'coursePackageId': widget.courseId,
           'title': _titleController.text,
           'questionContent': _questionController.text,
         }),
@@ -420,45 +422,44 @@ class _CourseQnAWidgetState extends State<CourseQnAWidget> {
                 showModalBottomSheet(
                   context: context,
                   isScrollControlled: true,
-                  builder:
-                      (context) => Padding(
-                        padding: EdgeInsets.only(
-                          bottom: MediaQuery.of(context).viewInsets.bottom,
-                          left: 16,
-                          right: 16,
-                          top: 16,
+                  builder: (context) => Padding(
+                    padding: EdgeInsets.only(
+                      bottom: MediaQuery.of(context).viewInsets.bottom,
+                      left: 16,
+                      right: 16,
+                      top: 16,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          'Trả lời câu hỏi',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Text(
-                              'Trả lời câu hỏi',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            TextField(
-                              controller: _replyController,
-                              decoration: const InputDecoration(
-                                hintText: 'Nhập câu trả lời của bạn...',
-                                border: OutlineInputBorder(),
-                              ),
-                              maxLines: 3,
-                            ),
-                            const SizedBox(height: 16),
-                            ElevatedButton(
-                              onPressed: () {
-                                Navigator.pop(context);
-                                _submitReply(question.questionId);
-                              },
-                              child: const Text('Gửi trả lời'),
-                            ),
-                            const SizedBox(height: 16),
-                          ],
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: _replyController,
+                          decoration: const InputDecoration(
+                            hintText: 'Nhập câu trả lời của bạn...',
+                            border: OutlineInputBorder(),
+                          ),
+                          maxLines: 3,
                         ),
-                      ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            _submitReply(question.questionId);
+                          },
+                          child: const Text('Gửi trả lời'),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                    ),
+                  ),
                 );
               },
             ),
@@ -608,10 +609,9 @@ class _CourseQnAWidgetState extends State<CourseQnAWidget> {
             )
           else
             Column(
-              children:
-                  questions
-                      .map((question) => _buildQuestionItem(question))
-                      .toList(),
+              children: questions
+                  .map((question) => _buildQuestionItem(question))
+                  .toList(),
             ),
         ],
       ),

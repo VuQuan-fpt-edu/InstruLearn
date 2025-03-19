@@ -8,20 +8,49 @@ import 'course_qna_widget.dart';
 
 class CourseContent {
   final int contentId;
-  final int courseId;
+  final int coursePackageId;
   final String heading;
+  final List<CourseContentItem> courseContentItems;
 
   CourseContent({
     required this.contentId,
-    required this.courseId,
+    required this.coursePackageId,
     required this.heading,
+    required this.courseContentItems,
   });
 
   factory CourseContent.fromJson(Map<String, dynamic> json) {
     return CourseContent(
-      contentId: json['contentId'] as int,
-      courseId: json['courseId'] as int,
-      heading: json['heading'] as String,
+      contentId: (json['contentId'] as num?)?.toInt() ?? 0,
+      coursePackageId: (json['coursePackageId'] as num?)?.toInt() ?? 0,
+      heading: (json['heading'] as String?) ?? '',
+      courseContentItems: ((json['courseContentItems'] as List<dynamic>?) ?? [])
+          .map((item) =>
+              CourseContentItem.fromJson(item as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+}
+
+class CourseContentItem {
+  final int itemId;
+  final int itemTypeId;
+  final int contentId;
+  final String itemDes;
+
+  CourseContentItem({
+    required this.itemId,
+    required this.itemTypeId,
+    required this.contentId,
+    required this.itemDes,
+  });
+
+  factory CourseContentItem.fromJson(Map<String, dynamic> json) {
+    return CourseContentItem(
+      itemId: (json['itemId'] as num?)?.toInt() ?? 0,
+      itemTypeId: (json['itemTypeId'] as num?)?.toInt() ?? 0,
+      contentId: (json['contentId'] as num?)?.toInt() ?? 0,
+      itemDes: (json['itemDes'] as String?) ?? '',
     );
   }
 }
@@ -63,7 +92,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
 
       final response = await http.get(
         Uri.parse(
-          'https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/CourseContent/get-all',
+          'https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Course/${widget.course.coursePackageId}',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
@@ -73,22 +102,18 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        if (data['isSucceed'] == true) {
-          final List<dynamic> contentsData = data['data'];
+        if (data['courseContents'] != null) {
+          final List<dynamic> contentsData = data['courseContents'];
           setState(() {
-            contents =
-                contentsData
-                    .map((json) => CourseContent.fromJson(json))
-                    .where(
-                      (content) => content.courseId == widget.course.courseId,
-                    )
-                    .toList();
+            contents = contentsData
+                .map((json) => CourseContent.fromJson(json))
+                .toList();
             isLoading = false;
           });
         } else {
           setState(() {
             isLoading = false;
-            errorMessage = data['message'] ?? 'Không thể tải nội dung khóa học';
+            errorMessage = 'Không thể tải nội dung khóa học';
           });
         }
       } else if (response.statusCode == 401) {
@@ -158,10 +183,9 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
         elevation: 0,
         centerTitle: true,
       ),
-      body:
-          isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : errorMessage.isNotEmpty
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : errorMessage.isNotEmpty
               ? _buildErrorWidget()
               : _buildCourseDetails(),
       bottomNavigationBar: _buildBottomBar(),
@@ -237,8 +261,8 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder:
-                        (context) => BuyCourseScreen(course: widget.course),
+                    builder: (context) =>
+                        BuyCourseScreen(course: widget.course),
                   ),
                 );
               },
@@ -349,7 +373,6 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                     ),
                   ],
                 ),
-
                 Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
@@ -373,7 +396,6 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                           ),
                         ),
                       ),
-
                       const SizedBox(height: 16),
                       Text(
                         widget.course.courseName,
@@ -383,9 +405,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                           letterSpacing: -0.5,
                         ),
                       ),
-
                       const SizedBox(height: 8),
-
                       Text(
                         widget.course.headline,
                         style: const TextStyle(
@@ -394,9 +414,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                           height: 1.4,
                         ),
                       ),
-
                       const SizedBox(height: 16),
-
                       Row(
                         children: [
                           Text(
@@ -430,22 +448,19 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                           ],
                         ],
                       ),
-
                       const SizedBox(height: 24),
-
                       _buildTabNavigation(),
-
                       const SizedBox(height: 20),
-
                       _selectedTabIndex == 0
                           ? _buildCourseDescription()
                           : _selectedTabIndex == 1
-                          ? _buildCourseContents()
-                          : _selectedTabIndex == 2
-                          ? CourseFeedbackWidget(
-                            courseId: widget.course.courseId,
-                          )
-                          : CourseQnAWidget(courseId: widget.course.courseId),
+                              ? _buildCourseContents()
+                              : _selectedTabIndex == 2
+                                  ? CourseFeedbackWidget(
+                                      courseId: widget.course.coursePackageId,
+                                    )
+                                  : CourseQnAWidget(
+                                      courseId: widget.course.coursePackageId),
                     ],
                   ),
                 ),
@@ -491,17 +506,16 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
           decoration: BoxDecoration(
             color: isSelected ? Colors.white : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
-            boxShadow:
-                isSelected
-                    ? [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.2),
-                        spreadRadius: 1,
-                        blurRadius: 2,
-                        offset: const Offset(0, 1),
-                      ),
-                    ]
-                    : null,
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.2),
+                      spreadRadius: 1,
+                      blurRadius: 2,
+                      offset: const Offset(0, 1),
+                    ),
+                  ]
+                : null,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -609,55 +623,113 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                   borderRadius: BorderRadius.circular(10),
                   side: BorderSide(color: Colors.grey[200]!),
                 ),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  leading: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: Colors.blue[50],
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.blue[200]!),
-                    ),
-                    child: Center(
-                      child: Text(
-                        (index + 1).toString(),
-                        style: TextStyle(
-                          color: Colors.blue[700],
-                          fontWeight: FontWeight.bold,
+                child: Theme(
+                  data: Theme.of(context)
+                      .copyWith(dividerColor: Colors.transparent),
+                  child: ExpansionTile(
+                    leading: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.blue[50],
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.blue[200]!),
+                      ),
+                      child: Center(
+                        child: Text(
+                          (index + 1).toString(),
+                          style: TextStyle(
+                            color: Colors.blue[700],
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  title: Text(
-                    content.heading,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                    ),
-                  ),
-                  trailing: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[200],
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.lock, size: 18, color: Colors.grey),
-                  ),
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Bạn cần mua khóa học để xem nội dung này',
-                        ),
-                        behavior: SnackBarBehavior.floating,
-                        duration: Duration(seconds: 2),
+                    title: Text(
+                      content.heading,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
                       ),
-                    );
-                  },
+                    ),
+                    trailing: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[200],
+                        shape: BoxShape.circle,
+                      ),
+                      child:
+                          const Icon(Icons.lock, size: 18, color: Colors.grey),
+                    ),
+                    children: content.courseContentItems.map((item) {
+                      return ListTile(
+                        leading: Container(
+                          width: 120,
+                          height: 68,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              const Icon(
+                                Icons.play_circle_outline,
+                                size: 32,
+                                color: Colors.white,
+                              ),
+                              Positioned(
+                                bottom: 4,
+                                right: 4,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.7),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: const Text(
+                                    'Video',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        title: Text(
+                          'Video bài ${index + 1}',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        subtitle: Text(
+                          'Bài học video',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                        onTap: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Bạn cần mua khóa học để xem nội dung này',
+                              ),
+                              behavior: SnackBarBehavior.floating,
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                        },
+                      );
+                    }).toList(),
+                  ),
                 ),
               );
             },
