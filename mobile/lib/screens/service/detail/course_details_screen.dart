@@ -5,6 +5,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../buy_course_screen.dart';
 import 'course_feedback_widget.dart';
 import 'course_qna_widget.dart';
+import '../../../models/cart_item.dart';
+import '../../../services/cart_service.dart';
+import '../cart_screen.dart';
+import 'video_player_screen.dart';
 
 class CourseContent {
   final int contentId;
@@ -69,12 +73,16 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
   bool isLoading = true;
   String errorMessage = '';
   bool isInCart = false;
+  bool isPurchased = false;
   int _selectedTabIndex = 0;
+  final CartService _cartService = CartService();
 
   @override
   void initState() {
     super.initState();
     _fetchCourseContents();
+    _checkIfInCart();
+    _checkIfPurchased();
   }
 
   Future<void> _fetchCourseContents() async {
@@ -135,6 +143,69 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
     }
   }
 
+  Future<void> _checkIfInCart() async {
+    final cartItems = await _cartService.getCartItems();
+    if (mounted) {
+      setState(() {
+        isInCart = cartItems.any(
+            (item) => item.coursePackageId == widget.course.coursePackageId);
+      });
+    }
+  }
+
+  Future<void> _checkIfPurchased() async {
+    final purchased =
+        await _cartService.isCoursePurchased(widget.course.coursePackageId);
+    if (mounted) {
+      setState(() {
+        isPurchased = purchased;
+      });
+    }
+  }
+
+  Future<void> _toggleCart() async {
+    try {
+      if (isInCart) {
+        await _cartService.removeFromCart(widget.course.coursePackageId);
+      } else {
+        final cartItem = CartItem(
+          coursePackageId: widget.course.coursePackageId,
+          courseName: widget.course.courseName,
+          imageUrl: widget.course.imageUrl,
+          price: widget.course.price,
+          discount: widget.course.discount,
+        );
+        await _cartService.addToCart(cartItem);
+      }
+
+      if (mounted) {
+        setState(() {
+          isInCart = !isInCart;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isInCart
+                  ? 'Đã thêm ${widget.course.courseName} vào giỏ hàng'
+                  : 'Đã xóa ${widget.course.courseName} khỏi giỏ hàng',
+            ),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   String _formatCurrency(int amount) {
     return '${amount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')} VND';
   }
@@ -182,6 +253,20 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
         backgroundColor: const Color(0xFF8C9EFF),
         elevation: 0,
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.shopping_cart),
+            onPressed: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CartScreen()),
+              );
+              if (result == true) {
+                _checkIfInCart();
+              }
+            },
+          ),
+        ],
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -193,6 +278,49 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
   }
 
   Widget _buildBottomBar() {
+    if (isPurchased) {
+      return Container(
+        padding: const EdgeInsets.all(16.0),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.3),
+              spreadRadius: 1,
+              blurRadius: 5,
+              offset: const Offset(0, -3),
+            ),
+          ],
+        ),
+        child: ElevatedButton(
+          onPressed: null,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.grey[300],
+            foregroundColor: Colors.black87,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            elevation: 0,
+          ),
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.check_circle, size: 20),
+              SizedBox(width: 8),
+              Text(
+                'Đã sở hữu',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Container(
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
@@ -210,22 +338,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
         children: [
           Expanded(
             child: ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  isInCart = !isInCart;
-                });
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      isInCart
-                          ? 'Đã thêm khóa học ${widget.course.courseName} vào giỏ hàng'
-                          : 'Đã xóa khóa học ${widget.course.courseName} khỏi giỏ hàng',
-                    ),
-                    behavior: SnackBarBehavior.floating,
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
-              },
+              onPressed: _toggleCart,
               style: ElevatedButton.styleFrom(
                 backgroundColor: isInCart ? Colors.grey[300] : Colors.blue[700],
                 foregroundColor: isInCart ? Colors.black87 : Colors.white,
@@ -261,8 +374,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) =>
-                        BuyCourseScreen(course: widget.course),
+                    builder: (context) => const CartScreen(),
                   ),
                 );
               },
@@ -655,11 +767,15 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                     trailing: Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: Colors.grey[200],
+                        color:
+                            isPurchased ? Colors.green[200] : Colors.grey[200],
                         shape: BoxShape.circle,
                       ),
-                      child:
-                          const Icon(Icons.lock, size: 18, color: Colors.grey),
+                      child: Icon(
+                        isPurchased ? Icons.lock_open : Icons.lock,
+                        size: 18,
+                        color: isPurchased ? Colors.green : Colors.grey,
+                      ),
                     ),
                     children: content.courseContentItems.map((item) {
                       return ListTile(
@@ -703,7 +819,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                           ),
                         ),
                         title: Text(
-                          'Video bài ${index + 1}',
+                          'Bài ${index + 1}',
                           style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
@@ -717,15 +833,27 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                           ),
                         ),
                         onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Bạn cần mua khóa học để xem nội dung này',
+                          if (isPurchased) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => VideoPlayerScreen(
+                                  title: 'Bài ${index + 1}',
+                                  videoUrl: item.itemDes,
+                                ),
                               ),
-                              behavior: SnackBarBehavior.floating,
-                              duration: Duration(seconds: 2),
-                            ),
-                          );
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Bạn cần mua khóa học để xem nội dung này',
+                                ),
+                                behavior: SnackBarBehavior.floating,
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          }
                         },
                       );
                     }).toList(),
