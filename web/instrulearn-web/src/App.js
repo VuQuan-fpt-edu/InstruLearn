@@ -53,6 +53,9 @@ import OneOnOnePaymentsDetails from "./pages/manager/OneOnOnePaymentsDetails";
 import OnlineCoursePayments from "./pages/manager/OnlineCoursePayments";
 import HistoryTransaction from "./pages/manager/HistoryTransaction";
 import PromotionCodes from "./pages/manager/PromotionCodes";
+import ManagerManagement from "./pages/admin/ManagerManagement";
+import LearnerManagement from "./pages/admin/LearnerManagement";
+import ClassFeedbacks from "./pages/teacher/ClassFeedback";
 export default function App() {
   return (
     <Router>
@@ -89,8 +92,8 @@ export default function App() {
         <Route path="staff/item-type" element={<ItemTypeManagement />} />
         <Route path="/course/:id" element={<CourseHomeDetails />} />
         <Route path="/search" element={<Search />} />
-        <Route path="/staff-management" element={<StaffManagement />} />
-        <Route path="/staff-request" element={<RequestManagement />} />
+        <Route path="admin/staff-management" element={<StaffManagement />} />
+        <Route path="staff/refund-requests" element={<RequestManagement />} />
         <Route
           path="/staff/teacher-center-schedule"
           element={<TeacherCenterSchedule />}
@@ -104,7 +107,7 @@ export default function App() {
 
         <Route path="/teacher-profile" element={<TeacherProfile />} />
         <Route path="staff/class-management" element={<ClassManagement />} />
-        <Route path="/add-class" element={<AddClass />} />
+        <Route path="staff/add-class" element={<AddClass />} />
         <Route path="/purchase-history" element={<PurchaseHistory />} />
         <Route path="/student-schedule" element={<StudentSchedule />} />
         <Route path="teacher/students" element={<TeacherClassManagement />} />
@@ -168,6 +171,15 @@ export default function App() {
           element={<HistoryTransaction />}
         />
         <Route path="manager/promotions" element={<PromotionCodes />} />
+        <Route
+          path="admin/manager-management"
+          element={<ManagerManagement />}
+        />
+        <Route
+          path="admin/learner-management"
+          element={<LearnerManagement />}
+        />
+        <Route path="/teacher/student-feedback" element={<ClassFeedbacks />} />
       </Routes>
     </Router>
   );
