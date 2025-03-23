@@ -49,15 +49,17 @@ export default function AppLayout({ children }) {
       const token = localStorage.getItem("authToken");
       if (token) {
         try {
-          // Lấy thông tin người dùng hiện tại
           setLoading(true);
           const userData = await getCurrentUser();
           setCurrentUser(userData);
           setIsLoggedIn(true);
+          // Lưu thêm accountId vào localStorage
+          localStorage.setItem("accountId", userData.accountId);
         } catch (error) {
           console.error("Error fetching user data:", error);
           message.error("Lỗi xác thực, vui lòng đăng nhập lại");
           localStorage.removeItem("authToken");
+          localStorage.removeItem("accountId"); // Xóa accountId khi có lỗi
           setIsLoggedIn(false);
           setCurrentUser(null);
         } finally {
@@ -75,6 +77,7 @@ export default function AppLayout({ children }) {
 
   const handleLogout = () => {
     localStorage.removeItem("authToken");
+    localStorage.removeItem("accountId"); // Xóa accountId khi đăng xuất
     setIsLoggedIn(false);
     setCurrentUser(null);
     message.success("Đã đăng xuất thành công");

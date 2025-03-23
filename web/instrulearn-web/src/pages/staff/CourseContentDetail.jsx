@@ -30,8 +30,8 @@ import {
   FileImageOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
-import SSidebar from "../../components/staff/StaffSidebar";
-import SHeader from "../../components/staff/StaffHeader";
+import StaffSidebar from "../../components/staff/StaffSidebar";
+import StaffHeader from "../../components/staff/StaffHeader";
 import { initializeApp } from "firebase/app";
 import {
   getStorage,
@@ -65,7 +65,7 @@ const CourseContentDetail = () => {
   const [form] = Form.useForm();
   const [editForm] = Form.useForm();
   const [collapsed, setCollapsed] = useState(false);
-  const [selectedMenu, setSelectedMenu] = useState("courses");
+  const [selectedMenu, setSelectedMenu] = useState("course-management");
   const [contentDetail, setContentDetail] = useState(null);
   const [contentItems, setContentItems] = useState([]);
   const [itemTypes, setItemTypes] = useState([]);
@@ -470,9 +470,6 @@ const CourseContentDetail = () => {
               />
             )}
           </div>
-          <Text type="secondary" className="break-all">
-            {item.itemDes}
-          </Text>
         </div>
       );
     } else if (
@@ -507,9 +504,6 @@ const CourseContentDetail = () => {
               Xem tài liệu
             </a>
           )}
-          <Text type="secondary" className="break-all">
-            {item.itemDes}
-          </Text>
         </div>
       );
     } else {
@@ -582,20 +576,25 @@ const CourseContentDetail = () => {
   };
 
   return (
-    <Layout className="h-screen">
-      <SSidebar
+    <Layout className="min-h-screen">
+      <StaffSidebar
         collapsed={collapsed}
+        setCollapsed={setCollapsed}
         selectedMenu={selectedMenu}
-        onMenuSelect={setSelectedMenu}
-        toggleCollapsed={() => setCollapsed(!collapsed)}
       />
-      <Layout>
-        <SHeader
-          collapsed={collapsed}
-          toggleCollapsed={() => setCollapsed(!collapsed)}
-          selectedMenu={selectedMenu}
-        />
-        <Content className="p-6 bg-gray-50 overflow-auto">
+      <Layout
+        style={{
+          marginLeft: collapsed ? "80px" : "250px",
+          transition: "all 0.2s",
+        }}
+      >
+        <StaffHeader collapsed={collapsed} setCollapsed={setCollapsed} />
+        <Content
+          className="p-6 bg-gray-50"
+          style={{
+            marginTop: "64px",
+          }}
+        >
           <Button
             type="link"
             icon={<ArrowLeftOutlined />}
@@ -730,38 +729,22 @@ const CourseContentDetail = () => {
                 </Select>
               </Form.Item>
 
-              <Form.Item label="Tải lên tệp (tuỳ chọn)">
+              <Form.Item label="Tải lên tệp">
                 <input
                   type="file"
                   onChange={handleFileSelect}
                   className="block w-full text-sm border border-gray-300 rounded p-2"
+                  required
                 />
                 {file && renderUploadButton()}
                 {filePreview()}
               </Form.Item>
 
-              <Form.Item
-                name="itemDes"
-                label="Nội dung hoặc URL"
-                tooltip="Nhập URL trực tiếp hoặc nội dung văn bản. Nếu bạn đã tải lên tệp, trường này sẽ bị ghi đè bởi URL tệp."
-                rules={[
-                  {
-                    required: !fileURL,
-                    message: "Vui lòng nhập nội dung hoặc tải lên tệp",
-                  },
-                ]}
-              >
-                <Input.TextArea
-                  placeholder="Nhập URL video, nội dung tài liệu hoặc tải lên tệp ở trên"
-                  rows={4}
-                />
-              </Form.Item>
-
               {/* Show a message about the field being overridden if file is uploaded */}
               {fileURL && (
-                <div className="text-blue-600 mb-2">
-                  <strong>Lưu ý:</strong> URL tệp đã tải lên sẽ thay thế nội
-                  dung nhập ở trên khi lưu.
+                <div className="text-green-600 mb-2">
+                  <strong>Trạng thái:</strong> Tệp đã được tải lên thành công và
+                  sẵn sàng để thêm vào nội dung.
                 </div>
               )}
             </Form>
@@ -808,38 +791,22 @@ const CourseContentDetail = () => {
                 </Select>
               </Form.Item>
 
-              <Form.Item label="Tải lên tệp mới (tuỳ chọn)">
+              <Form.Item label="Tải lên tệp mới">
                 <input
                   type="file"
                   onChange={handleFileSelect}
                   className="block w-full text-sm border border-gray-300 rounded p-2"
+                  required
                 />
                 {file && renderUploadButton()}
                 {filePreview()}
               </Form.Item>
 
-              <Form.Item
-                name="itemDes"
-                label="Nội dung hoặc URL hiện tại"
-                tooltip="Nhập URL trực tiếp hoặc nội dung văn bản. Nếu bạn đã tải lên tệp mới, trường này sẽ bị ghi đè bởi URL tệp."
-                rules={[
-                  {
-                    required: !fileURL,
-                    message: "Vui lòng nhập nội dung hoặc tải lên tệp",
-                  },
-                ]}
-              >
-                <Input.TextArea
-                  placeholder="Nhập URL video, nội dung tài liệu hoặc tải lên tệp ở trên"
-                  rows={4}
-                />
-              </Form.Item>
-
-              {/* Show a message about the field being overridden if file is uploaded */}
+              {/* Show a message about upload status */}
               {fileURL && (
-                <div className="text-blue-600 mb-2">
-                  <strong>Lưu ý:</strong> URL tệp đã tải lên sẽ thay thế nội
-                  dung nhập ở trên khi lưu.
+                <div className="text-green-600 mb-2">
+                  <strong>Trạng thái:</strong> Tệp đã được tải lên thành công và
+                  sẵn sàng để cập nhật.
                 </div>
               )}
 
@@ -847,9 +814,7 @@ const CourseContentDetail = () => {
                 selectedItem.itemDes &&
                 selectedItem.itemDes.startsWith("http") && (
                   <div className="border p-3 rounded mt-2">
-                    <div className="font-medium mb-2">
-                      Xem trước nội dung hiện tại:
-                    </div>
+                    <div className="font-medium mb-2">Nội dung hiện tại:</div>
                     {selectedItem.itemTypeId === 1 ||
                     selectedItem.itemDes.includes("video") ? (
                       <video

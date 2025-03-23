@@ -17,7 +17,6 @@ import {
   Col,
   Card,
   Avatar,
-  Upload,
 } from "antd";
 import {
   PlusOutlined,
@@ -26,142 +25,137 @@ import {
   EyeOutlined,
   LockOutlined,
   UserOutlined,
-  PhoneOutlined,
   MailOutlined,
-  CalendarOutlined,
-  IdcardOutlined,
-  UploadOutlined,
+  UnlockOutlined,
 } from "@ant-design/icons";
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import AdminHeader from "../../components/admin/AdminHeader";
+import axios from "axios";
 
 const { Content } = Layout;
 const { Option } = Select;
 
 const StaffManagement = () => {
-  const [employees, setEmployees] = useState([]);
+  const [staffs, setStaffs] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [editingEmployee, setEditingEmployee] = useState(null);
-  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [editingStaff, setEditingStaff] = useState(null);
+  const [selectedStaff, setSelectedStaff] = useState(null);
   const [collapsed, setCollapsed] = useState(false);
   const [selectedMenu, setSelectedMenu] = useState("staff");
   const [form] = Form.useForm();
-  const [avatarUrl, setAvatarUrl] = useState(null);
 
   useEffect(() => {
-    fetchEmployees();
+    fetchStaffs();
   }, []);
 
-  const fetchEmployees = async () => {
-    // Giả lập dữ liệu, sau này sẽ gọi API
-    const data = [
-      {
-        id: 1,
-        name: "Nguyễn Văn A",
-        email: "a@example.com",
-        phone: "0123456789",
-        status: "active",
-        joinDate: "2024-01-01",
-        address: "123 Đường ABC, Quận 1, TP.HCM",
-        gender: "Nam",
-        birthDate: "1990-01-01",
-        idCard: "079123456789",
-        position: "Nhân viên",
-      },
-      {
-        id: 2,
-        name: "Trần Thị B",
-        email: "b@example.com",
-        phone: "0987654321",
-        status: "inactive",
-        joinDate: "2024-02-01",
-        address: "456 Đường XYZ, Quận 2, TP.HCM",
-        gender: "Nữ",
-        birthDate: "1992-05-15",
-        idCard: "079987654321",
-        position: "Nhân viên",
-      },
-    ];
-    setEmployees(data);
+  const fetchStaffs = async () => {
+    try {
+      const response = await axios.get(
+        "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Staff/get-all"
+      );
+      if (response.data.isSucceed) {
+        setStaffs(response.data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching staffs:", error);
+      message.error("Không thể tải danh sách nhân viên!");
+    }
   };
 
   const handleAdd = () => {
-    setEditingEmployee(null);
+    setEditingStaff(null);
     form.resetFields();
     setIsModalOpen(true);
   };
 
   const handleEdit = (record) => {
-    setEditingEmployee(record);
+    setEditingStaff(record);
     form.setFieldsValue(record);
-    setAvatarUrl(record.avatar);
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id) => {
-    setEmployees(employees.filter((emp) => emp.id !== id));
-    message.success("Xóa tài khoản nhân viên thành công!");
+  const handleBanUnban = async (staffId, isActive) => {
+    try {
+      const endpoint =
+        isActive === 0
+          ? `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Staff/unban/${staffId}`
+          : `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Staff/delete/${staffId}`;
+
+      const response = await axios.delete(endpoint);
+
+      if (response.data.isSucceed) {
+        message.success(
+          isActive === 0
+            ? "Mở khóa tài khoản thành công!"
+            : "Khóa tài khoản thành công!"
+        );
+        fetchStaffs();
+      } else {
+        message.error(response.data.message || "Không thể thực hiện thao tác!");
+      }
+    } catch (error) {
+      console.error("Error banning/unbanning staff:", error);
+      message.error("Không thể thực hiện thao tác!");
+    }
   };
 
   const handleSave = async () => {
     try {
       const values = await form.validateFields();
-      if (editingEmployee) {
-        setEmployees(
-          employees.map((emp) =>
-            emp.id === editingEmployee.id
-              ? { ...emp, ...values, avatar: avatarUrl }
-              : emp
-          )
-        );
+      if (editingStaff) {
+        // TODO: Implement update API call
+        console.log("Update staff:", values);
         message.success("Cập nhật thông tin nhân viên thành công!");
       } else {
-        const newEmployee = {
-          id: Date.now(),
-          ...values,
-          status: "active",
-          joinDate: new Date().toISOString().split("T")[0],
-          position: "Nhân viên",
-          avatar: avatarUrl,
-        };
-        setEmployees([...employees, newEmployee]);
-        message.success("Thêm nhân viên mới thành công!");
+        try {
+          const response = await axios.post(
+            "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Staff/create",
+            {
+              email: values.email,
+              username: values.username,
+              fullname: values.fullname,
+              password: values.password,
+            }
+          );
+          if (response.data.isSucceed) {
+            message.success("Thêm nhân viên mới thành công!");
+          } else {
+            message.error(response.data.message || "Không thể thêm nhân viên!");
+          }
+        } catch (error) {
+          console.error("Error creating staff:", error);
+          message.error("Không thể thêm nhân viên!");
+        }
       }
       setIsModalOpen(false);
-      setAvatarUrl(null);
+      fetchStaffs();
     } catch (error) {
       console.error("Lỗi khi lưu:", error);
+      message.error("Không thể lưu thông tin nhân viên!");
     }
   };
 
   const handleViewDetail = (record) => {
-    setSelectedEmployee(record);
+    setSelectedStaff(record);
     setIsDetailModalOpen(true);
-  };
-
-  const handleResetPassword = (id) => {
-    message.success("Đã gửi email đặt lại mật khẩu!");
   };
 
   const toggleCollapsed = () => {
     setCollapsed(!collapsed);
   };
 
-  const handleAvatarUpload = (info) => {
-    if (info.file.status === "done") {
-      setAvatarUrl(info.file.response.url);
-      message.success(`${info.file.name} tải lên thành công`);
-    } else if (info.file.status === "error") {
-      message.error(`${info.file.name} tải lên thất bại.`);
-    }
-  };
-
   const columns = [
     {
-      title: "Tên nhân viên",
-      dataIndex: "name",
-      key: "name",
+      title: "Họ và tên",
+      dataIndex: "fullname",
+      key: "fullname",
+      width: "25%",
+    },
+    {
+      title: "Tên đăng nhập",
+      dataIndex: "username",
+      key: "username",
       width: "25%",
     },
     {
@@ -171,19 +165,13 @@ const StaffManagement = () => {
       width: "25%",
     },
     {
-      title: "Số điện thoại",
-      dataIndex: "phone",
-      key: "phone",
-      width: "20%",
-    },
-    {
       title: "Trạng thái",
-      dataIndex: "status",
-      key: "status",
+      dataIndex: "isActive",
+      key: "isActive",
       width: "15%",
-      render: (status) => (
-        <Tag color={status === "active" ? "green" : "red"}>
-          {status === "active" ? "Hoạt động" : "Không hoạt động"}
+      render: (isActive) => (
+        <Tag color={isActive === 1 ? "green" : "red"}>
+          {isActive === 1 ? "Hoạt động" : "Đã khóa"}
         </Tag>
       ),
     },
@@ -204,21 +192,21 @@ const StaffManagement = () => {
             size="small"
             onClick={() => handleViewDetail(record)}
           />
-          <Button
-            icon={<LockOutlined />}
-            size="small"
-            onClick={() => handleResetPassword(record.id)}
-          />
           <Popconfirm
-            title="Bạn có chắc chắn muốn xóa?"
-            onConfirm={() => handleDelete(record.id)}
+            title={
+              record.isActive === 0
+                ? "Bạn có chắc chắn muốn mở khóa tài khoản?"
+                : "Bạn có chắc chắn muốn khóa tài khoản?"
+            }
+            onConfirm={() => handleBanUnban(record.staffId, record.isActive)}
             okText="Đồng ý"
             cancelText="Hủy"
           >
             <Button
-              type="primary"
-              danger
-              icon={<DeleteOutlined />}
+              type={record.isActive === 0 ? "primary" : "default"}
+              icon={
+                record.isActive === 0 ? <UnlockOutlined /> : <LockOutlined />
+              }
               size="small"
             />
           </Popconfirm>
@@ -259,9 +247,9 @@ const StaffManagement = () => {
           </div>
 
           <Table
-            dataSource={employees}
+            dataSource={staffs}
             columns={columns}
-            rowKey="id"
+            rowKey="staffId"
             pagination={{
               pageSize: 10,
               showTotal: (total, range) =>
@@ -273,54 +261,24 @@ const StaffManagement = () => {
 
           {/* Modal thêm/sửa nhân viên */}
           <Modal
-            title={
-              editingEmployee ? "Chỉnh sửa thông tin" : "Thêm nhân viên mới"
-            }
+            title={editingStaff ? "Chỉnh sửa thông tin" : "Thêm nhân viên mới"}
             open={isModalOpen}
             onOk={handleSave}
             onCancel={() => {
               setIsModalOpen(false);
-              setAvatarUrl(null);
             }}
             width={700}
           >
             <Form form={form} layout="vertical">
-              <div className="text-center mb-4">
-                <Upload
-                  name="avatar"
-                  listType="picture-card"
-                  className="avatar-uploader"
-                  showUploadList={false}
-                  action="/api/upload" // Thay thế bằng API endpoint thực tế
-                  onChange={handleAvatarUpload}
-                >
-                  {avatarUrl ? (
-                    <img
-                      src={avatarUrl}
-                      alt="avatar"
-                      style={{ width: "100%" }}
-                    />
-                  ) : (
-                    <div>
-                      <PlusOutlined />
-                      <div style={{ marginTop: 8 }}>Upload</div>
-                    </div>
-                  )}
-                </Upload>
-                <p className="text-gray-500 mt-2">
-                  Nhấp để tải lên ảnh đại diện
-                </p>
-              </div>
-
               <Row gutter={16}>
                 <Col span={12}>
                   <Form.Item
-                    name="name"
-                    label="Tên nhân viên"
+                    name="fullname"
+                    label="Họ và tên"
                     rules={[
                       {
                         required: true,
-                        message: "Vui lòng nhập tên nhân viên!",
+                        message: "Vui lòng nhập họ và tên!",
                       },
                     ]}
                   >
@@ -329,98 +287,58 @@ const StaffManagement = () => {
                 </Col>
                 <Col span={12}>
                   <Form.Item
+                    name="username"
+                    label="Tên đăng nhập"
+                    rules={[
+                      {
+                        required: true,
+                        message: "Vui lòng nhập tên đăng nhập!",
+                      },
+                    ]}
+                  >
+                    <Input prefix={<UserOutlined />} />
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item
                     name="email"
                     label="Email"
                     rules={[
-                      { required: true, message: "Vui lòng nhập email!" },
-                      { type: "email", message: "Email không hợp lệ!" },
+                      {
+                        required: true,
+                        message: "Vui lòng nhập email!",
+                      },
+                      {
+                        type: "email",
+                        message: "Email không hợp lệ!",
+                      },
                     ]}
                   >
                     <Input prefix={<MailOutlined />} />
                   </Form.Item>
                 </Col>
-              </Row>
-
-              <Row gutter={16}>
                 <Col span={12}>
                   <Form.Item
-                    name="phone"
-                    label="Số điện thoại"
+                    name="password"
+                    label="Mật khẩu"
                     rules={[
                       {
                         required: true,
-                        message: "Vui lòng nhập số điện thoại!",
+                        message: "Vui lòng nhập mật khẩu!",
                       },
                       {
-                        pattern: /^[0-9]{10}$/,
-                        message: "Số điện thoại không hợp lệ!",
+                        min: 6,
+                        message: "Mật khẩu phải có ít nhất 6 ký tự!",
                       },
                     ]}
                   >
-                    <Input prefix={<PhoneOutlined />} />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item
-                    name="birthDate"
-                    label="Ngày sinh"
-                    rules={[
-                      { required: true, message: "Vui lòng chọn ngày sinh!" },
-                    ]}
-                  >
-                    <Input type="date" />
+                    <Input.Password prefix={<LockOutlined />} />
                   </Form.Item>
                 </Col>
               </Row>
-
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item
-                    name="gender"
-                    label="Giới tính"
-                    rules={[
-                      { required: true, message: "Vui lòng chọn giới tính!" },
-                    ]}
-                  >
-                    <Select>
-                      <Option value="Nam">Nam</Option>
-                      <Option value="Nữ">Nữ</Option>
-                    </Select>
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item
-                    name="idCard"
-                    label="CMND/CCCD"
-                    rules={[
-                      { required: true, message: "Vui lòng nhập CMND/CCCD!" },
-                      {
-                        pattern: /^[0-9]{12}$/,
-                        message: "CMND/CCCD không hợp lệ!",
-                      },
-                    ]}
-                  >
-                    <Input prefix={<IdcardOutlined />} />
-                  </Form.Item>
-                </Col>
-              </Row>
-
-              <Form.Item
-                name="address"
-                label="Địa chỉ"
-                rules={[{ required: true, message: "Vui lòng nhập địa chỉ!" }]}
-              >
-                <Input.TextArea rows={2} />
-              </Form.Item>
-
-              {editingEmployee && (
-                <Form.Item name="status" label="Trạng thái">
-                  <Select>
-                    <Option value="active">Hoạt động</Option>
-                    <Option value="inactive">Không hoạt động</Option>
-                  </Select>
-                </Form.Item>
-              )}
             </Form>
           </Modal>
 
@@ -432,76 +350,33 @@ const StaffManagement = () => {
             footer={null}
             width={800}
           >
-            {selectedEmployee && (
+            {selectedStaff && (
               <>
                 <div className="text-center mb-6">
                   <Avatar
                     size={100}
-                    src={selectedEmployee.avatar}
-                    icon={!selectedEmployee.avatar && <UserOutlined />}
+                    icon={!selectedStaff.avatar && <UserOutlined />}
                   />
                   <h2 className="text-xl font-semibold mt-3">
-                    {selectedEmployee.name}
+                    {selectedStaff.fullname}
                   </h2>
-                  <p className="text-gray-500">{selectedEmployee.position}</p>
+                  <p className="text-gray-500">{selectedStaff.username}</p>
                 </div>
 
                 <Divider />
 
-                <Row gutter={24}>
-                  <Col span={12}>
-                    <Card title="Thông tin cá nhân" bordered={false}>
-                      <Descriptions column={1}>
-                        <Descriptions.Item label="Ngày sinh">
-                          {selectedEmployee.birthDate}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="Giới tính">
-                          {selectedEmployee.gender}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="CMND/CCCD">
-                          {selectedEmployee.idCard}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="Địa chỉ">
-                          {selectedEmployee.address}
-                        </Descriptions.Item>
-                      </Descriptions>
-                    </Card>
-                  </Col>
-                  <Col span={12}>
-                    <Card title="Thông tin công việc" bordered={false}>
-                      <Descriptions column={1}>
-                        <Descriptions.Item label="Ngày vào làm">
-                          {selectedEmployee.joinDate}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="Trạng thái">
-                          <Tag
-                            color={
-                              selectedEmployee.status === "active"
-                                ? "green"
-                                : "red"
-                            }
-                          >
-                            {selectedEmployee.status === "active"
-                              ? "Hoạt động"
-                              : "Không hoạt động"}
-                          </Tag>
-                        </Descriptions.Item>
-                      </Descriptions>
-                    </Card>
-                  </Col>
-                </Row>
-
-                <Divider />
-
-                <Card title="Thông tin liên hệ" bordered={false}>
+                <Card title="Thông tin tài khoản" bordered={false}>
                   <Descriptions column={2}>
                     <Descriptions.Item label="Email">
                       <MailOutlined className="mr-2" />
-                      {selectedEmployee.email}
+                      {selectedStaff.email}
                     </Descriptions.Item>
-                    <Descriptions.Item label="Điện thoại">
-                      <PhoneOutlined className="mr-2" />
-                      {selectedEmployee.phone}
+                    <Descriptions.Item label="Trạng thái">
+                      <Tag
+                        color={selectedStaff.isActive === 1 ? "green" : "red"}
+                      >
+                        {selectedStaff.isActive === 1 ? "Hoạt động" : "Đã khóa"}
+                      </Tag>
                     </Descriptions.Item>
                   </Descriptions>
                 </Card>

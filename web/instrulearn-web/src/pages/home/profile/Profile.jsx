@@ -26,6 +26,7 @@ import {
   TrophyOutlined,
   CheckCircleOutlined,
   WalletOutlined,
+  FormOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -33,6 +34,7 @@ import { useNavigate } from "react-router-dom";
 import EnrolledCourses from "./MyCourse";
 import Achievements from "./Achievements";
 import WalletComponent from "./MyWallet";
+import MyRegistrations from "./MyRegistrations";
 
 const { Title, Text } = Typography;
 
@@ -383,13 +385,22 @@ const Profile = () => {
       key: "2",
       label: (
         <span className="flex items-center text-base">
+          <FormOutlined className="mr-2" /> Đăng ký học
+        </span>
+      ),
+      children: <MyRegistrations />,
+    },
+    {
+      key: "3",
+      label: (
+        <span className="flex items-center text-base">
           <BookOutlined className="mr-2" /> Khoá học của tôi
         </span>
       ),
       children: <EnrolledCourses courses={enrolledCourses} />,
     },
     {
-      key: "3",
+      key: "4",
       label: (
         <span className="flex items-center text-base">
           <TrophyOutlined className="mr-2" /> Thành tích
@@ -398,7 +409,7 @@ const Profile = () => {
       children: <Achievements achievements={achievements} />,
     },
     {
-      key: "4",
+      key: "5",
       label: (
         <span className="flex items-center text-base">
           <WalletOutlined className="mr-2" /> Ví của tôi

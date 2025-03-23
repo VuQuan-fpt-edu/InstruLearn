@@ -1,21 +1,12 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import {
-  Card,
-  Typography,
-  Button,
-  message,
-  Statistic,
-  Modal,
-  Input,
-  Form,
-  Alert,
-} from "antd";
+import { Card, Typography, Button, message, Statistic, Alert } from "antd";
 import {
   WalletOutlined,
   ReloadOutlined,
   PlusOutlined,
 } from "@ant-design/icons";
+import { useNavigate } from "react-router-dom";
 
 const { Text } = Typography;
 
@@ -23,9 +14,7 @@ const WalletComponent = () => {
   const [walletData, setWalletData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [isTopupModalVisible, setIsTopupModalVisible] = useState(false);
-  const [topupAmount, setTopupAmount] = useState(null);
-  const [paymentUrl, setPaymentUrl] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchWalletData = async () => {
@@ -93,48 +82,7 @@ const WalletComponent = () => {
   };
 
   const handleTopup = () => {
-    setIsTopupModalVisible(true);
-  };
-
-  const handleTopupConfirm = async () => {
-    if (!topupAmount || topupAmount < 1000) {
-      message.error("Vui lòng nhập số tiền hợp lệ (tối thiểu 1,000đ)");
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem("authToken");
-      const learnerId = localStorage.getItem("learnerId");
-
-      const response = await axios.post(
-        `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/wallet/add-funds`,
-        {
-          learnerId: Number(learnerId),
-          amount: topupAmount,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (response.data.isSucceed) {
-        const { paymentUrl, transactionId } = response.data.data;
-
-        window.open(paymentUrl, "_blank");
-
-        setIsTopupModalVisible(false);
-        setTopupAmount(null);
-
-        message.success("Đang chuyển đến trang thanh toán");
-      } else {
-        message.error(response.data.message || "Nạp tiền không thành công");
-      }
-    } catch (error) {
-      console.error("Topup error:", error);
-      message.error("Có lỗi xảy ra khi nạp tiền");
-    }
+    navigate("/profile/topup");
   };
 
   if (error) {
@@ -194,33 +142,6 @@ const WalletComponent = () => {
           </Button>
         </div>
       </div>
-
-      <Modal
-        title="Nạp Tiền Vào Ví"
-        visible={isTopupModalVisible}
-        onOk={handleTopupConfirm}
-        onCancel={() => setIsTopupModalVisible(false)}
-        okText="Xác Nhận"
-        cancelText="Huỷ"
-      >
-        <Form layout="vertical">
-          <Form.Item
-            label="Số Tiền Nạp"
-            required
-            rules={[{ required: true, message: "Vui lòng nhập số tiền nạp" }]}
-          >
-            <Input
-              type="number"
-              placeholder="Nhập số tiền muốn nạp (tối thiểu 1,000đ)"
-              value={topupAmount}
-              onChange={(e) => setTopupAmount(Number(e.target.value))}
-              addonAfter="đ"
-              min={1000}
-              step={1000}
-            />
-          </Form.Item>
-        </Form>
-      </Modal>
     </Card>
   );
 };

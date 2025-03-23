@@ -35,6 +35,9 @@ const AdminSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
       case "learner":
         navigate("/admin/learner-management");
         break;
+      case "teacher":
+        navigate("/admin/teacher-management");
+        break;
       case "all-packages":
         navigate("/admin/all-packages");
         break;
@@ -82,6 +85,11 @@ const AdminSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
           key: "learner",
           icon: <UserAddOutlined />,
           label: "Tài khoản Learner",
+        },
+        {
+          key: "teacher",
+          icon: <UserAddOutlined />,
+          label: "Tài khoản Teacher",
         },
       ],
     },

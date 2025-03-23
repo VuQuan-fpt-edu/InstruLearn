@@ -71,7 +71,7 @@ const CourseContent = ({ courseId }) => {
   const handleAddContent = async (values) => {
     try {
       const contentData = {
-        courseId: parseInt(courseId),
+        coursePackageId: parseInt(courseId),
         heading: values.heading,
       };
 
@@ -164,7 +164,7 @@ const CourseContent = ({ courseId }) => {
   };
 
   const navigateToContentDetail = (contentId) => {
-    navigate(`/course-content-detail/${contentId}`);
+    navigate(`/staff/course-content-detail/${contentId}`);
   };
 
   return (

@@ -31,9 +31,11 @@ import {
   CalendarOutlined,
   IdcardOutlined,
   UploadOutlined,
+  UnlockOutlined,
 } from "@ant-design/icons";
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import AdminHeader from "../../components/admin/AdminHeader";
+import axios from "axios";
 
 const { Content } = Layout;
 const { Option } = Select;
@@ -54,36 +56,17 @@ const ManagerManagement = () => {
   }, []);
 
   const fetchManagers = async () => {
-    // Giả lập dữ liệu, sau này sẽ gọi API
-    const data = [
-      {
-        id: 1,
-        name: "Nguyễn Văn A",
-        email: "a@example.com",
-        phone: "0123456789",
-        status: "active",
-        joinDate: "2024-01-01",
-        address: "123 Đường ABC, Quận 1, TP.HCM",
-        gender: "Nam",
-        birthDate: "1990-01-01",
-        idCard: "079123456789",
-        position: "Quản lý",
-      },
-      {
-        id: 2,
-        name: "Trần Thị B",
-        email: "b@example.com",
-        phone: "0987654321",
-        status: "inactive",
-        joinDate: "2024-02-01",
-        address: "456 Đường XYZ, Quận 2, TP.HCM",
-        gender: "Nữ",
-        birthDate: "1992-05-15",
-        idCard: "079987654321",
-        position: "Quản lý",
-      },
-    ];
-    setManagers(data);
+    try {
+      const response = await axios.get(
+        "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Manager/get-all"
+      );
+      if (response.data.isSucceed) {
+        setManagers(response.data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching managers:", error);
+      message.error("Không thể tải danh sách quản lý!");
+    }
   };
 
   const handleAdd = () => {
@@ -100,7 +83,7 @@ const ManagerManagement = () => {
   };
 
   const handleDelete = (id) => {
-    setManagers(managers.filter((manager) => manager.id !== id));
+    setManagers(managers.filter((manager) => manager.managerId !== id));
     message.success("Xóa tài khoản quản lý thành công!");
   };
 
@@ -108,30 +91,36 @@ const ManagerManagement = () => {
     try {
       const values = await form.validateFields();
       if (editingManager) {
-        setManagers(
-          managers.map((manager) =>
-            manager.id === editingManager.id
-              ? { ...manager, ...values, avatar: avatarUrl }
-              : manager
-          )
-        );
+        // TODO: Implement update API call
+        console.log("Update manager:", values);
         message.success("Cập nhật thông tin quản lý thành công!");
       } else {
-        const newManager = {
-          id: Date.now(),
-          ...values,
-          status: "active",
-          joinDate: new Date().toISOString().split("T")[0],
-          position: "Quản lý",
-          avatar: avatarUrl,
-        };
-        setManagers([...managers, newManager]);
-        message.success("Thêm quản lý mới thành công!");
+        try {
+          const response = await axios.post(
+            "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Manager/create",
+            {
+              email: values.email,
+              username: values.username,
+              fullname: values.fullname,
+              password: values.password,
+            }
+          );
+          if (response.data.isSucceed) {
+            message.success("Thêm quản lý mới thành công!");
+          } else {
+            message.error(response.data.message || "Không thể thêm quản lý!");
+          }
+        } catch (error) {
+          console.error("Error creating manager:", error);
+          message.error("Không thể thêm quản lý!");
+        }
       }
       setIsModalOpen(false);
       setAvatarUrl(null);
+      fetchManagers();
     } catch (error) {
       console.error("Lỗi khi lưu:", error);
+      message.error("Không thể lưu thông tin quản lý!");
     }
   };
 
@@ -140,8 +129,29 @@ const ManagerManagement = () => {
     setIsDetailModalOpen(true);
   };
 
-  const handleResetPassword = (id) => {
-    message.success("Đã gửi email đặt lại mật khẩu!");
+  const handleBanUnban = async (managerId, isActive) => {
+    try {
+      const endpoint =
+        isActive === 0
+          ? `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Manager/unban/${managerId}`
+          : `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Manager/delete/${managerId}`;
+
+      const response = await axios.delete(endpoint);
+
+      if (response.data.isSucceed) {
+        message.success(
+          isActive === 0
+            ? "Mở khóa tài khoản thành công!"
+            : "Khóa tài khoản thành công!"
+        );
+        fetchManagers();
+      } else {
+        message.error(response.data.message || "Không thể thực hiện thao tác!");
+      }
+    } catch (error) {
+      console.error("Error banning/unbanning manager:", error);
+      message.error("Không thể thực hiện thao tác!");
+    }
   };
 
   const toggleCollapsed = () => {
@@ -159,9 +169,15 @@ const ManagerManagement = () => {
 
   const columns = [
     {
-      title: "Tên quản lý",
-      dataIndex: "name",
-      key: "name",
+      title: "Họ và tên",
+      dataIndex: "fullname",
+      key: "fullname",
+      width: "25%",
+    },
+    {
+      title: "Tên đăng nhập",
+      dataIndex: "username",
+      key: "username",
       width: "25%",
     },
     {
@@ -171,19 +187,13 @@ const ManagerManagement = () => {
       width: "25%",
     },
     {
-      title: "Số điện thoại",
-      dataIndex: "phone",
-      key: "phone",
-      width: "20%",
-    },
-    {
       title: "Trạng thái",
-      dataIndex: "status",
-      key: "status",
+      dataIndex: "isActive",
+      key: "isActive",
       width: "15%",
-      render: (status) => (
-        <Tag color={status === "active" ? "green" : "red"}>
-          {status === "active" ? "Hoạt động" : "Không hoạt động"}
+      render: (isActive) => (
+        <Tag color={isActive === 1 ? "green" : "red"}>
+          {isActive === 1 ? "Hoạt động" : "Đã khóa"}
         </Tag>
       ),
     },
@@ -204,21 +214,21 @@ const ManagerManagement = () => {
             size="small"
             onClick={() => handleViewDetail(record)}
           />
-          <Button
-            icon={<LockOutlined />}
-            size="small"
-            onClick={() => handleResetPassword(record.id)}
-          />
           <Popconfirm
-            title="Bạn có chắc chắn muốn xóa?"
-            onConfirm={() => handleDelete(record.id)}
+            title={
+              record.isActive === 0
+                ? "Bạn có chắc chắn muốn mở khóa tài khoản?"
+                : "Bạn có chắc chắn muốn khóa tài khoản?"
+            }
+            onConfirm={() => handleBanUnban(record.managerId, record.isActive)}
             okText="Đồng ý"
             cancelText="Hủy"
           >
             <Button
-              type="primary"
-              danger
-              icon={<DeleteOutlined />}
+              type={record.isActive === 0 ? "primary" : "default"}
+              icon={
+                record.isActive === 0 ? <UnlockOutlined /> : <LockOutlined />
+              }
               size="small"
             />
           </Popconfirm>
@@ -253,7 +263,7 @@ const ManagerManagement = () => {
         >
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-semibold">
-              Quản lý tài khoản Manager
+              Quản lý tài khoản Quản lý
             </h2>
             <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
               Thêm quản lý
@@ -263,7 +273,7 @@ const ManagerManagement = () => {
           <Table
             dataSource={managers}
             columns={columns}
-            rowKey="id"
+            rowKey="managerId"
             pagination={{
               pageSize: 10,
               showTotal: (total, range) =>
@@ -285,40 +295,16 @@ const ManagerManagement = () => {
             width={700}
           >
             <Form form={form} layout="vertical">
-              <div className="text-center mb-4">
-                <Upload
-                  name="avatar"
-                  listType="picture-card"
-                  className="avatar-uploader"
-                  showUploadList={false}
-                  action="/api/upload" // Thay thế bằng API endpoint thực tế
-                  onChange={handleAvatarUpload}
-                >
-                  {avatarUrl ? (
-                    <img
-                      src={avatarUrl}
-                      alt="avatar"
-                      style={{ width: "100%" }}
-                    />
-                  ) : (
-                    <div>
-                      <PlusOutlined />
-                      <div style={{ marginTop: 8 }}>Upload</div>
-                    </div>
-                  )}
-                </Upload>
-                <p className="text-gray-500 mt-2">
-                  Nhấp để tải lên ảnh đại diện
-                </p>
-              </div>
-
               <Row gutter={16}>
                 <Col span={12}>
                   <Form.Item
-                    name="name"
-                    label="Tên quản lý"
+                    name="fullname"
+                    label="Họ và tên"
                     rules={[
-                      { required: true, message: "Vui lòng nhập tên quản lý!" },
+                      {
+                        required: true,
+                        message: "Vui lòng nhập họ và tên!",
+                      },
                     ]}
                   >
                     <Input prefix={<UserOutlined />} />
@@ -326,98 +312,58 @@ const ManagerManagement = () => {
                 </Col>
                 <Col span={12}>
                   <Form.Item
+                    name="username"
+                    label="Tên đăng nhập"
+                    rules={[
+                      {
+                        required: true,
+                        message: "Vui lòng nhập tên đăng nhập!",
+                      },
+                    ]}
+                  >
+                    <Input prefix={<UserOutlined />} />
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item
                     name="email"
                     label="Email"
                     rules={[
-                      { required: true, message: "Vui lòng nhập email!" },
-                      { type: "email", message: "Email không hợp lệ!" },
+                      {
+                        required: true,
+                        message: "Vui lòng nhập email!",
+                      },
+                      {
+                        type: "email",
+                        message: "Email không hợp lệ!",
+                      },
                     ]}
                   >
                     <Input prefix={<MailOutlined />} />
                   </Form.Item>
                 </Col>
-              </Row>
-
-              <Row gutter={16}>
                 <Col span={12}>
                   <Form.Item
-                    name="phone"
-                    label="Số điện thoại"
+                    name="password"
+                    label="Mật khẩu"
                     rules={[
                       {
                         required: true,
-                        message: "Vui lòng nhập số điện thoại!",
+                        message: "Vui lòng nhập mật khẩu!",
                       },
                       {
-                        pattern: /^[0-9]{10}$/,
-                        message: "Số điện thoại không hợp lệ!",
+                        min: 6,
+                        message: "Mật khẩu phải có ít nhất 6 ký tự!",
                       },
                     ]}
                   >
-                    <Input prefix={<PhoneOutlined />} />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item
-                    name="birthDate"
-                    label="Ngày sinh"
-                    rules={[
-                      { required: true, message: "Vui lòng chọn ngày sinh!" },
-                    ]}
-                  >
-                    <Input type="date" />
+                    <Input.Password prefix={<LockOutlined />} />
                   </Form.Item>
                 </Col>
               </Row>
-
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item
-                    name="gender"
-                    label="Giới tính"
-                    rules={[
-                      { required: true, message: "Vui lòng chọn giới tính!" },
-                    ]}
-                  >
-                    <Select>
-                      <Option value="Nam">Nam</Option>
-                      <Option value="Nữ">Nữ</Option>
-                    </Select>
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item
-                    name="idCard"
-                    label="CMND/CCCD"
-                    rules={[
-                      { required: true, message: "Vui lòng nhập CMND/CCCD!" },
-                      {
-                        pattern: /^[0-9]{12}$/,
-                        message: "CMND/CCCD không hợp lệ!",
-                      },
-                    ]}
-                  >
-                    <Input prefix={<IdcardOutlined />} />
-                  </Form.Item>
-                </Col>
-              </Row>
-
-              <Form.Item
-                name="address"
-                label="Địa chỉ"
-                rules={[{ required: true, message: "Vui lòng nhập địa chỉ!" }]}
-              >
-                <Input.TextArea rows={2} />
-              </Form.Item>
-
-              {editingManager && (
-                <Form.Item name="status" label="Trạng thái">
-                  <Select>
-                    <Option value="active">Hoạt động</Option>
-                    <Option value="inactive">Không hoạt động</Option>
-                  </Select>
-                </Form.Item>
-              )}
             </Form>
           </Modal>
 
@@ -438,9 +384,9 @@ const ManagerManagement = () => {
                     icon={!selectedManager.avatar && <UserOutlined />}
                   />
                   <h2 className="text-xl font-semibold mt-3">
-                    {selectedManager.name}
+                    {selectedManager.fullname}
                   </h2>
-                  <p className="text-gray-500">{selectedManager.position}</p>
+                  <p className="text-gray-500">{selectedManager.username}</p>
                 </div>
 
                 <Divider />
@@ -473,14 +419,12 @@ const ManagerManagement = () => {
                         <Descriptions.Item label="Trạng thái">
                           <Tag
                             color={
-                              selectedManager.status === "active"
-                                ? "green"
-                                : "red"
+                              selectedManager.isActive === 1 ? "green" : "red"
                             }
                           >
-                            {selectedManager.status === "active"
+                            {selectedManager.isActive === 1
                               ? "Hoạt động"
-                              : "Không hoạt động"}
+                              : "Đã khóa"}
                           </Tag>
                         </Descriptions.Item>
                       </Descriptions>

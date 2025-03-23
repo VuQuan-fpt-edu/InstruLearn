@@ -17,6 +17,7 @@ import {
   DatePicker,
   Divider,
   Image,
+  Form,
 } from "antd";
 import {
   SearchOutlined,
@@ -32,6 +33,7 @@ import { useNavigate } from "react-router-dom";
 import StaffSidebar from "../../components/staff/StaffSidebar";
 import StaffHeader from "../../components/staff/StaffHeader";
 import dayjs from "dayjs";
+import axios from "axios";
 
 const { Content } = Layout;
 const { Title } = Typography;
@@ -137,7 +139,43 @@ const generateFakeBookings = () => {
   return [detailedExample, ...randomBookings];
 };
 
+const convertDayToVietnamese = (day) => {
+  const dayMap = {
+    Monday: "Thứ 2",
+    Tuesday: "Thứ 3",
+    Wednesday: "Thứ 4",
+    Thursday: "Thứ 5",
+    Friday: "Thứ 6",
+    Saturday: "Thứ 7",
+    Sunday: "Chủ nhật",
+  };
+  return dayMap[day] || day;
+};
+
+const convertInstrumentToVietnamese = (instrument) => {
+  const instrumentMap = {
+    Guitar: "Guitar",
+    Piano: "Piano",
+    Violin: "Violin",
+    Drums: "Trống",
+    Flute: "Sáo",
+    Saxophone: "Kèn Saxophone",
+  };
+  return instrumentMap[instrument] || instrument;
+};
+
+const convertBookingDataToVietnamese = (booking) => {
+  return {
+    ...booking,
+    majorName: convertInstrumentToVietnamese(booking.majorName),
+    learningDays: booking.learningDays.map((day) =>
+      convertDayToVietnamese(day)
+    ),
+  };
+};
+
 const Booking11Management = () => {
+  const [form] = Form.useForm();
   const [collapsed, setCollapsed] = useState(false);
   const [selectedMenu, setSelectedMenu] = useState("booking-management");
   const [bookings, setBookings] = useState([]);
@@ -145,11 +183,12 @@ const Booking11Management = () => {
   const [searchText, setSearchText] = useState("");
   const [viewModalVisible, setViewModalVisible] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState(null);
-  const [statusFilterValue, setStatusFilterValue] = useState(null);
+  const [statusModalVisible, setStatusModalVisible] = useState(false);
   const [dateRange, setDateRange] = useState(null);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [videoModalVisible, setVideoModalVisible] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState(null);
+  const [statusFilter, setStatusFilter] = useState(null);
   const [instrumentFilter, setInstrumentFilter] = useState(null);
   const navigate = useNavigate();
 
@@ -160,43 +199,70 @@ const Booking11Management = () => {
   const fetchBookings = async () => {
     setLoading(true);
     try {
-      // Using fake data instead of API call
-      setTimeout(() => {
-        const fakeData = generateFakeBookings();
-        setBookings(fakeData);
-        setLoading(false);
-      }, 1000);
+      const response = await axios.get(
+        "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/LearningRegis/get-all"
+      );
+      if (response.data?.isSucceed) {
+        // Chuyển đổi dữ liệu sang tiếng Việt
+        const vietnameseData = response.data.data.map((booking) =>
+          convertBookingDataToVietnamese(booking)
+        );
+        // Sắp xếp theo ngày yêu cầu mới nhất
+        const sortedData = vietnameseData.sort((a, b) => {
+          return new Date(b.requestDate) - new Date(a.requestDate);
+        });
+        setBookings(sortedData);
+      } else {
+        throw new Error(
+          response.data?.message || "Không thể tải danh sách yêu cầu"
+        );
+      }
     } catch (error) {
-      console.error("Error generating fake data:", error);
+      console.error("Error fetching bookings:", error);
       message.error("Không thể tải danh sách yêu cầu đặt lịch");
-      setBookings([]);
+    } finally {
       setLoading(false);
     }
   };
 
-  const handleStatusChange = async (bookingId, newStatus) => {
+  const handleStatusChange = async (booking) => {
     try {
-      // Simulating API call with timeout
       setLoading(true);
-      setTimeout(() => {
-        const updatedBookings = bookings.map((booking) =>
-          booking.bookingId === bookingId
-            ? { ...booking, status: newStatus }
-            : booking
-        );
-        setBookings(updatedBookings);
-        setLoading(false);
-        message.success(`Cập nhật trạng thái thành công`);
+      const values = await form.validateFields();
 
-        // Đóng modal nếu đang mở
-        if (viewModalVisible && selectedBooking?.bookingId === bookingId) {
-          setViewModalVisible(false);
-        }
-      }, 500);
+      const updateData = {
+        learningRegisId: booking.learningRegisId,
+        startDay: values.startDay.format("YYYY-MM-DD"),
+        score: values.score || 0,
+        levelAssigned: values.levelAssigned,
+        price: values.price || 0,
+        feedback: values.feedback || "",
+      };
+
+      const response = await axios.put(
+        "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/LearningRegis/update-status",
+        updateData
+      );
+
+      if (response.data?.isSucceed) {
+        message.success("Cập nhật trạng thái thành công");
+        setStatusModalVisible(false);
+        fetchBookings();
+      } else {
+        throw new Error(response.data?.message || "Cập nhật thất bại");
+      }
     } catch (error) {
-      setLoading(false);
+      console.error("Error updating status:", error);
       message.error("Cập nhật trạng thái thất bại");
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const showStatusModal = (record) => {
+    setSelectedBooking(record);
+    setStatusModalVisible(true);
+    form.resetFields();
   };
 
   const handleView = (record) => {
@@ -211,19 +277,19 @@ const Booking11Management = () => {
 
   const getStatusTag = (status) => {
     switch (status) {
-      case "pending":
+      case "Pending":
         return (
           <Tag icon={<ClockCircleOutlined />} color="warning">
             Chờ xác nhận
           </Tag>
         );
-      case "accepted":
+      case "Accepted":
         return (
           <Tag icon={<CheckCircleOutlined />} color="success">
             Đã chấp nhận
           </Tag>
         );
-      case "rejected":
+      case "Rejected":
         return (
           <Tag icon={<CloseCircleOutlined />} color="error">
             Từ chối
@@ -239,59 +305,60 @@ const Booking11Management = () => {
   };
 
   const applyFilters = () => {
+    const values = form.getFieldsValue();
+    setInstrumentFilter(values.instrument);
+    setStatusFilter(values.status);
+    setDateRange(values.dateRange);
     setFilterModalVisible(false);
-    // Filters will be applied through filteredBookings below
   };
 
   const resetFilters = () => {
-    setStatusFilterValue(null);
-    setDateRange(null);
     setInstrumentFilter(null);
-    setFilterModalVisible(false);
+    setStatusFilter(null);
+    setDateRange(null);
+    form.resetFields();
   };
 
   const filteredBookings = bookings.filter((booking) => {
     // Lọc theo text tìm kiếm
     const searchMatches =
-      booking.studentName?.toLowerCase().includes(searchText.toLowerCase()) ||
+      booking.fullName?.toLowerCase().includes(searchText.toLowerCase()) ||
       booking.teacherName?.toLowerCase().includes(searchText.toLowerCase()) ||
-      booking.courseName?.toLowerCase().includes(searchText.toLowerCase()) ||
-      booking.instrument?.toLowerCase().includes(searchText.toLowerCase()) ||
+      booking.majorName?.toLowerCase().includes(searchText.toLowerCase()) ||
       false;
-
-    // Lọc theo trạng thái
-    const statusMatches =
-      !statusFilterValue || booking.status === statusFilterValue;
-
-    // Lọc theo ngày
-    let dateMatches = true;
-    if (dateRange && dateRange[0] && dateRange[1]) {
-      const bookingDate = dayjs(booking.bookingDate);
-      dateMatches =
-        bookingDate.isAfter(dateRange[0]) && bookingDate.isBefore(dateRange[1]);
-    }
 
     // Lọc theo nhạc cụ
     const instrumentMatches =
-      !instrumentFilter || booking.instrument === instrumentFilter;
+      !instrumentFilter || booking.majorName === instrumentFilter;
 
-    return searchMatches && statusMatches && dateMatches && instrumentMatches;
+    // Lọc theo trạng thái
+    const statusMatches = !statusFilter || booking.status === statusFilter;
+
+    // Lọc theo khoảng thời gian
+    const dateMatches =
+      !dateRange ||
+      !dateRange[0] ||
+      !dateRange[1] ||
+      (dayjs(booking.requestDate).isAfter(dateRange[0], "day") &&
+        dayjs(booking.requestDate).isBefore(dateRange[1], "day"));
+
+    return searchMatches && instrumentMatches && statusMatches && dateMatches;
   });
 
   const columns = [
     {
       title: "Học viên",
-      dataIndex: "studentName",
-      key: "studentName",
+      dataIndex: "fullName",
+      key: "fullName",
       render: (text) => <span className="font-medium">{text}</span>,
-      sorter: (a, b) => a.studentName.localeCompare(b.studentName),
+      sorter: (a, b) => a.fullName.localeCompare(b.fullName),
     },
     {
       title: "Nhạc cụ",
-      dataIndex: "instrument",
-      key: "instrument",
+      dataIndex: "majorName",
+      key: "majorName",
       render: (text) => <Tag color="blue">{text}</Tag>,
-      sorter: (a, b) => a.instrument.localeCompare(b.instrument),
+      sorter: (a, b) => a.majorName.localeCompare(b.majorName),
     },
     {
       title: "Giáo viên",
@@ -301,47 +368,30 @@ const Booking11Management = () => {
       sorter: (a, b) => a.teacherName.localeCompare(b.teacherName),
     },
     {
-      title: "Lịch học",
+      title: "Thời gian học",
       key: "schedule",
       render: (_, record) => (
         <span>
-          {record.bookingDay}, {record.bookingSlot}
+          {record.timeStart?.substring(0, 5)} -{" "}
+          {record.timeEnd?.substring(0, 5)}
         </span>
       ),
     },
     {
-      title: "Trình độ",
-      dataIndex: "proficiencyLevel",
-      key: "proficiencyLevel",
-      render: (level) => {
-        let color = "default";
-        if (level === "Chưa biết gì") color = "cyan";
-        if (level === "1-3 tháng") color = "purple";
-        if (level === "3-6 tháng") color = "orange";
-        if (level === "1 năm") color = "red";
-        if (level === "Hơn 1 năm") color = "red";
-        return <Tag color={color}>{level}</Tag>;
-      },
-      filters: [
-        { text: "Chưa biết gì", value: "Chưa biết gì" },
-        { text: "1-3 tháng", value: "1-3 tháng" },
-        { text: "3-6 tháng ", value: "3-6 tháng" },
-        { text: "1 năm", value: "1 năm" },
-        { text: "Hơn 1 năm", value: "Hơn 1 năm" },
-      ],
-      onFilter: (value, record) => record.proficiencyLevel === value,
+      title: "Số buổi",
+      dataIndex: "numberOfSession",
+      key: "numberOfSession",
     },
     {
       title: "Video",
       key: "video",
       render: (_, record) => (
         <>
-          {record.videoUploadUrl &&
-          record.proficiencyLevel !== "Chưa biết gì" ? (
+          {record.videoUrl && record.videoUrl !== "string" ? (
             <Button
               type="link"
               icon={<PlayCircleOutlined />}
-              onClick={() => handleViewVideo(record.videoUploadUrl)}
+              onClick={() => handleViewVideo(record.videoUrl)}
             >
               Xem video
             </Button>
@@ -356,12 +406,6 @@ const Booking11Management = () => {
       dataIndex: "status",
       key: "status",
       render: (status) => getStatusTag(status),
-      filters: [
-        { text: "Chờ xác nhận", value: "pending" },
-        { text: "Đã chấp nhận", value: "accepted" },
-        { text: "Từ chối", value: "rejected" },
-      ],
-      onFilter: (value, record) => record.status === value,
     },
     {
       title: "Hành động",
@@ -376,31 +420,15 @@ const Booking11Management = () => {
               onClick={() => handleView(record)}
             />
           </Tooltip>
-          {record.status === "pending" && (
-            <>
-              <Tooltip title="Chấp nhận">
-                <Button
-                  type="primary"
-                  icon={<CheckCircleOutlined />}
-                  size="small"
-                  style={{ backgroundColor: "#52c41a" }}
-                  onClick={() =>
-                    handleStatusChange(record.bookingId, "accepted")
-                  }
-                />
-              </Tooltip>
-              <Tooltip title="Từ chối">
-                <Button
-                  type="primary"
-                  danger
-                  icon={<CloseCircleOutlined />}
-                  size="small"
-                  onClick={() =>
-                    handleStatusChange(record.bookingId, "rejected")
-                  }
-                />
-              </Tooltip>
-            </>
+          {record.status === "Pending" && (
+            <Tooltip title="Cập nhật trạng thái">
+              <Button
+                type="primary"
+                icon={<CheckCircleOutlined />}
+                size="small"
+                onClick={() => showStatusModal(record)}
+              />
+            </Tooltip>
           )}
         </Space>
       ),
@@ -459,87 +487,6 @@ const Booking11Management = () => {
               </Space>
             </div>
 
-            <div className="mb-4">
-              <Space wrap>
-                <Badge
-                  count={
-                    filteredBookings.filter((b) => b.status === "pending")
-                      .length
-                  }
-                  showZero
-                >
-                  <Tag
-                    color="warning"
-                    style={{ cursor: "pointer" }}
-                    onClick={() => setStatusFilterValue("pending")}
-                  >
-                    Chờ xác nhận
-                  </Tag>
-                </Badge>
-                <Badge
-                  count={
-                    filteredBookings.filter((b) => b.status === "accepted")
-                      .length
-                  }
-                  showZero
-                >
-                  <Tag
-                    color="success"
-                    style={{ cursor: "pointer" }}
-                    onClick={() => setStatusFilterValue("accepted")}
-                  >
-                    Đã chấp nhận
-                  </Tag>
-                </Badge>
-                <Badge
-                  count={
-                    filteredBookings.filter((b) => b.status === "rejected")
-                      .length
-                  }
-                  showZero
-                >
-                  <Tag
-                    color="error"
-                    style={{ cursor: "pointer" }}
-                    onClick={() => setStatusFilterValue("rejected")}
-                  >
-                    Từ chối
-                  </Tag>
-                </Badge>
-                <Divider type="vertical" />
-                {instruments.map((instrument) => (
-                  <Badge
-                    key={instrument}
-                    count={
-                      filteredBookings.filter(
-                        (b) => b.instrument === instrument
-                      ).length
-                    }
-                    showZero
-                  >
-                    <Tag
-                      color="blue"
-                      style={{ cursor: "pointer" }}
-                      onClick={() => setInstrumentFilter(instrument)}
-                    >
-                      {instrument}
-                    </Tag>
-                  </Badge>
-                ))}
-                {(statusFilterValue || instrumentFilter) && (
-                  <Button
-                    type="link"
-                    onClick={() => {
-                      setStatusFilterValue(null);
-                      setInstrumentFilter(null);
-                    }}
-                  >
-                    Xóa bộ lọc
-                  </Button>
-                )}
-              </Space>
-            </div>
-
             <Spin spinning={loading}>
               <Table
                 columns={columns}
@@ -562,39 +509,23 @@ const Booking11Management = () => {
         open={viewModalVisible}
         onCancel={() => setViewModalVisible(false)}
         width={700}
-        footer={
-          selectedBooking?.status === "pending"
-            ? [
-                <Button key="cancel" onClick={() => setViewModalVisible(false)}>
-                  Đóng
-                </Button>,
-                <Button
-                  key="reject"
-                  type="primary"
-                  danger
-                  onClick={() =>
-                    handleStatusChange(selectedBooking.bookingId, "rejected")
-                  }
-                >
-                  Từ chối
-                </Button>,
-                <Button
-                  key="accept"
-                  type="primary"
-                  style={{ backgroundColor: "#52c41a" }}
-                  onClick={() =>
-                    handleStatusChange(selectedBooking.bookingId, "accepted")
-                  }
-                >
-                  Chấp nhận
-                </Button>,
-              ]
-            : [
-                <Button key="close" onClick={() => setViewModalVisible(false)}>
-                  Đóng
-                </Button>,
-              ]
-        }
+        footer={[
+          <Button key="close" onClick={() => setViewModalVisible(false)}>
+            Đóng
+          </Button>,
+          selectedBooking?.status === "Pending" && (
+            <Button
+              key="update"
+              type="primary"
+              onClick={() => {
+                setViewModalVisible(false);
+                showStatusModal(selectedBooking);
+              }}
+            >
+              Cập nhật trạng thái
+            </Button>
+          ),
+        ]}
       >
         {selectedBooking && (
           <div className="space-y-4">
@@ -602,10 +533,6 @@ const Booking11Management = () => {
               <div>
                 <p className="font-bold">Trạng thái:</p>
                 {getStatusTag(selectedBooking.status)}
-              </div>
-              <div>
-                <p className="font-bold">Mã đặt lịch:</p>
-                <p>{selectedBooking.bookingId}</p>
               </div>
             </div>
 
@@ -616,17 +543,12 @@ const Booking11Management = () => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="font-bold">Học viên:</p>
-                <p>{selectedBooking.studentName}</p>
+                <p>{selectedBooking.fullName}</p>
               </div>
               <div>
-                <p className="font-bold">Email:</p>
-                <p>{selectedBooking.studentEmail || "Không có"}</p>
+                <p className="font-bold">Số điện thoại:</p>
+                <p>{selectedBooking.phoneNumber || "Không có"}</p>
               </div>
-            </div>
-
-            <div>
-              <p className="font-bold">Số điện thoại:</p>
-              <p>{selectedBooking.phoneNumber || "Không có"}</p>
             </div>
 
             <Divider />
@@ -636,7 +558,7 @@ const Booking11Management = () => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="font-bold">Nhạc cụ:</p>
-                <p>{selectedBooking.instrument}</p>
+                <p>{selectedBooking.majorName}</p>
               </div>
               <div>
                 <p className="font-bold">Giáo viên:</p>
@@ -646,74 +568,82 @@ const Booking11Management = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="font-bold">Ngày học:</p>
-                <p>{selectedBooking.bookingDay}</p>
+                <p className="font-bold">Thời gian học:</p>
+                <p>
+                  {selectedBooking.timeStart} - {selectedBooking.timeEnd}
+                </p>
               </div>
               <div>
-                <p className="font-bold">Khung giờ:</p>
-                <p>{selectedBooking.bookingSlot}</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="font-bold">Số buổi đăng ký:</p>
-                <p>{selectedBooking.numberOfSlots} buổi</p>
-              </div>
-              <div>
-                <p className="font-bold">Trình độ:</p>
-                <p>{selectedBooking.proficiencyLevel}</p>
+                <p className="font-bold">Số buổi học:</p>
+                <p>{selectedBooking.numberOfSession} buổi</p>
               </div>
             </div>
 
             <div>
-              <p className="font-bold">Yêu cầu học:</p>
-              <p>
-                {selectedBooking.learningRequirements ||
-                  "Không có yêu cầu cụ thể"}
-              </p>
+              <p className="font-bold">Ngày học trong tuần:</p>
+              <div className="flex gap-2 flex-wrap">
+                {selectedBooking.learningDays.map((day, index) => (
+                  <Tag key={index} color="blue">
+                    {day}
+                  </Tag>
+                ))}
+              </div>
             </div>
 
-            {selectedBooking.videoUploadUrl &&
-              selectedBooking.proficiencyLevel !== "Chưa biết gì" && (
-                <div>
-                  <p className="font-bold">Video đã tải lên:</p>
-                  <Button
-                    type="primary"
-                    icon={<PlayCircleOutlined />}
-                    onClick={() =>
-                      handleViewVideo(selectedBooking.videoUploadUrl)
-                    }
+            {selectedBooking.videoUrl && (
+              <div>
+                <p className="font-bold mb-2">Video đã tải lên:</p>
+                <div className="w-full aspect-video">
+                  <video
+                    src={selectedBooking.videoUrl}
+                    controls
+                    className="w-full h-full rounded-lg"
+                    controlsList="nodownload"
+                    playsInline
+                    preload="auto"
+                    style={{ maxHeight: "50vh" }}
                   >
-                    Xem video trình độ
-                  </Button>
+                    Trình duyệt của bạn không hỗ trợ thẻ video.
+                  </video>
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="font-bold">Ngày yêu cầu:</p>
+                <p>
+                  {dayjs(selectedBooking.requestDate).format(
+                    "DD/MM/YYYY HH:mm"
+                  )}
+                </p>
+              </div>
+              {selectedBooking.startDay && (
+                <div>
+                  <p className="font-bold">Ngày bắt đầu:</p>
+                  <p>{dayjs(selectedBooking.startDay).format("DD/MM/YYYY")}</p>
                 </div>
               )}
-
-            <div>
-              <p className="font-bold">Ghi chú:</p>
-              <p>{selectedBooking.notes || "Không có ghi chú"}</p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            {selectedBooking.levelAssigned && (
               <div>
-                <p className="font-bold">Ngày tạo:</p>
-                <p>
-                  {dayjs(selectedBooking.createdAt).format("DD/MM/YYYY HH:mm")}
-                </p>
+                <p className="font-bold">Cấp độ được xếp:</p>
+                <p>{selectedBooking.levelAssigned}</p>
               </div>
-              <div>
-                <p className="font-bold">Ngày học dự kiến:</p>
-                <p>{dayjs(selectedBooking.bookingDate).format("DD/MM/YYYY")}</p>
-              </div>
-            </div>
+            )}
 
-            {selectedBooking.status === "rejected" && (
+            {selectedBooking.score !== null && (
               <div>
-                <p className="font-bold">Lý do từ chối:</p>
-                <p>
-                  {selectedBooking.rejectionReason || "Không có lý do cụ thể"}
-                </p>
+                <p className="font-bold">Điểm đánh giá:</p>
+                <p>{selectedBooking.score}</p>
+              </div>
+            )}
+
+            {selectedBooking.feedback && (
+              <div>
+                <p className="font-bold">Phản hồi:</p>
+                <p>{selectedBooking.feedback}</p>
               </div>
             )}
           </div>
@@ -734,21 +664,19 @@ const Booking11Management = () => {
       >
         {selectedVideo && (
           <div className="flex justify-center">
-            {/* For simulation purposes, showing a placeholder image instead of video */}
-            <div className="relative">
-              <Image
-                src="https://via.placeholder.com/640x360.png?text=Video+Preview"
-                alt="Video Preview"
-                style={{ maxWidth: "100%" }}
-              />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <PlayCircleOutlined style={{ fontSize: 64, color: "white" }} />
-              </div>
-              <div className="mt-4 text-center">
-                <p className="text-gray-500">
-                  (Mô phỏng video - URL thực: {selectedVideo})
-                </p>
-              </div>
+            <div className="w-full aspect-video">
+              <video
+                src={selectedVideo}
+                controls
+                autoPlay
+                className="w-full h-full rounded-lg"
+                controlsList="nodownload"
+                playsInline
+                preload="auto"
+                style={{ maxHeight: "70vh" }}
+              >
+                Trình duyệt của bạn không hỗ trợ thẻ video.
+              </video>
             </div>
           </div>
         )}
@@ -771,48 +699,94 @@ const Booking11Management = () => {
           </Button>,
         ]}
       >
-        <div className="space-y-4">
-          <div>
-            <p className="mb-1 font-medium">Trạng thái:</p>
-            <Select
-              placeholder="Chọn trạng thái"
-              style={{ width: "100%" }}
-              value={statusFilterValue}
-              onChange={setStatusFilterValue}
-              allowClear
-            >
-              <Option value="pending">Chờ xác nhận</Option>
-              <Option value="accepted">Đã chấp nhận</Option>
-              <Option value="rejected">Từ chối</Option>
-            </Select>
-          </div>
-
-          <div>
-            <p className="mb-1 font-medium">Nhạc cụ:</p>
+        <Form form={form} layout="vertical">
+          <Form.Item name="instrument" label="Nhạc cụ">
             <Select
               placeholder="Chọn nhạc cụ"
-              style={{ width: "100%" }}
-              value={instrumentFilter}
-              onChange={setInstrumentFilter}
               allowClear
-            >
-              {instruments.map((instrument) => (
-                <Option key={instrument} value={instrument}>
-                  {instrument}
-                </Option>
-              ))}
-            </Select>
-          </div>
-
-          <div>
-            <p className="mb-1 font-medium">Khoảng thời gian:</p>
-            <RangePicker
               style={{ width: "100%" }}
-              value={dateRange}
-              onChange={handleDateRangeChange}
-            />
-          </div>
-        </div>
+            >
+              <Option value="Guitar">Guitar</Option>
+              <Option value="Piano">Piano</Option>
+              <Option value="Violin">Violin</Option>
+              <Option value="Drums">Trống</Option>
+              <Option value="Flute">Sáo</Option>
+              <Option value="Saxophone">Kèn Saxophone</Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item name="status" label="Trạng thái">
+            <Select
+              placeholder="Chọn trạng thái"
+              allowClear
+              style={{ width: "100%" }}
+            >
+              <Option value="Pending">Chờ xác nhận</Option>
+              <Option value="Accepted">Đã chấp nhận</Option>
+              <Option value="Rejected">Từ chối</Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item name="dateRange" label="Khoảng thời gian">
+            <RangePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Modal cập nhật trạng thái */}
+      <Modal
+        title="Cập nhật trạng thái đăng ký"
+        open={statusModalVisible}
+        onCancel={() => setStatusModalVisible(false)}
+        onOk={() => handleStatusChange(selectedBooking)}
+        confirmLoading={loading}
+      >
+        <Form form={form} layout="vertical">
+          <Form.Item
+            name="startDay"
+            label="Ngày bắt đầu"
+            rules={[{ required: true, message: "Vui lòng chọn ngày bắt đầu" }]}
+          >
+            <DatePicker style={{ width: "100%" }} />
+          </Form.Item>
+
+          <Form.Item
+            name="score"
+            label="Điểm đánh giá"
+            rules={[{ required: true, message: "Vui lòng nhập điểm đánh giá" }]}
+          >
+            <Input type="number" min={0} max={10} />
+          </Form.Item>
+
+          <Form.Item
+            name="levelAssigned"
+            label="Cấp độ"
+            rules={[{ required: true, message: "Vui lòng chọn cấp độ" }]}
+          >
+            <Select placeholder="Chọn cấp độ">
+              <Option value="Người mới bắt đầu">Người mới bắt đầu</Option>
+              <Option value="Cơ bản">Cơ bản</Option>
+              <Option value="Trung cấp">Trung cấp</Option>
+              <Option value="Nâng cao">Nâng cao</Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="price"
+            label="Học phí"
+            rules={[{ required: true, message: "Vui lòng nhập học phí" }]}
+          >
+            <Input type="number" min={0} addonAfter="VNĐ" />
+          </Form.Item>
+
+          <Form.Item
+            name="feedback"
+            label="Phản hồi"
+            rules={[{ required: true, message: "Vui lòng nhập phản hồi" }]}
+          >
+            <Input.TextArea rows={4} />
+          </Form.Item>
+        </Form>
       </Modal>
     </Layout>
   );
