@@ -1,14 +1,90 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:video_player/video_player.dart';
+import 'package:chewie/chewie.dart';
+import '../../../models/learning_registration.dart';
 
-class ApplicationDetailsScreen extends StatelessWidget {
+class ApplicationDetailsScreen extends StatefulWidget {
   final String status;
   final Color statusColor;
+  final LearningRegistration registration;
 
   const ApplicationDetailsScreen({
     Key? key,
     required this.status,
     required this.statusColor,
+    required this.registration,
   }) : super(key: key);
+
+  @override
+  State<ApplicationDetailsScreen> createState() =>
+      _ApplicationDetailsScreenState();
+}
+
+class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
+  VideoPlayerController? _videoController;
+  ChewieController? _chewieController;
+  bool _isVideoInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeVideo();
+  }
+
+  Future<void> _initializeVideo() async {
+    if (widget.registration.videoUrl.startsWith('http')) {
+      _videoController =
+          VideoPlayerController.network(widget.registration.videoUrl);
+      try {
+        await _videoController!.initialize();
+        _chewieController = ChewieController(
+          videoPlayerController: _videoController!,
+          autoPlay: false,
+          looping: false,
+          showControlsOnInitialize: false,
+          allowFullScreen: true,
+          deviceOrientationsAfterFullScreen: [DeviceOrientation.portraitUp],
+          placeholder: Container(
+            color: Colors.black,
+            child: const Center(child: CircularProgressIndicator()),
+          ),
+          materialProgressColors: ChewieProgressColors(
+            playedColor: Colors.blue,
+            handleColor: Colors.blue,
+            backgroundColor: Colors.grey,
+            bufferedColor: Colors.grey[300]!,
+          ),
+        );
+        setState(() {
+          _isVideoInitialized = true;
+        });
+      } catch (e) {
+        print('Error initializing video: $e');
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _chewieController?.dispose();
+    _videoController?.dispose();
+    super.dispose();
+  }
+
+  Widget _buildInfoSection(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: Colors.blue,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,9 +111,9 @@ class ApplicationDetailsScreen extends StatelessWidget {
                   vertical: 12,
                   horizontal: 16,
                 ),
-                color: statusColor,
+                color: widget.statusColor,
                 child: Text(
-                  status,
+                  widget.status,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 18,
@@ -50,8 +126,10 @@ class ApplicationDetailsScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildInfoSection('Type: Yêu cầu được học kèm 1:1'),
-                    _buildInfoSection('Create date: 12/12/2025'),
+                    _buildInfoSection(
+                        'Type: ${widget.registration.regisTypeName}'),
+                    _buildInfoSection(
+                        'Create date: ${widget.registration.requestDate.split('T')[0]}'),
                     const SizedBox(height: 16),
                     _buildCenterInfo(),
                     const SizedBox(height: 16),
@@ -59,34 +137,23 @@ class ApplicationDetailsScreen extends StatelessWidget {
                     const SizedBox(height: 16),
                     _buildLearningInfo(),
                     const SizedBox(height: 16),
-                    _buildStudentRequest(),
-                    const SizedBox(height: 16),
-                    _buildAssessmentVideo(),
-                    const SizedBox(height: 16),
-                    _buildCurriculumFile(),
-                    const SizedBox(height: 16),
-                    _buildPriceInfo(),
-                    const SizedBox(height: 16),
-                    _buildNote(),
+                    if (widget.registration.score != null) ...[
+                      _buildAssessmentInfo(),
+                      const SizedBox(height: 16),
+                    ],
+                    if (widget.registration.videoUrl.isNotEmpty) ...[
+                      _buildAssessmentVideo(),
+                      const SizedBox(height: 16),
+                    ],
+                    if (widget.registration.feedback != null) ...[
+                      _buildFeedback(),
+                      const SizedBox(height: 16),
+                    ],
                   ],
                 ),
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoSection(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-          color: Colors.blue,
         ),
       ),
     );
@@ -128,14 +195,14 @@ class ApplicationDetailsScreen extends StatelessWidget {
   Widget _buildTeacherInfo() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: const [
-        Text(
+      children: [
+        const Text(
           'Giáo viên chỉ định:',
           style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
         ),
-        SizedBox(height: 8),
-        Text('Nguyễn Văn A'),
-        Text('Nhạc cụ: Guitar'),
+        const SizedBox(height: 8),
+        Text(widget.registration.teacherName),
+        Text('Nhạc cụ: ${widget.registration.majorName}'),
       ],
     );
   }
@@ -143,32 +210,33 @@ class ApplicationDetailsScreen extends StatelessWidget {
   Widget _buildLearningInfo() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: const [
-        Text(
+      children: [
+        const Text(
           'Thông tin học tập:',
           style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
         ),
-        SizedBox(height: 8),
-        Text('Học vào: Thứ 2, Thứ 3, Thứ 4'),
-        Text('Vào lúc: 7:00'),
-        Text('Thời lượng học: 90 phút'),
-        Text('Tổng số buổi: 15'),
+        const SizedBox(height: 8),
+        Text('Học vào: ${widget.registration.learningDays.join(", ")}'),
+        Text('Vào lúc: ${widget.registration.timeStart}'),
+        Text(
+            'Thời lượng học: ${_calculateDuration(widget.registration.timeStart, widget.registration.timeEnd)} phút'),
+        Text('Tổng số buổi: ${widget.registration.numberOfSession}'),
       ],
     );
   }
 
-  Widget _buildStudentRequest() {
+  Widget _buildAssessmentInfo() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: const [
-        Text(
-          'Yêu cầu của học viên:',
+      children: [
+        const Text(
+          'Đánh giá:',
           style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
         ),
-        SizedBox(height: 8),
-        Text(
-          'Tôi mong muốn được thông thạo Guitar và chơi Guitar như một nghệ sĩ chuyên nghiệp',
-        ),
+        const SizedBox(height: 8),
+        Text('Điểm đánh giá: ${widget.registration.score}/10'),
+        if (widget.registration.levelAssigned != null)
+          Text('Trình độ: ${widget.registration.levelAssigned}'),
       ],
     );
   }
@@ -186,103 +254,76 @@ class ApplicationDetailsScreen extends StatelessWidget {
           width: double.infinity,
           height: 200,
           decoration: BoxDecoration(
-            color: Colors.grey[300],
+            color: Colors.black,
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Image.network(
-                'https://images.unsplash.com/photo-1510915361894-db8b60106cb1',
-                fit: BoxFit.cover,
-                width: double.infinity,
-                height: double.infinity,
-              ),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              const Icon(Icons.play_circle_fill, size: 50, color: Colors.white),
-            ],
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                if (_isVideoInitialized && _chewieController != null)
+                  Chewie(controller: _chewieController!)
+                else if (widget.registration.videoUrl.startsWith('http'))
+                  const Center(
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                else
+                  const Center(
+                    child: Icon(
+                      Icons.video_file,
+                      size: 50,
+                      color: Colors.white,
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildCurriculumFile() {
+  Widget _buildFeedback() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Giáo trình học tập:',
+          'Phản hồi:',
           style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         Container(
+          width: double.infinity,
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.grey[200],
+            color: Colors.yellow[100],
             borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.yellow[700]!),
           ),
-          child: Row(
-            children: [
-              const Icon(Icons.description, color: Colors.blue),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text(
-                      'Mexico',
-                      style: TextStyle(fontWeight: FontWeight.w500),
-                    ),
-                    Text(
-                      'Sep 26, 2011',
-                      style: TextStyle(color: Colors.grey, fontSize: 12),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(Icons.download, color: Colors.blue),
-            ],
+          child: Text(
+            widget.registration.feedback ?? '',
+            style: const TextStyle(color: Colors.black87),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildPriceInfo() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: const [
-        Text(
-          'Thông tin học phí:',
-          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-        ),
-        SizedBox(height: 8),
-        Text('Đánh giá từ trung tâm: 8/10'),
-        Text('Chi phí: 300,000 vnđ / buổi'),
-        Text('Tổng học phí: 4,500,000 vnđ (15 buổi)'),
-      ],
+  int _calculateDuration(String start, String end) {
+    final startTime = TimeOfDay(
+      hour: int.parse(start.split(':')[0]),
+      minute: int.parse(start.split(':')[1]),
     );
-  }
+    final endTime = TimeOfDay(
+      hour: int.parse(end.split(':')[0]),
+      minute: int.parse(end.split(':')[1]),
+    );
 
-  Widget _buildNote() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.yellow[100],
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.yellow[700]!),
-      ),
-      child: const Text(
-        'Kiến thức học viên sẽ học được sau khi hoàn thành khóa học',
-        style: TextStyle(color: Colors.black87, fontStyle: FontStyle.italic),
-      ),
-    );
+    final startMinutes = startTime.hour * 60 + startTime.minute;
+    final endMinutes = endTime.hour * 60 + endTime.minute;
+    return endMinutes - startMinutes;
   }
 }

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'detail/my_course.dart';
+import '../../models/course_package.dart';
+import '../../services/course_service.dart';
 
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({Key? key}) : super(key: key);
@@ -10,43 +13,65 @@ class LibraryScreen extends StatefulWidget {
 
 class _LibraryScreenState extends State<LibraryScreen> {
   final TextEditingController _searchController = TextEditingController();
-  List<Course> courses = [
-    Course(
-      title: 'Dạy đánh đàn Piano cơ bản - DÀNH CHO NGƯỜI MỚI NHẬP MÔN',
-      imageUrl: 'https://images.unsplash.com/photo-1552422535-c45813c61732',
-      rating: 4.5,
-    ),
-    Course(
-      title: 'Dạy đánh đàn Piano cơ bản - DÀNH CHO NGƯỜI MỚI NHẬP MÔN',
-      imageUrl: 'https://images.unsplash.com/photo-1552422535-c45813c61732',
-      rating: 5.0,
-    ),
-    Course(
-      title: 'Dạy đánh đàn Piano cơ bản - DÀNH CHO NGƯỜI MỚI NHẬP MÔN',
-      imageUrl: 'https://images.unsplash.com/photo-1552422535-c45813c61732',
-      rating: 4.0,
-    ),
-  ];
-  List<Course> filteredCourses = [];
+  final CourseService _courseService = CourseService();
+  List<CoursePackage> _courses = [];
+  List<CoursePackage> _filteredCourses = [];
+  bool _isLoading = true;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    filteredCourses = courses;
+    _loadCourses();
+  }
+
+  Future<void> _loadCourses() async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+
+      final prefs = await SharedPreferences.getInstance();
+      final learnerId = prefs.getInt('learnerId');
+
+      if (learnerId == null) {
+        setState(() {
+          _error = 'Không tìm thấy thông tin người dùng';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      final courses = await _courseService.getPurchasedCourses(learnerId);
+
+      setState(() {
+        _courses = courses;
+        _filteredCourses = courses;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
   }
 
   void _filterCourses(String query) {
     setState(() {
       if (query.isEmpty) {
-        filteredCourses = courses;
+        _filteredCourses = _courses;
       } else {
-        filteredCourses =
-            courses
-                .where(
-                  (course) =>
-                      course.title.toLowerCase().contains(query.toLowerCase()),
-                )
-                .toList();
+        _filteredCourses = _courses
+            .where(
+              (course) =>
+                  course.courseName
+                      .toLowerCase()
+                      .contains(query.toLowerCase()) ||
+                  course.typeName.toLowerCase().contains(query.toLowerCase()),
+            )
+            .toList();
       }
     });
   }
@@ -80,7 +105,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   controller: _searchController,
                   onChanged: _filterCourses,
                   decoration: InputDecoration(
-                    hintText: 'Search for your Course.....',
+                    hintText: 'Tìm kiếm khóa học của bạn...',
                     prefixIcon: const Icon(Icons.search, color: Colors.grey),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(
@@ -101,22 +126,52 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.menu),
-                    onPressed: () {
-                      // Xử lý khi nhấn nút menu
-                    },
+                    icon: const Icon(Icons.refresh),
+                    onPressed: _loadCourses,
                   ),
                 ],
               ),
             ),
             Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: filteredCourses.length,
-                itemBuilder: (context, index) {
-                  return _buildCourseCard(filteredCourses[index]);
-                },
-              ),
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _error != null
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                _error!,
+                                style: const TextStyle(color: Colors.red),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 16),
+                              ElevatedButton(
+                                onPressed: _loadCourses,
+                                child: const Text('Thử lại'),
+                              ),
+                            ],
+                          ),
+                        )
+                      : _filteredCourses.isEmpty
+                          ? const Center(
+                              child: Text(
+                                'Bạn chưa có khóa học nào',
+                                style: TextStyle(fontSize: 16),
+                              ),
+                            )
+                          : RefreshIndicator(
+                              onRefresh: _loadCourses,
+                              child: ListView.builder(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 16),
+                                itemCount: _filteredCourses.length,
+                                itemBuilder: (context, index) {
+                                  return _buildCourseCard(
+                                      _filteredCourses[index]);
+                                },
+                              ),
+                            ),
             ),
           ],
         ),
@@ -124,13 +179,13 @@ class _LibraryScreenState extends State<LibraryScreen> {
     );
   }
 
-  Widget _buildCourseCard(Course course) {
+  Widget _buildCourseCard(CoursePackage course) {
     return GestureDetector(
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => MyCourseScreen(courseTitle: course.title),
+            builder: (context) => MyCourseScreen(course: course),
           ),
         );
       },
@@ -161,6 +216,13 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 height: 150,
                 width: double.infinity,
                 fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    height: 150,
+                    color: Colors.grey[300],
+                    child: const Icon(Icons.image_not_supported),
+                  );
+                },
               ),
             ),
             Padding(
@@ -169,41 +231,23 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    course.title,
+                    course.courseName,
                     style: const TextStyle(
-                      fontSize: 14,
+                      fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      ...List.generate(5, (index) {
-                        if (index < course.rating.floor()) {
-                          return const Icon(
-                            Icons.star,
-                            color: Colors.amber,
-                            size: 16,
-                          );
-                        } else if (index < course.rating) {
-                          return const Icon(
-                            Icons.star_half,
-                            color: Colors.amber,
-                            size: 16,
-                          );
-                        }
-                        return const Icon(
-                          Icons.star_border,
-                          color: Colors.amber,
-                          size: 16,
-                        );
-                      }),
-                    ],
+                  const SizedBox(height: 4),
+                  Text(
+                    course.typeName,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
                   ),
                 ],
               ),
             ),
-            const Divider(height: 1),
           ],
         ),
       ),
@@ -215,12 +259,4 @@ class _LibraryScreenState extends State<LibraryScreen> {
     _searchController.dispose();
     super.dispose();
   }
-}
-
-class Course {
-  final String title;
-  final String imageUrl;
-  final double rating;
-
-  Course({required this.title, required this.imageUrl, required this.rating});
 }
