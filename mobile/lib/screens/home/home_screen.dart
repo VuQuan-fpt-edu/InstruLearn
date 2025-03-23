@@ -45,8 +45,6 @@ class _HomeScreenState extends State<HomeScreen> {
   bool isLoading = true;
   int _currentIndex = 0;
   int learnerId = 0;
-  double walletBalance = 0;
-  bool isBalanceVisible = false;
 
   @override
   void initState() {
@@ -77,6 +75,10 @@ class _HomeScreenState extends State<HomeScreen> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['isSucceed'] == true) {
+          if (data['data']['learnerId'] != null) {
+            await prefs.setInt('learnerId', data['data']['learnerId']);
+          }
+
           setState(() {
             learnerId = data['data']['learnerId'];
             fullName = data['data']['fullName'] ?? 'Không có thông tin';
@@ -84,8 +86,6 @@ class _HomeScreenState extends State<HomeScreen> {
             username = data['data']['username'] ?? 'Không có thông tin';
             isLoading = false;
           });
-
-          _fetchWalletBalance();
         } else {
           setState(() {
             fullName = 'Không thể tải thông tin';
@@ -119,36 +119,6 @@ class _HomeScreenState extends State<HomeScreen> {
         isLoading = false;
       });
       _showErrorMessage('Lỗi: ${e.toString()}');
-    }
-  }
-
-  Future<void> _fetchWalletBalance() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
-
-      if (token == null || learnerId == 0) return;
-
-      final response = await http.get(
-        Uri.parse(
-          'https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/wallet/$learnerId',
-        ),
-        headers: {
-          'Content-Type': 'application/json; charset=UTF-8',
-          'Authorization': 'Bearer $token',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['isSucceed'] == true) {
-          setState(() {
-            walletBalance = data['data']['balance'].toDouble();
-          });
-        }
-      }
-    } catch (e) {
-      _showErrorMessage('Lỗi tải số dư ví: ${e.toString()}');
     }
   }
 
@@ -219,20 +189,6 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               children: [
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: const [
-                    Text(
-                      'Nạp Tiền',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-
-                Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Container(
@@ -242,25 +198,23 @@ class _HomeScreenState extends State<HomeScreen> {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(15),
                       ),
-                      child:
-                          isLoading
-                              ? const CircularProgressIndicator()
-                              : Center(
-                                child: Text(
-                                  username.isNotEmpty
-                                      ? username[0].toUpperCase()
-                                      : 'U',
-                                  style: const TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                      child: isLoading
+                          ? const CircularProgressIndicator()
+                          : Center(
+                              child: Text(
+                                username.isNotEmpty
+                                    ? username[0].toUpperCase()
+                                    : 'U',
+                                style: const TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
+                            ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 10),
-
                 Text(
                   isLoading ? 'Loading...' : fullName,
                   style: const TextStyle(
@@ -273,28 +227,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   isLoading ? 'Loading...' : email,
                   style: const TextStyle(fontSize: 14),
                 ),
-                const SizedBox(height: 5),
-                const Text(
-                  'Số dư hiện tại trong ví:',
-                  style: TextStyle(fontSize: 14),
-                ),
-                GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      isBalanceVisible = !isBalanceVisible;
-                    });
-                  },
-                  child: Text(
-                    isBalanceVisible
-                        ? '${walletBalance.toStringAsFixed(0)} VND'
-                        : '********** VND',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-
                 const SizedBox(height: 20),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 15),
@@ -319,7 +251,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
-
           Padding(
             padding: const EdgeInsets.all(15.0),
             child: Row(
@@ -332,8 +263,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder:
-                              (context) => const TutoringRegistrationForm(),
+                          builder: (context) =>
+                              const TutoringRegistrationForm(),
                         ),
                       );
                     },
@@ -359,7 +290,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
-
           Expanded(
             child: GridView.count(
               padding: const EdgeInsets.all(20),
@@ -443,8 +373,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder:
-                            (context) => WalletScreen(learnerId: learnerId),
+                        builder: (context) =>
+                            WalletScreen(learnerId: learnerId),
                       ),
                     );
                   },
@@ -460,7 +390,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         selectedItemColor: Colors.blue[800],

@@ -44,6 +44,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['isSucceed'] == true) {
+          // Lưu learnerId và accountId vào SharedPreferences
+          if (data['data']['learnerId'] != null) {
+            await prefs.setInt('learnerId', data['data']['learnerId']);
+          }
+          if (data['data']['accountId'] != null) {
+            await prefs.setString('accountId', data['data']['accountId']);
+          }
+
           setState(() {
             userProfile = data['data'];
             isLoading = false;
@@ -121,71 +129,70 @@ class _ProfileScreenState extends State<ProfileScreen> {
         backgroundColor: const Color(0xFF8C9EFF),
         elevation: 0,
       ),
-      body:
-          isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : SingleChildScrollView(
-                child: Column(
-                  children: [
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 25),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF8C9EFF),
-                        borderRadius: BorderRadius.only(
-                          bottomLeft: Radius.circular(25),
-                          bottomRight: Radius.circular(25),
-                        ),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              child: Column(
+                children: [
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 25),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF8C9EFF),
+                      borderRadius: BorderRadius.only(
+                        bottomLeft: Radius.circular(25),
+                        bottomRight: Radius.circular(25),
                       ),
-                      child: Column(
-                        children: [
-                          Container(
-                            width: 100,
-                            height: 100,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(50),
-                            ),
-                            child: Center(
-                              child: Text(
-                                userProfile['username']?.isNotEmpty == true
-                                    ? userProfile['username'][0].toUpperCase()
-                                    : 'U',
-                                style: const TextStyle(
-                                  fontSize: 36,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                    ),
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 100,
+                          height: 100,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(50),
+                          ),
+                          child: Center(
+                            child: Text(
+                              userProfile['username']?.isNotEmpty == true
+                                  ? userProfile['username'][0].toUpperCase()
+                                  : 'U',
+                              style: const TextStyle(
+                                fontSize: 36,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
-                          const SizedBox(height: 15),
-                          Text(
-                            userProfile['fullName'] ?? 'Không có thông tin',
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
+                        ),
+                        const SizedBox(height: 15),
+                        Text(
+                          userProfile['fullName'] ?? 'Không có thông tin',
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
                           ),
-                          const SizedBox(height: 5),
-                          Text(
-                            userProfile['email'] ?? 'Không có thông tin',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              color: Colors.white,
-                            ),
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          userProfile['email'] ?? 'Không có thông tin',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: Colors.white,
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 20),
-                    _buildInfoSection(),
-                    const SizedBox(height: 20),
-                    _buildActionButtons(),
-                    const SizedBox(height: 20),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 20),
+                  _buildInfoSection(),
+                  const SizedBox(height: 20),
+                  _buildActionButtons(),
+                  const SizedBox(height: 20),
+                ],
               ),
+            ),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         selectedItemColor: Colors.blue[800],

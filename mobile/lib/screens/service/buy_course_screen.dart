@@ -6,7 +6,7 @@ import 'detail/course_details_screen.dart';
 import 'filter_screen.dart';
 
 class Course {
-  final int courseId;
+  final int coursePackageId;
   final String courseName;
   final String courseDescription;
   final String headline;
@@ -18,7 +18,7 @@ class Course {
   final int durationInHours;
 
   Course({
-    required this.courseId,
+    required this.coursePackageId,
     required this.courseName,
     required this.courseDescription,
     required this.headline,
@@ -32,7 +32,7 @@ class Course {
 
   factory Course.fromJson(Map<String, dynamic> json) {
     return Course(
-      courseId: (json['courseId'] as num).toInt(),
+      coursePackageId: json['coursePackageId'],
       courseName: json['courseName'] as String,
       courseDescription: json['courseDescription'] as String,
       headline: json['headline'] as String,
@@ -41,10 +41,9 @@ class Course {
       discount: (json['discount'] as num).toInt(),
       imageUrl: json['imageUrl'] as String,
       typeName: json['typeName'] as String,
-      durationInHours:
-          json['durationInHours'] != null
-              ? (json['durationInHours'] as num).toInt()
-              : 0,
+      durationInHours: json['durationInHours'] != null
+          ? (json['durationInHours'] as num).toInt()
+          : 0,
     );
   }
 }
@@ -151,45 +150,13 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
 
       if (response.statusCode == 200) {
         try {
-          final data = json.decode(response.body);
+          final List<dynamic> data = json.decode(response.body);
 
-          if (data is List) {
-            setState(() {
-              courses = data.map((json) => Course.fromJson(json)).toList();
-              filteredCourses = List.from(courses);
-              isLoading = false;
-            });
-          } else if (data['isSucceed'] != null) {
-            var isSucceed = data['isSucceed'];
-            if (isSucceed == true || isSucceed == "true") {
-              final List<dynamic> coursesData = data['data'];
-              setState(() {
-                courses =
-                    coursesData.map((json) => Course.fromJson(json)).toList();
-                filteredCourses = List.from(courses);
-                isLoading = false;
-              });
-            } else {
-              setState(() {
-                isLoading = false;
-                errorMessage =
-                    data['message'] ?? 'Không thể tải danh sách khóa học';
-              });
-            }
-          } else if (data['data'] != null && data['data'] is List) {
-            final List<dynamic> coursesData = data['data'];
-            setState(() {
-              courses =
-                  coursesData.map((json) => Course.fromJson(json)).toList();
-              filteredCourses = List.from(courses);
-              isLoading = false;
-            });
-          } else {
-            setState(() {
-              isLoading = false;
-              errorMessage = 'Định dạng dữ liệu không hợp lệ';
-            });
-          }
+          setState(() {
+            courses = data.map((item) => Course.fromJson(item)).toList();
+            filteredCourses = List.from(courses);
+            isLoading = false;
+          });
         } catch (e) {
           setState(() {
             isLoading = false;
@@ -217,40 +184,36 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
 
   void _applyFilters() {
     setState(() {
-      filteredCourses =
-          courses.where((course) {
-            final matchesSearch =
-                searchQuery.isEmpty ||
-                course.courseName.toLowerCase().contains(
+      filteredCourses = courses.where((course) {
+        final matchesSearch = searchQuery.isEmpty ||
+            course.courseName.toLowerCase().contains(
                   searchQuery.toLowerCase(),
                 ) ||
-                course.headline.toLowerCase().contains(
+            course.headline.toLowerCase().contains(
                   searchQuery.toLowerCase(),
                 ) ||
-                course.courseDescription.toLowerCase().contains(
+            course.courseDescription.toLowerCase().contains(
                   searchQuery.toLowerCase(),
                 );
 
-            final matchesRating =
-                minRating == null || course.rating >= minRating!;
+        final matchesRating = minRating == null || course.rating >= minRating!;
 
-            final matchesMinPrice = course.price >= minPrice;
-            final matchesMaxPrice = course.price <= maxPrice;
+        final matchesMinPrice = course.price >= minPrice;
+        final matchesMaxPrice = course.price <= maxPrice;
 
-            final matchesType =
-                selectedType == null || course.typeName == selectedType;
+        final matchesType =
+            selectedType == null || course.typeName == selectedType;
 
-            final matchesDuration =
-                selectedDuration == null ||
-                _matchesDuration(course.durationInHours, selectedDuration!);
+        final matchesDuration = selectedDuration == null ||
+            _matchesDuration(course.durationInHours, selectedDuration!);
 
-            return matchesSearch &&
-                matchesRating &&
-                matchesMinPrice &&
-                matchesMaxPrice &&
-                matchesType &&
-                matchesDuration;
-          }).toList();
+        return matchesSearch &&
+            matchesRating &&
+            matchesMinPrice &&
+            matchesMaxPrice &&
+            matchesType &&
+            matchesDuration;
+      }).toList();
       _applySorting();
     });
   }
@@ -299,11 +262,10 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
 
     final result = await Navigator.of(context).push(
       MaterialPageRoute(
-        builder:
-            (context) => FilterScreen(
-              initialFilters: currentFilters,
-              courseCount: filteredCourses.length,
-            ),
+        builder: (context) => FilterScreen(
+          initialFilters: currentFilters,
+          courseCount: filteredCourses.length,
+        ),
       ),
     );
 
@@ -367,81 +329,79 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
               },
             ),
           ),
-
           Expanded(
-            child:
-                isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : errorMessage.isNotEmpty
+            child: isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : errorMessage.isNotEmpty
                     ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(20.0),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.error_outline,
-                              size: 60,
-                              color: Colors.red,
-                            ),
-                            const SizedBox(height: 20),
-                            Text(
-                              errorMessage,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(fontSize: 16),
-                            ),
-                            const SizedBox(height: 20),
-                            ElevatedButton(
-                              onPressed: _fetchCourses,
-                              child: const Text('Thử lại'),
-                            ),
-                          ],
+                        child: Padding(
+                          padding: const EdgeInsets.all(20.0),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.error_outline,
+                                size: 60,
+                                color: Colors.red,
+                              ),
+                              const SizedBox(height: 20),
+                              Text(
+                                errorMessage,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(fontSize: 16),
+                              ),
+                              const SizedBox(height: 20),
+                              ElevatedButton(
+                                onPressed: _fetchCourses,
+                                child: const Text('Thử lại'),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    )
+                      )
                     : filteredCourses.isEmpty
-                    ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.search_off,
-                            size: 60,
-                            color: Colors.grey,
-                          ),
-                          const SizedBox(height: 10),
-                          const Text(
-                            'Không tìm thấy khóa học phù hợp',
-                            style: TextStyle(fontSize: 16),
-                          ),
-                          const SizedBox(height: 20),
-                          ElevatedButton(
-                            onPressed: () {
-                              setState(() {
-                                minRating = null;
-                                minPrice = 0;
-                                maxPrice = 5000000;
-                                selectedType = null;
-                                selectedDuration = null;
-                                searchQuery = '';
-                                _searchController.clear();
-                                filteredCourses = List.from(courses);
-                              });
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(
+                                  Icons.search_off,
+                                  size: 60,
+                                  color: Colors.grey,
+                                ),
+                                const SizedBox(height: 10),
+                                const Text(
+                                  'Không tìm thấy khóa học phù hợp',
+                                  style: TextStyle(fontSize: 16),
+                                ),
+                                const SizedBox(height: 20),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      minRating = null;
+                                      minPrice = 0;
+                                      maxPrice = 5000000;
+                                      selectedType = null;
+                                      selectedDuration = null;
+                                      searchQuery = '';
+                                      _searchController.clear();
+                                      filteredCourses = List.from(courses);
+                                    });
+                                  },
+                                  child: const Text('Xóa bộ lọc'),
+                                ),
+                              ],
+                            ),
+                          )
+                        : ListView.separated(
+                            itemCount: filteredCourses.length,
+                            separatorBuilder: (context, index) =>
+                                const Divider(height: 1),
+                            itemBuilder: (context, index) {
+                              final course = filteredCourses[index];
+                              return _buildCourseListItem(course);
                             },
-                            child: const Text('Xóa bộ lọc'),
                           ),
-                        ],
-                      ),
-                    )
-                    : ListView.separated(
-                      itemCount: filteredCourses.length,
-                      separatorBuilder:
-                          (context, index) => const Divider(height: 1),
-                      itemBuilder: (context, index) {
-                        final course = filteredCourses[index];
-                        return _buildCourseListItem(course);
-                      },
-                    ),
           ),
         ],
       ),
@@ -501,10 +461,9 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
                         (index) => Icon(
                           Icons.star,
                           size: 14,
-                          color:
-                              index < course.rating.floor()
-                                  ? Colors.orange
-                                  : Colors.grey[300],
+                          color: index < course.rating.floor()
+                              ? Colors.orange
+                              : Colors.grey[300],
                         ),
                       ),
                     ],

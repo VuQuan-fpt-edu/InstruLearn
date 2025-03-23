@@ -7,6 +7,8 @@ import 'package:video_player/video_player.dart';
 import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:path/path.dart' as path;
+import '../../services/teacher_service.dart';
+import '../../services/major_service.dart';
 
 class LearningRegisType {
   final int regisTypeId;
@@ -18,46 +20,6 @@ class LearningRegisType {
     return LearningRegisType(
       regisTypeId: json['regisTypeId'],
       regisTypeName: json['regisTypeName'],
-    );
-  }
-}
-
-class Major {
-  final int majorId;
-  final String majorName;
-
-  Major({required this.majorId, required this.majorName});
-
-  factory Major.fromJson(Map<String, dynamic> json) {
-    return Major(majorId: json['majorId'], majorName: json['majorName']);
-  }
-}
-
-class Teacher {
-  final int teacherId;
-  final String accountId;
-  final String fullname;
-  final String? heading;
-  final String? details;
-  final String? links;
-
-  Teacher({
-    required this.teacherId,
-    required this.accountId,
-    required this.fullname,
-    this.heading,
-    this.details,
-    this.links,
-  });
-
-  factory Teacher.fromJson(Map<String, dynamic> json) {
-    return Teacher(
-      teacherId: json['teacherId'],
-      accountId: json['accountId'],
-      fullname: json['fullname'],
-      heading: json['heading'],
-      details: json['details'],
-      links: json['links'],
     );
   }
 }
@@ -91,6 +53,9 @@ class TutoringRegistrationForm extends StatefulWidget {
 }
 
 class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
+  final TeacherService _teacherService = TeacherService();
+  final MajorService _majorService = MajorService();
+
   int learnerId = 0;
   int? selectedTeacherId;
   int regisTypeId = 1; // Mặc định là "Đơn đăng ký học theo yêu cầu"
@@ -101,8 +66,8 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
   Set<int> selectedLearningDays = {};
   final TextEditingController learningGoalController = TextEditingController();
 
-  List<Major> majors = [];
   List<Teacher> teachers = [];
+  List<Major> majors = [];
   bool isLoading = true;
   String? errorMessage;
   String? selectedExperience;
@@ -184,31 +149,10 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
 
   Future<void> _fetchMajors() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
-
-      if (token == null) return;
-
-      final response = await http.get(
-        Uri.parse(
-          'https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Major/get-all',
-        ),
-        headers: {
-          'Content-Type': 'application/json; charset=UTF-8',
-          'Authorization': 'Bearer $token',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['isSucceed'] == true) {
-          setState(() {
-            majors = (data['data'] as List)
-                .map((json) => Major.fromJson(json))
-                .toList();
-          });
-        }
-      }
+      final fetchedMajors = await _majorService.getAllMajors();
+      setState(() {
+        majors = fetchedMajors;
+      });
     } catch (e) {
       print('Lỗi tải danh sách chuyên ngành: $e');
     }
@@ -216,31 +160,10 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
 
   Future<void> _fetchTeachers() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
-
-      if (token == null) return;
-
-      final response = await http.get(
-        Uri.parse(
-          'https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Teacher/get-all',
-        ),
-        headers: {
-          'Content-Type': 'application/json; charset=UTF-8',
-          'Authorization': 'Bearer $token',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['isSucceed'] == true) {
-          setState(() {
-            teachers = (data['data'] as List)
-                .map((json) => Teacher.fromJson(json))
-                .toList();
-          });
-        }
-      }
+      final fetchedTeachers = await _teacherService.getAllTeachers();
+      setState(() {
+        teachers = fetchedTeachers;
+      });
     } catch (e) {
       print('Lỗi tải danh sách giáo viên: $e');
     }
@@ -456,6 +379,35 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
       _showError('Vui lòng chọn ít nhất một ngày học');
       return;
     }
+
+    // Hiển thị hộp thoại xác nhận
+    bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Xác nhận đăng ký'),
+          content: const Text(
+            'Bạn sẽ tốn 50.000đ phí làm đơn yêu cầu học theo yêu cầu.\nBạn có chắc chắn muốn tiếp tục?',
+            style: TextStyle(fontSize: 16),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Hủy'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text(
+                'Xác nhận',
+                style: TextStyle(color: Color(0xFF8C9EFF)),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true) return;
 
     try {
       final prefs = await SharedPreferences.getInstance();

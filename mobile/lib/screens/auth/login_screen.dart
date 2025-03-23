@@ -62,6 +62,12 @@ class _LoginScreenState extends State<LoginScreen> {
               responseData['data']['refreshToken'],
             );
 
+            // Kiểm tra và xử lý learnerId
+            final learnerId = responseData['data']['learnerId'];
+            if (learnerId != null) {
+              await prefs.setInt('learnerId', learnerId);
+            }
+
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
@@ -164,14 +170,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     },
                   ),
                   const SizedBox(height: 40),
-
                   const Text(
                     'Đăng Nhập',
                     style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 30),
-
                   TextFormField(
                     controller: _usernameController,
                     keyboardType: TextInputType.text,
@@ -195,7 +199,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     },
                   ),
                   const SizedBox(height: 16),
-
                   TextFormField(
                     controller: _passwordController,
                     obscureText: !_isPasswordVisible,
@@ -233,7 +236,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       return null;
                     },
                   ),
-
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
@@ -248,7 +250,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
-
                   ElevatedButton(
                     onPressed: _isLoading ? null : _login,
                     style: ElevatedButton.styleFrom(
@@ -260,23 +261,21 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       elevation: 2,
                     ),
-                    child:
-                        _isLoading
-                            ? const Center(
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                              ),
-                            )
-                            : const Text(
-                              'ĐĂNG NHẬP',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
+                    child: _isLoading
+                        ? const Center(
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
                             ),
+                          )
+                        : const Text(
+                            'ĐĂNG NHẬP',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                   ),
                   const SizedBox(height: 24),
-
                   const Row(
                     children: [
                       Expanded(child: Divider(thickness: 1)),
@@ -291,7 +290,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     ],
                   ),
                   const SizedBox(height: 24),
-
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -310,7 +308,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       const SizedBox(width: 16),
-
                       Expanded(
                         child: OutlinedButton.icon(
                           onPressed: _loginWithFacebook,
@@ -328,7 +325,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     ],
                   ),
                   const SizedBox(height: 32),
-
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -348,7 +344,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ],
                   ),
-
                   TextButton(
                     onPressed: () {
                       Navigator.of(context).pushReplacement(

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'detail/application_details_screen.dart';
+import '../../models/learning_registration.dart';
+import '../../services/learning_registration_service.dart';
 
 class ApplicationScreen extends StatefulWidget {
   const ApplicationScreen({Key? key}) : super(key: key);
@@ -9,6 +12,63 @@ class ApplicationScreen extends StatefulWidget {
 }
 
 class _ApplicationScreenState extends State<ApplicationScreen> {
+  final LearningRegistrationService _service = LearningRegistrationService();
+  List<LearningRegistration> _registrations = [];
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRegistrations();
+  }
+
+  Future<void> _loadRegistrations() async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+
+      final prefs = await SharedPreferences.getInstance();
+      final learnerId = prefs.getInt('learnerId');
+
+      if (learnerId == null) {
+        setState(() {
+          _error = 'Không tìm thấy thông tin người dùng';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      final registrations =
+          await _service.getRegistrationsByLearnerId(learnerId);
+
+      setState(() {
+        _registrations = registrations;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'accepted':
+        return Colors.green;
+      case 'pending':
+        return Colors.pink;
+      case 'declined':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -24,49 +84,53 @@ class _ApplicationScreenState extends State<ApplicationScreen> {
             colors: [const Color(0xFF8C9EFF).withOpacity(0.2), Colors.white],
           ),
         ),
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            _buildApplicationCard(
-              status: 'Approved',
-              type: 'Yêu cầu được học kèm 1:1',
-              date: '12/12/2025',
-              description:
-                  'Tôi mong muốn được thông thạo Guitar và chơi Guitar như một nghệ sĩ chuyên nghiệp',
-              backgroundColor: Colors.green.shade100,
-              headerColor: Colors.green,
-            ),
-            const SizedBox(height: 16),
-            _buildApplicationCard(
-              status: 'Declined',
-              type: 'Yêu cầu được học kèm 1:1',
-              date: '12/12/2025',
-              description:
-                  'Tôi mong muốn được thông thạo Guitar và chơi Guitar như một nghệ sĩ chuyên nghiệp',
-              backgroundColor: Colors.red.shade100,
-              headerColor: Colors.red,
-            ),
-            const SizedBox(height: 16),
-            _buildApplicationCard(
-              status: 'Processing',
-              type: 'Yêu cầu được học kèm 1:1',
-              date: 'dd/mm/yyyy',
-              description:
-                  'Tôi mong muốn được thông thạo Guitar và chơi Guitar như một nghệ sĩ chuyên nghiệp',
-              backgroundColor: Colors.pink.shade100,
-              headerColor: Colors.pink,
-            ),
-          ],
+        child: RefreshIndicator(
+          onRefresh: _loadRegistrations,
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _error != null
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Error: $_error',
+                            style: const TextStyle(color: Colors.red),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: _loadRegistrations,
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: _registrations.length,
+                      itemBuilder: (context, index) {
+                        final registration = _registrations[index];
+                        final statusColor =
+                            _getStatusColor(registration.status);
+
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: _buildApplicationCard(
+                            registration: registration,
+                            backgroundColor: statusColor.withOpacity(0.1),
+                            headerColor: statusColor,
+                          ),
+                        );
+                      },
+                    ),
         ),
       ),
     );
   }
 
   Widget _buildApplicationCard({
-    required String status,
-    required String type,
-    required String date,
-    required String description,
+    required LearningRegistration registration,
     required Color backgroundColor,
     required Color headerColor,
   }) {
@@ -75,11 +139,11 @@ class _ApplicationScreenState extends State<ApplicationScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder:
-                (context) => ApplicationDetailsScreen(
-                  status: status,
-                  statusColor: headerColor,
-                ),
+            builder: (context) => ApplicationDetailsScreen(
+              status: registration.status,
+              statusColor: headerColor,
+              registration: registration,
+            ),
           ),
         );
       },
@@ -110,7 +174,7 @@ class _ApplicationScreenState extends State<ApplicationScreen> {
                 ),
               ),
               child: Text(
-                status,
+                registration.status,
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -124,7 +188,7 @@ class _ApplicationScreenState extends State<ApplicationScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Type: $type',
+                    'Type: ${registration.regisTypeName}',
                     style: const TextStyle(
                       color: Colors.blue,
                       fontWeight: FontWeight.w500,
@@ -132,20 +196,30 @@ class _ApplicationScreenState extends State<ApplicationScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Create date: $date',
+                    'Create date: ${registration.requestDate.split('T')[0]}',
                     style: const TextStyle(
                       color: Colors.black87,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
-                    'Chào em, cô đã nhận được đơn yêu cầu học kèm của em, cô sẽ là người thực hiện yêu cầu học tập của em',
-                    style: TextStyle(color: Colors.black87),
+                  Text(
+                    'Teacher: ${registration.teacherName}',
+                    style: const TextStyle(color: Colors.black87),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    description,
+                    'Major: ${registration.majorName}',
+                    style: const TextStyle(color: Colors.black87),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Time: ${registration.timeStart} - ${registration.timeEnd}',
+                    style: const TextStyle(color: Colors.black87),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Learning Days: ${registration.learningDays.join(", ")}',
                     style: const TextStyle(color: Colors.black87),
                   ),
                 ],

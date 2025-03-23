@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../services/cart_service.dart';
 
 class QnAReply {
   final int replyId;
@@ -24,20 +25,22 @@ class QnAReply {
 
   factory QnAReply.fromJson(Map<String, dynamic> json) {
     return QnAReply(
-      replyId: json['replyId'] as int,
-      questionId: json['questionId'] as int,
-      accountId: json['accountId'] as String,
-      email: json['email'] as String,
-      role: json['role'] as String,
-      qnAContent: json['qnAContent'] as String,
-      createdAt: DateTime.parse(json['createdAt'] as String),
+      replyId: (json['replyId'] as num?)?.toInt() ?? 0,
+      questionId: (json['questionId'] as num?)?.toInt() ?? 0,
+      accountId: (json['accountId'] as String?) ?? '',
+      email: (json['email'] as String?) ?? '',
+      role: (json['role'] as String?) ?? '',
+      qnAContent: (json['qnAContent'] as String?) ?? '',
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'] as String)
+          : DateTime.now(),
     );
   }
 }
 
 class CourseQuestion {
   final int questionId;
-  final int courseId;
+  final int coursePackageId;
   final String accountId;
   final String email;
   final String role;
@@ -48,7 +51,7 @@ class CourseQuestion {
 
   CourseQuestion({
     required this.questionId,
-    required this.courseId,
+    required this.coursePackageId,
     required this.accountId,
     required this.email,
     required this.role,
@@ -60,18 +63,19 @@ class CourseQuestion {
 
   factory CourseQuestion.fromJson(Map<String, dynamic> json) {
     return CourseQuestion(
-      questionId: json['questionId'] as int,
-      courseId: json['courseId'] as int,
-      accountId: json['accountId'] as String,
-      email: json['email'] as String,
-      role: json['role'] as String,
-      title: json['title'] as String,
-      questionContent: json['questionContent'] as String,
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      replies:
-          (json['replies'] as List<dynamic>)
-              .map((replyJson) => QnAReply.fromJson(replyJson))
-              .toList(),
+      questionId: (json['questionId'] as num?)?.toInt() ?? 0,
+      coursePackageId: (json['coursePackageId'] as num?)?.toInt() ?? 0,
+      accountId: (json['accountId'] as String?) ?? '',
+      email: (json['email'] as String?) ?? '',
+      role: (json['role'] as String?) ?? '',
+      title: (json['title'] as String?) ?? '',
+      questionContent: (json['questionContent'] as String?) ?? '',
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'] as String)
+          : DateTime.now(),
+      replies: ((json['replies'] as List<dynamic>?) ?? [])
+          .map((replyJson) => QnAReply.fromJson(replyJson))
+          .toList(),
     );
   }
 }
@@ -90,18 +94,19 @@ class _CourseQnAWidgetState extends State<CourseQnAWidget> {
   bool isLoading = true;
   String errorMessage = '';
   bool isAddingQuestion = false;
+  bool hasPurchasedCourse = false;
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _questionController = TextEditingController();
   final TextEditingController _replyController = TextEditingController();
-  String? _currentUserEmail;
-  String? _currentUserRole;
   String? _currentUserId;
+  final CartService _cartService = CartService();
 
   @override
   void initState() {
     super.initState();
     _fetchUserInfo();
     _fetchQuestions();
+    _checkCoursePurchase();
   }
 
   @override
@@ -113,12 +118,39 @@ class _CourseQnAWidgetState extends State<CourseQnAWidget> {
   }
 
   Future<void> _fetchUserInfo() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _currentUserEmail = prefs.getString('email');
-      _currentUserRole = prefs.getString('role');
-      _currentUserId = prefs.getString('userId');
-    });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      if (token == null) {
+        print('Debug - Token not found');
+        return;
+      }
+
+      final response = await http.get(
+        Uri.parse(
+          'https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Auth/Profile',
+        ),
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['isSucceed'] == true && data['data'] != null) {
+          final accountId = data['data']['accountId'];
+          await prefs.setString('accountId', accountId);
+          print('Debug - Fetched accountId: $accountId');
+          setState(() {
+            _currentUserId = accountId;
+          });
+        }
+      }
+    } catch (e) {
+      print('Debug - Error fetching user info: $e');
+    }
   }
 
   Future<void> _fetchQuestions() async {
@@ -152,11 +184,10 @@ class _CourseQnAWidgetState extends State<CourseQnAWidget> {
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         setState(() {
-          questions =
-              data
-                  .map((json) => CourseQuestion.fromJson(json))
-                  .where((question) => question.courseId == widget.courseId)
-                  .toList();
+          questions = data
+              .map((json) => CourseQuestion.fromJson(json))
+              .where((question) => question.coursePackageId == widget.courseId)
+              .toList();
           isLoading = false;
         });
       } else if (response.statusCode == 401) {
@@ -174,6 +205,21 @@ class _CourseQnAWidgetState extends State<CourseQnAWidget> {
       setState(() {
         isLoading = false;
         errorMessage = 'Lỗi: ${e.toString()}';
+      });
+    }
+  }
+
+  Future<void> _checkCoursePurchase() async {
+    try {
+      final purchased = await _cartService.isCoursePurchased(widget.courseId);
+      setState(() {
+        hasPurchasedCourse = purchased;
+      });
+      print('Debug - Course ID: ${widget.courseId}, Has Purchased: $purchased');
+    } catch (e) {
+      print('Lỗi kiểm tra mua khóa học: $e');
+      setState(() {
+        hasPurchasedCourse = false;
       });
     }
   }
@@ -196,11 +242,20 @@ class _CourseQnAWidgetState extends State<CourseQnAWidget> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
+      final accountId = prefs.getString('accountId');
 
       if (token == null) {
         setState(() {
           isLoading = false;
           errorMessage = 'Bạn cần đăng nhập để gửi câu hỏi';
+        });
+        return;
+      }
+
+      if (accountId == null) {
+        setState(() {
+          isLoading = false;
+          errorMessage = 'Không tìm thấy thông tin người dùng';
         });
         return;
       }
@@ -214,7 +269,8 @@ class _CourseQnAWidgetState extends State<CourseQnAWidget> {
           'Authorization': 'Bearer $token',
         },
         body: json.encode({
-          'courseId': widget.courseId,
+          'coursePackageId': widget.courseId,
+          'accountId': accountId,
           'title': _titleController.text,
           'questionContent': _questionController.text,
         }),
@@ -231,9 +287,10 @@ class _CourseQnAWidgetState extends State<CourseQnAWidget> {
           const SnackBar(content: Text('Câu hỏi đã được gửi thành công')),
         );
       } else {
+        final errorData = json.decode(response.body);
         setState(() {
           isLoading = false;
-          errorMessage = 'Không thể gửi câu hỏi: ${response.statusCode}';
+          errorMessage = errorData['message'] ?? 'Không thể gửi câu hỏi';
         });
       }
     } catch (e) {
@@ -259,6 +316,7 @@ class _CourseQnAWidgetState extends State<CourseQnAWidget> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
+      final accountId = prefs.getString('accountId');
 
       if (token == null) {
         setState(() {
@@ -268,9 +326,17 @@ class _CourseQnAWidgetState extends State<CourseQnAWidget> {
         return;
       }
 
+      if (accountId == null) {
+        setState(() {
+          isLoading = false;
+          errorMessage = 'Không tìm thấy thông tin người dùng';
+        });
+        return;
+      }
+
       final response = await http.post(
         Uri.parse(
-          'https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/QnA/reply',
+          'https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/QnAReplies/create',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
@@ -278,6 +344,7 @@ class _CourseQnAWidgetState extends State<CourseQnAWidget> {
         },
         body: json.encode({
           'questionId': questionId,
+          'accountId': accountId,
           'qnAContent': _replyController.text,
         }),
       );
@@ -289,9 +356,10 @@ class _CourseQnAWidgetState extends State<CourseQnAWidget> {
           const SnackBar(content: Text('Phản hồi đã được gửi thành công')),
         );
       } else {
+        final errorData = json.decode(response.body);
         setState(() {
           isLoading = false;
-          errorMessage = 'Không thể gửi phản hồi: ${response.statusCode}';
+          errorMessage = errorData['message'] ?? 'Không thể gửi phản hồi';
         });
       }
     } catch (e) {
@@ -359,6 +427,72 @@ class _CourseQnAWidgetState extends State<CourseQnAWidget> {
     );
   }
 
+  Widget _buildReplyButton(CourseQuestion question) {
+    if (!hasPurchasedCourse) {
+      return TextButton.icon(
+        icon: const Icon(Icons.lock, size: 16),
+        label: const Text('Mua khóa học để trả lời'),
+        onPressed: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Bạn cần mua khóa học để trả lời'),
+              duration: Duration(seconds: 3),
+            ),
+          );
+        },
+      );
+    }
+
+    return TextButton.icon(
+      icon: const Icon(Icons.reply, size: 16),
+      label: const Text('Trả lời'),
+      onPressed: () {
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          builder: (context) => Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+              left: 16,
+              right: 16,
+              top: 16,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Trả lời câu hỏi',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _replyController,
+                  decoration: const InputDecoration(
+                    hintText: 'Nhập câu trả lời của bạn...',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 3,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _submitReply(question.questionId);
+                  },
+                  child: const Text('Gửi trả lời'),
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildQuestionItem(CourseQuestion question) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
@@ -413,55 +547,7 @@ class _CourseQnAWidgetState extends State<CourseQnAWidget> {
               const Divider(),
               ...question.replies.map((reply) => _buildReplyItem(reply)),
             ],
-            TextButton.icon(
-              icon: const Icon(Icons.reply, size: 16),
-              label: const Text('Trả lời'),
-              onPressed: () {
-                showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  builder:
-                      (context) => Padding(
-                        padding: EdgeInsets.only(
-                          bottom: MediaQuery.of(context).viewInsets.bottom,
-                          left: 16,
-                          right: 16,
-                          top: 16,
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Text(
-                              'Trả lời câu hỏi',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            TextField(
-                              controller: _replyController,
-                              decoration: const InputDecoration(
-                                hintText: 'Nhập câu trả lời của bạn...',
-                                border: OutlineInputBorder(),
-                              ),
-                              maxLines: 3,
-                            ),
-                            const SizedBox(height: 16),
-                            ElevatedButton(
-                              onPressed: () {
-                                Navigator.pop(context);
-                                _submitReply(question.questionId);
-                              },
-                              child: const Text('Gửi trả lời'),
-                            ),
-                            const SizedBox(height: 16),
-                          ],
-                        ),
-                      ),
-                );
-              },
-            ),
+            _buildReplyButton(question),
           ],
         ),
       ),
@@ -469,17 +555,42 @@ class _CourseQnAWidgetState extends State<CourseQnAWidget> {
   }
 
   Widget _buildAddQuestionButton() {
-    return ElevatedButton.icon(
-      icon: const Icon(Icons.question_answer),
-      label: const Text('Đặt câu hỏi'),
-      onPressed: () {
-        setState(() {
-          isAddingQuestion = true;
-        });
-      },
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.blue[700],
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    if (!hasPurchasedCourse) {
+      return Container(
+        height: 40,
+        child: ElevatedButton.icon(
+          icon: const Icon(Icons.lock, size: 16),
+          label: const Text('Mua khóa học'),
+          onPressed: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Bạn cần mua khóa học để đặt câu hỏi'),
+                duration: Duration(seconds: 3),
+              ),
+            );
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.grey[700],
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      height: 40,
+      child: ElevatedButton.icon(
+        icon: const Icon(Icons.question_answer, size: 16),
+        label: const Text('Đặt câu hỏi'),
+        onPressed: () {
+          setState(() {
+            isAddingQuestion = true;
+          });
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.blue[700],
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+        ),
       ),
     );
   }
@@ -579,11 +690,13 @@ class _CourseQnAWidgetState extends State<CourseQnAWidget> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Hỏi đáp về khóa học',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              const Expanded(
+                child: Text(
+                  'Hỏi đáp về khóa học',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
               ),
-              if (!isAddingQuestion && _currentUserEmail != null)
+              if (!isAddingQuestion && _currentUserId != null)
                 _buildAddQuestionButton(),
             ],
           ),
@@ -607,11 +720,12 @@ class _CourseQnAWidgetState extends State<CourseQnAWidget> {
               ),
             )
           else
-            Column(
-              children:
-                  questions
-                      .map((question) => _buildQuestionItem(question))
-                      .toList(),
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: questions.length,
+              itemBuilder: (context, index) =>
+                  _buildQuestionItem(questions[index]),
             ),
         ],
       ),
