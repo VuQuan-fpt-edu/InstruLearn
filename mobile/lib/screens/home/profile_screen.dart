@@ -44,9 +44,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['isSucceed'] == true) {
-          // Lưu learnerId vào SharedPreferences
+          // Lưu learnerId và accountId vào SharedPreferences
           if (data['data']['learnerId'] != null) {
             await prefs.setInt('learnerId', data['data']['learnerId']);
+          }
+          if (data['data']['accountId'] != null) {
+            await prefs.setString('accountId', data['data']['accountId']);
           }
 
           setState(() {

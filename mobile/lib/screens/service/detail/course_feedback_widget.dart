@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../services/cart_service.dart';
 
 class FeedbackReply {
   final int feedbackRepliesId;
@@ -94,18 +95,21 @@ class _CourseFeedbackWidgetState extends State<CourseFeedbackWidget> {
   bool isLoading = true;
   String errorMessage = '';
   bool isAddingFeedback = false;
+  bool hasPurchasedCourse = false;
   final TextEditingController _feedbackController = TextEditingController();
   final TextEditingController _replyController = TextEditingController();
   int _selectedRating = 5;
+  String? _currentUserId;
   String? _currentUserEmail;
   String? _currentUserRole;
-  String? _currentUserId;
+  final CartService _cartService = CartService();
 
   @override
   void initState() {
     super.initState();
     _fetchUserInfo();
     _fetchFeedbacks();
+    _checkCoursePurchase();
   }
 
   @override
@@ -116,12 +120,39 @@ class _CourseFeedbackWidgetState extends State<CourseFeedbackWidget> {
   }
 
   Future<void> _fetchUserInfo() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _currentUserEmail = prefs.getString('email');
-      _currentUserRole = prefs.getString('role');
-      _currentUserId = prefs.getString('userId');
-    });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      if (token == null) {
+        print('Debug - Token not found');
+        return;
+      }
+
+      final response = await http.get(
+        Uri.parse(
+          'https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Auth/Profile',
+        ),
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['isSucceed'] == true && data['data'] != null) {
+          final accountId = data['data']['accountId'];
+          await prefs.setString('accountId', accountId);
+          print('Debug - Fetched accountId: $accountId');
+          setState(() {
+            _currentUserId = accountId;
+          });
+        }
+      }
+    } catch (e) {
+      print('Debug - Error fetching user info: $e');
+    }
   }
 
   Future<void> _fetchFeedbacks() async {
@@ -180,6 +211,21 @@ class _CourseFeedbackWidgetState extends State<CourseFeedbackWidget> {
     }
   }
 
+  Future<void> _checkCoursePurchase() async {
+    try {
+      final purchased = await _cartService.isCoursePurchased(widget.courseId);
+      setState(() {
+        hasPurchasedCourse = purchased;
+      });
+      print('Debug - Course ID: ${widget.courseId}, Has Purchased: $purchased');
+    } catch (e) {
+      print('Lỗi kiểm tra mua khóa học: $e');
+      setState(() {
+        hasPurchasedCourse = false;
+      });
+    }
+  }
+
   Future<void> _submitFeedback() async {
     if (_feedbackController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -195,11 +241,20 @@ class _CourseFeedbackWidgetState extends State<CourseFeedbackWidget> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
+      final accountId = prefs.getString('accountId');
 
       if (token == null) {
         setState(() {
           isLoading = false;
           errorMessage = 'Bạn cần đăng nhập để gửi đánh giá';
+        });
+        return;
+      }
+
+      if (accountId == null) {
+        setState(() {
+          isLoading = false;
+          errorMessage = 'Không tìm thấy thông tin người dùng';
         });
         return;
       }
@@ -214,6 +269,7 @@ class _CourseFeedbackWidgetState extends State<CourseFeedbackWidget> {
         },
         body: json.encode({
           'coursePackageId': widget.courseId,
+          'accountId': accountId,
           'feedbackContent': _feedbackController.text,
           'rating': _selectedRating,
         }),
@@ -229,9 +285,10 @@ class _CourseFeedbackWidgetState extends State<CourseFeedbackWidget> {
           const SnackBar(content: Text('Đánh giá đã được gửi thành công')),
         );
       } else {
+        final errorData = json.decode(response.body);
         setState(() {
           isLoading = false;
-          errorMessage = 'Không thể gửi đánh giá: ${response.statusCode}';
+          errorMessage = errorData['message'] ?? 'Không thể gửi đánh giá';
         });
       }
     } catch (e) {
@@ -257,11 +314,20 @@ class _CourseFeedbackWidgetState extends State<CourseFeedbackWidget> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
+      final accountId = prefs.getString('accountId');
 
       if (token == null) {
         setState(() {
           isLoading = false;
           errorMessage = 'Bạn cần đăng nhập để gửi phản hồi';
+        });
+        return;
+      }
+
+      if (accountId == null) {
+        setState(() {
+          isLoading = false;
+          errorMessage = 'Không tìm thấy thông tin người dùng';
         });
         return;
       }
@@ -276,6 +342,7 @@ class _CourseFeedbackWidgetState extends State<CourseFeedbackWidget> {
         },
         body: json.encode({
           'feedbackId': feedbackId,
+          'accountId': accountId,
           'repliesContent': _replyController.text,
         }),
       );
@@ -287,9 +354,10 @@ class _CourseFeedbackWidgetState extends State<CourseFeedbackWidget> {
           const SnackBar(content: Text('Phản hồi đã được gửi thành công')),
         );
       } else {
+        final errorData = json.decode(response.body);
         setState(() {
           isLoading = false;
-          errorMessage = 'Không thể gửi phản hồi: ${response.statusCode}';
+          errorMessage = errorData['message'] ?? 'Không thể gửi phản hồi';
         });
       }
     } catch (e) {
@@ -390,54 +458,68 @@ class _CourseFeedbackWidgetState extends State<CourseFeedbackWidget> {
               const Divider(),
               ...feedback.replies.map((reply) => _buildReplyItem(reply)),
             ],
-            TextButton.icon(
-              icon: const Icon(Icons.reply, size: 16),
-              label: const Text('Phản hồi'),
-              onPressed: () {
-                showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  builder: (context) => Padding(
-                    padding: EdgeInsets.only(
-                      bottom: MediaQuery.of(context).viewInsets.bottom,
-                      left: 16,
-                      right: 16,
-                      top: 16,
+            if (!hasPurchasedCourse)
+              TextButton.icon(
+                icon: const Icon(Icons.lock, size: 16),
+                label: const Text('Mua khóa học để trả lời'),
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Bạn cần mua khóa học để trả lời'),
+                      duration: Duration(seconds: 3),
                     ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text(
-                          'Phản hồi đánh giá',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                  );
+                },
+              )
+            else
+              TextButton.icon(
+                icon: const Icon(Icons.reply, size: 16),
+                label: const Text('Trả lời'),
+                onPressed: () {
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    builder: (context) => Padding(
+                      padding: EdgeInsets.only(
+                        bottom: MediaQuery.of(context).viewInsets.bottom,
+                        left: 16,
+                        right: 16,
+                        top: 16,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'Phản hồi đánh giá',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 16),
-                        TextField(
-                          controller: _replyController,
-                          decoration: const InputDecoration(
-                            hintText: 'Nhập phản hồi của bạn...',
-                            border: OutlineInputBorder(),
+                          const SizedBox(height: 16),
+                          TextField(
+                            controller: _replyController,
+                            decoration: const InputDecoration(
+                              hintText: 'Nhập phản hồi của bạn...',
+                              border: OutlineInputBorder(),
+                            ),
+                            maxLines: 3,
                           ),
-                          maxLines: 3,
-                        ),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                            _submitReply(feedback.feedbackId);
-                          },
-                          child: const Text('Gửi phản hồi'),
-                        ),
-                        const SizedBox(height: 16),
-                      ],
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              _submitReply(feedback.feedbackId);
+                            },
+                            child: const Text('Gửi phản hồi'),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                      ),
                     ),
-                  ),
-                );
-              },
-            ),
+                  );
+                },
+              ),
           ],
         ),
       ),
@@ -501,17 +583,42 @@ class _CourseFeedbackWidgetState extends State<CourseFeedbackWidget> {
   }
 
   Widget _buildAddFeedbackButton() {
-    return ElevatedButton.icon(
-      icon: const Icon(Icons.rate_review),
-      label: const Text('Viết đánh giá'),
-      onPressed: () {
-        setState(() {
-          isAddingFeedback = true;
-        });
-      },
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.blue[700],
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    if (!hasPurchasedCourse) {
+      return Container(
+        height: 40,
+        child: ElevatedButton.icon(
+          icon: const Icon(Icons.lock, size: 16),
+          label: const Text('Mua khóa học'),
+          onPressed: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Bạn cần mua khóa học để đánh giá'),
+                duration: Duration(seconds: 3),
+              ),
+            );
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.grey[700],
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      height: 40,
+      child: ElevatedButton.icon(
+        icon: const Icon(Icons.rate_review, size: 16),
+        label: const Text('Viết đánh giá'),
+        onPressed: () {
+          setState(() {
+            isAddingFeedback = true;
+          });
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.blue[700],
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+        ),
       ),
     );
   }
@@ -608,7 +715,7 @@ class _CourseFeedbackWidgetState extends State<CourseFeedbackWidget> {
                 'Đánh giá từ học viên',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
-              if (!isAddingFeedback && _currentUserEmail != null)
+              if (!isAddingFeedback && _currentUserId != null)
                 _buildAddFeedbackButton(),
             ],
           ),
