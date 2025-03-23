@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   UserOutlined,
   PhoneOutlined,
@@ -11,161 +11,60 @@ import {
   FilterOutlined,
 } from "@ant-design/icons";
 import { Link, useNavigate } from "react-router-dom";
-
-// Dữ liệu giáo viên
-const teachersData = [
-  {
-    instrument: "Piano",
-    description:
-      "Học piano để phát triển kỹ năng chơi đàn phím và hiểu biết về hòa âm",
-    teachers: [
-      {
-        id: 1,
-        name: "Nguyễn Văn A",
-        experience: "10 năm",
-        contact: "0901234567",
-        rating: 4.8,
-        location: "Quận 1, TP.HCM",
-        image: "https://randomuser.me/api/portraits/men/1.jpg",
-        specialties: ["Piano cổ điển", "Jazz piano"],
-      },
-      {
-        id: 2,
-        name: "Trần Thị B",
-        experience: "8 năm",
-        contact: "0912345678",
-        rating: 4.5,
-        location: "Quận 3, TP.HCM",
-        image: "https://randomuser.me/api/portraits/women/2.jpg",
-        specialties: ["Piano cho trẻ em", "Piano đệm hát"],
-      },
-      {
-        id: 8,
-        name: "Lý Thanh H",
-        experience: "12 năm",
-        contact: "0978901234",
-        rating: 4.9,
-        location: "Quận Phú Nhuận, TP.HCM",
-        image: "https://randomuser.me/api/portraits/women/8.jpg",
-        specialties: ["Piano cổ điển", "Nhạc lý piano"],
-      },
-    ],
-  },
-  {
-    instrument: "Guitar",
-    description: "Học guitar để nắm vững các kỹ thuật đệm hát và solo",
-    teachers: [
-      {
-        id: 3,
-        name: "Lê Văn C",
-        experience: "5 năm",
-        contact: "0923456789",
-        rating: 4.2,
-        location: "Quận 7, TP.HCM",
-        image: "https://randomuser.me/api/portraits/men/3.jpg",
-        specialties: ["Guitar Acoustic", "Fingerstyle"],
-      },
-      {
-        id: 4,
-        name: "Phạm Thị D",
-        experience: "6 năm",
-        contact: "0934567890",
-        rating: 4.7,
-        location: "Quận Bình Thạnh, TP.HCM",
-        image: "https://randomuser.me/api/portraits/women/4.jpg",
-        specialties: ["Guitar đệm hát", "Guitar pop"],
-      },
-      {
-        id: 9,
-        name: "Ngô Minh I",
-        experience: "9 năm",
-        contact: "0989012345",
-        rating: 4.4,
-        location: "Quận 5, TP.HCM",
-        image: "https://randomuser.me/api/portraits/men/9.jpg",
-        specialties: ["Guitar điện", "Rock guitar"],
-      },
-    ],
-  },
-  {
-    instrument: "Violin",
-    description:
-      "Khám phá âm nhạc cổ điển và hiện đại thông qua việc học violin",
-    teachers: [
-      {
-        id: 5,
-        name: "Hoàng Văn E",
-        experience: "7 năm",
-        contact: "0945678901",
-        rating: 4.6,
-        location: "Quận 2, TP.HCM",
-        image: "https://randomuser.me/api/portraits/men/5.jpg",
-        specialties: ["Violin cổ điển", "Violin cho người mới bắt đầu"],
-      },
-      {
-        id: 10,
-        name: "Trương Thị J",
-        experience: "11 năm",
-        contact: "0990123456",
-        rating: 4.8,
-        location: "Quận 4, TP.HCM",
-        image: "https://randomuser.me/api/portraits/women/10.jpg",
-        specialties: ["Violin nâng cao", "Violin cổ điển"],
-      },
-    ],
-  },
-  {
-    instrument: "Saxophone",
-    description: "Tạo những âm thanh Jazz đầy cảm xúc với saxophone",
-    teachers: [
-      {
-        id: 6,
-        name: "Phan Thị F",
-        experience: "9 năm",
-        contact: "0956789012",
-        rating: 4.9,
-        location: "Quận 10, TP.HCM",
-        image: "https://randomuser.me/api/portraits/women/6.jpg",
-        specialties: ["Alto Saxophone", "Jazz Saxophone"],
-      },
-    ],
-  },
-  {
-    instrument: "Trống",
-    description: "Học nhịp điệu và kỹ thuật chơi trống chuyên nghiệp",
-    teachers: [
-      {
-        id: 7,
-        name: "Đỗ Văn G",
-        experience: "11 năm",
-        contact: "0967890123",
-        rating: 4.4,
-        location: "Quận Tân Bình, TP.HCM",
-        image: "https://randomuser.me/api/portraits/men/7.jpg",
-        specialties: ["Trống Jazz", "Trống Rock"],
-      },
-      {
-        id: 11,
-        name: "Huỳnh Thanh K",
-        experience: "7 năm",
-        contact: "0991234567",
-        rating: 4.3,
-        location: "Quận 6, TP.HCM",
-        image: "https://randomuser.me/api/portraits/men/11.jpg",
-        specialties: ["Trống đệm nhạc Pop", "Kỹ thuật cơ bản"],
-      },
-    ],
-  },
-];
+import axios from "axios";
 
 export default function MusicTeachersList() {
   const [searchTerm, setSearchTerm] = useState("");
   const [favorites, setFavorites] = useState([]);
-  const [expandedCategories, setExpandedCategories] = useState(
-    teachersData.map((cat) => cat.instrument)
-  );
+  const [expandedCategories, setExpandedCategories] = useState([]);
   const [activeCategoryTab, setActiveCategoryTab] = useState("all");
+  const [teachers, setTeachers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchTeachers();
+  }, []);
+
+  const fetchTeachers = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(
+        "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Teacher/get-all"
+      );
+
+      if (response.data) {
+        // Nhóm giáo viên theo majorName
+        const groupedTeachers = response.data.reduce((acc, teacher) => {
+          const majorName = teacher.data.major.majorName;
+          if (!acc[majorName]) {
+            acc[majorName] = {
+              instrument: majorName,
+              description: `Học ${majorName} để phát triển kỹ năng chơi nhạc cụ`,
+              teachers: [],
+            };
+          }
+          acc[majorName].teachers.push({
+            id: teacher.data.teacherId,
+            name: teacher.data.fullname,
+            experience: teacher.data.heading || "Chưa có thông tin",
+            details: teacher.data.details || "Chưa có mô tả",
+            image: "https://randomuser.me/api/portraits/men/1.jpg",
+            links: teacher.data.links,
+          });
+          return acc;
+        }, {});
+
+        const teachersArray = Object.values(groupedTeachers);
+        setTeachers(teachersArray);
+        setExpandedCategories(teachersArray.map((cat) => cat.instrument));
+      }
+    } catch (error) {
+      console.error("Error fetching teachers:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Xử lý thêm/xóa giáo viên vào danh sách yêu thích
   const toggleFavorite = (teacherId) => {
@@ -188,15 +87,15 @@ export default function MusicTeachersList() {
   };
 
   // Lọc danh sách giáo viên theo từ khóa tìm kiếm
-  const filteredTeachersData = teachersData
+  const filteredTeachersData = teachers
     .map((category) => {
       const filteredTeachers = category.teachers.filter((teacher) => {
         if (searchTerm === "") return true;
         const term = searchTerm.toLowerCase();
         return (
           teacher.name.toLowerCase().includes(term) ||
-          teacher.location.toLowerCase().includes(term) ||
-          teacher.specialties.some((spec) => spec.toLowerCase().includes(term))
+          teacher.experience.toLowerCase().includes(term) ||
+          teacher.details.toLowerCase().includes(term)
         );
       });
 
@@ -209,11 +108,6 @@ export default function MusicTeachersList() {
       (category) =>
         activeCategoryTab === "all" || category.instrument === activeCategoryTab
     );
-
-  // Hàm định dạng số điện thoại
-  const formatPhoneNumber = (phone) => {
-    return phone.replace(/(\d{3})(\d{3})(\d{4})/, "$1 $2 $3");
-  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -239,7 +133,7 @@ export default function MusicTeachersList() {
             <div className="relative">
               <input
                 type="text"
-                placeholder="Tìm kiếm giáo viên, nhạc cụ hoặc địa điểm..."
+                placeholder="Tìm kiếm giáo viên hoặc nhạc cụ..."
                 className="w-full p-4 pl-12 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-white/50"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -264,7 +158,7 @@ export default function MusicTeachersList() {
             >
               Tất cả
             </button>
-            {teachersData.map((category) => (
+            {teachers.map((category) => (
               <button
                 key={category.instrument}
                 className={`px-6 py-2 rounded-full whitespace-nowrap transition-all duration-300 ${
@@ -283,7 +177,11 @@ export default function MusicTeachersList() {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-12">
-        {filteredTeachersData.length > 0 ? (
+        {loading ? (
+          <div className="text-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          </div>
+        ) : filteredTeachersData.length > 0 ? (
           filteredTeachersData.map(
             (category) =>
               category.teachers.length > 0 && (
@@ -342,9 +240,6 @@ export default function MusicTeachersList() {
                             </div>
                             <div className="absolute bottom-0 left-0 right-0 p-6">
                               <div className="flex items-center gap-2">
-                                <div className="bg-yellow-500 text-white px-3 py-1 rounded-full text-sm font-medium">
-                                  {teacher.rating} ★
-                                </div>
                                 <div className="bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium text-gray-700">
                                   {teacher.experience}
                                 </div>
@@ -356,25 +251,15 @@ export default function MusicTeachersList() {
                             <h3 className="text-xl font-bold text-gray-900 mb-2">
                               {teacher.name}
                             </h3>
-                            <p className="text-gray-600 mb-4 flex items-center">
-                              <span className="mr-2">📍</span>
-                              {teacher.location}
+                            <p className="text-gray-600 mb-4 line-clamp-2">
+                              {teacher.details}
                             </p>
-
-                            <div className="flex flex-wrap gap-2 mb-6">
-                              {teacher.specialties.map((specialty, index) => (
-                                <span
-                                  key={index}
-                                  className="bg-indigo-50 text-indigo-700 text-sm px-3 py-1 rounded-full"
-                                >
-                                  {specialty}
-                                </span>
-                              ))}
-                            </div>
 
                             <div className="flex gap-3">
                               <button
-                                onClick={() => navigate(`/teacher-profile`)}
+                                onClick={() =>
+                                  navigate(`/teacher-profile/${teacher.id}`)
+                                }
                                 className="flex-1 bg-gray-100 text-gray-700 py-2.5 rounded-xl hover:bg-gray-200 transition-colors font-medium"
                               >
                                 Chi tiết
@@ -416,7 +301,7 @@ export default function MusicTeachersList() {
             Thống Kê Giáo Viên
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
-            {teachersData.map((category) => (
+            {teachers.map((category) => (
               <div
                 key={category.instrument}
                 className="bg-white p-6 rounded-2xl text-center hover:shadow-lg transition-shadow duration-300"

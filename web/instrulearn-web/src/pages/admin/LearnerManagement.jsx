@@ -17,7 +17,6 @@ import {
   Col,
   Card,
   Avatar,
-  Upload,
 } from "antd";
 import {
   PlusOutlined,
@@ -28,12 +27,11 @@ import {
   UserOutlined,
   PhoneOutlined,
   MailOutlined,
-  CalendarOutlined,
-  IdcardOutlined,
-  UploadOutlined,
+  UnlockOutlined,
 } from "@ant-design/icons";
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import AdminHeader from "../../components/admin/AdminHeader";
+import axios from "axios";
 
 const { Content } = Layout;
 const { Option } = Select;
@@ -47,43 +45,23 @@ const LearnerManagement = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [selectedMenu, setSelectedMenu] = useState("learner");
   const [form] = Form.useForm();
-  const [avatarUrl, setAvatarUrl] = useState(null);
 
   useEffect(() => {
     fetchLearners();
   }, []);
 
   const fetchLearners = async () => {
-    // Giả lập dữ liệu, sau này sẽ gọi API
-    const data = [
-      {
-        id: 1,
-        name: "Nguyễn Văn A",
-        email: "a@example.com",
-        phone: "0123456789",
-        status: "active",
-        joinDate: "2024-01-01",
-        address: "123 Đường ABC, Quận 1, TP.HCM",
-        gender: "Nam",
-        birthDate: "2000-01-01",
-        idCard: "079123456789",
-        position: "Học viên",
-      },
-      {
-        id: 2,
-        name: "Trần Thị B",
-        email: "b@example.com",
-        phone: "0987654321",
-        status: "inactive",
-        joinDate: "2024-02-01",
-        address: "456 Đường XYZ, Quận 2, TP.HCM",
-        gender: "Nữ",
-        birthDate: "2002-05-15",
-        idCard: "079987654321",
-        position: "Học viên",
-      },
-    ];
-    setLearners(data);
+    try {
+      const response = await axios.get(
+        "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Learner/get-all"
+      );
+      if (response.data.isSucceed) {
+        setLearners(response.data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching learners:", error);
+      message.error("Không thể tải danh sách học viên!");
+    }
   };
 
   const handleAdd = () => {
@@ -95,21 +73,31 @@ const LearnerManagement = () => {
   const handleEdit = (record) => {
     setEditingLearner(record);
     form.setFieldsValue(record);
-    setAvatarUrl(record.avatar);
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id) => {
-    setLearners(learners.filter((learner) => learner.id !== id));
-    message.success("Xóa tài khoản học viên thành công!");
-  };
+  const handleBanUnban = async (learnerId, isActive) => {
+    try {
+      const endpoint =
+        isActive === 0
+          ? `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Learner/unban/${learnerId}`
+          : `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Learner/delete/${learnerId}`;
 
-  const handleAvatarUpload = (info) => {
-    if (info.file.status === "done") {
-      setAvatarUrl(info.file.response.url);
-      message.success(`${info.file.name} tải lên thành công`);
-    } else if (info.file.status === "error") {
-      message.error(`${info.file.name} tải lên thất bại.`);
+      const response = await axios.delete(endpoint);
+
+      if (response.data.isSucceed) {
+        message.success(
+          isActive === 0
+            ? "Mở khóa tài khoản thành công!"
+            : "Khóa tài khoản thành công!"
+        );
+        fetchLearners();
+      } else {
+        message.error(response.data.message || "Không thể thực hiện thao tác!");
+      }
+    } catch (error) {
+      console.error("Error banning/unbanning learner:", error);
+      message.error("Không thể thực hiện thao tác!");
     }
   };
 
@@ -117,30 +105,19 @@ const LearnerManagement = () => {
     try {
       const values = await form.validateFields();
       if (editingLearner) {
-        setLearners(
-          learners.map((learner) =>
-            learner.id === editingLearner.id
-              ? { ...learner, ...values, avatar: avatarUrl }
-              : learner
-          )
-        );
+        // TODO: Implement update API call
+        console.log("Update learner:", values);
         message.success("Cập nhật thông tin học viên thành công!");
       } else {
-        const newLearner = {
-          id: Date.now(),
-          ...values,
-          status: "active",
-          joinDate: new Date().toISOString().split("T")[0],
-          position: "Học viên",
-          avatar: avatarUrl,
-        };
-        setLearners([...learners, newLearner]);
+        // TODO: Implement create API call
+        console.log("Create learner:", values);
         message.success("Thêm học viên mới thành công!");
       }
       setIsModalOpen(false);
-      setAvatarUrl(null);
+      fetchLearners();
     } catch (error) {
       console.error("Lỗi khi lưu:", error);
+      message.error("Không thể lưu thông tin học viên!");
     }
   };
 
@@ -149,20 +126,22 @@ const LearnerManagement = () => {
     setIsDetailModalOpen(true);
   };
 
-  const handleResetPassword = (id) => {
-    message.success("Đã gửi email đặt lại mật khẩu!");
-  };
-
   const toggleCollapsed = () => {
     setCollapsed(!collapsed);
   };
 
   const columns = [
     {
-      title: "Tên học viên",
-      dataIndex: "name",
-      key: "name",
+      title: "Họ và tên",
+      dataIndex: "fullName",
+      key: "fullName",
       width: "25%",
+    },
+    {
+      title: "Tên đăng nhập",
+      dataIndex: "username",
+      key: "username",
+      width: "20%",
     },
     {
       title: "Email",
@@ -172,18 +151,18 @@ const LearnerManagement = () => {
     },
     {
       title: "Số điện thoại",
-      dataIndex: "phone",
-      key: "phone",
-      width: "20%",
+      dataIndex: "phoneNumber",
+      key: "phoneNumber",
+      width: "15%",
     },
     {
       title: "Trạng thái",
-      dataIndex: "status",
-      key: "status",
-      width: "15%",
-      render: (status) => (
-        <Tag color={status === "active" ? "green" : "red"}>
-          {status === "active" ? "Hoạt động" : "Không hoạt động"}
+      dataIndex: "isActive",
+      key: "isActive",
+      width: "10%",
+      render: (isActive) => (
+        <Tag color={isActive === 1 ? "green" : "red"}>
+          {isActive === 1 ? "Hoạt động" : "Đã khóa"}
         </Tag>
       ),
     },
@@ -204,21 +183,21 @@ const LearnerManagement = () => {
             size="small"
             onClick={() => handleViewDetail(record)}
           />
-          <Button
-            icon={<LockOutlined />}
-            size="small"
-            onClick={() => handleResetPassword(record.id)}
-          />
           <Popconfirm
-            title="Bạn có chắc chắn muốn xóa?"
-            onConfirm={() => handleDelete(record.id)}
+            title={
+              record.isActive === 0
+                ? "Bạn có chắc chắn muốn mở khóa tài khoản?"
+                : "Bạn có chắc chắn muốn khóa tài khoản?"
+            }
+            onConfirm={() => handleBanUnban(record.learnerId, record.isActive)}
             okText="Đồng ý"
             cancelText="Hủy"
           >
             <Button
-              type="primary"
-              danger
-              icon={<DeleteOutlined />}
+              type={record.isActive === 0 ? "primary" : "default"}
+              icon={
+                record.isActive === 0 ? <UnlockOutlined /> : <LockOutlined />
+              }
               size="small"
             />
           </Popconfirm>
@@ -263,7 +242,7 @@ const LearnerManagement = () => {
           <Table
             dataSource={learners}
             columns={columns}
-            rowKey="id"
+            rowKey="learnerId"
             pagination={{
               pageSize: 10,
               showTotal: (total, range) =>
@@ -280,47 +259,19 @@ const LearnerManagement = () => {
             onOk={handleSave}
             onCancel={() => {
               setIsModalOpen(false);
-              setAvatarUrl(null);
             }}
             width={700}
           >
             <Form form={form} layout="vertical">
-              <div className="text-center mb-4">
-                <Upload
-                  name="avatar"
-                  listType="picture-card"
-                  className="avatar-uploader"
-                  showUploadList={false}
-                  action="/api/upload" // Thay thế bằng API endpoint thực tế
-                  onChange={handleAvatarUpload}
-                >
-                  {avatarUrl ? (
-                    <img
-                      src={avatarUrl}
-                      alt="avatar"
-                      style={{ width: "100%" }}
-                    />
-                  ) : (
-                    <div>
-                      <PlusOutlined />
-                      <div style={{ marginTop: 8 }}>Upload</div>
-                    </div>
-                  )}
-                </Upload>
-                <p className="text-gray-500 mt-2">
-                  Nhấp để tải lên ảnh đại diện
-                </p>
-              </div>
-
               <Row gutter={16}>
                 <Col span={12}>
                   <Form.Item
-                    name="name"
-                    label="Tên học viên"
+                    name="fullName"
+                    label="Họ và tên"
                     rules={[
                       {
                         required: true,
-                        message: "Vui lòng nhập tên học viên!",
+                        message: "Vui lòng nhập họ và tên!",
                       },
                     ]}
                   >
@@ -329,14 +280,16 @@ const LearnerManagement = () => {
                 </Col>
                 <Col span={12}>
                   <Form.Item
-                    name="email"
-                    label="Email"
+                    name="username"
+                    label="Tên đăng nhập"
                     rules={[
-                      { required: true, message: "Vui lòng nhập email!" },
-                      { type: "email", message: "Email không hợp lệ!" },
+                      {
+                        required: true,
+                        message: "Vui lòng nhập tên đăng nhập!",
+                      },
                     ]}
                   >
-                    <Input prefix={<MailOutlined />} />
+                    <Input prefix={<UserOutlined />} />
                   </Form.Item>
                 </Col>
               </Row>
@@ -344,7 +297,25 @@ const LearnerManagement = () => {
               <Row gutter={16}>
                 <Col span={12}>
                   <Form.Item
-                    name="phone"
+                    name="email"
+                    label="Email"
+                    rules={[
+                      {
+                        required: true,
+                        message: "Vui lòng nhập email!",
+                      },
+                      {
+                        type: "email",
+                        message: "Email không hợp lệ!",
+                      },
+                    ]}
+                  >
+                    <Input prefix={<MailOutlined />} />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item
+                    name="phoneNumber"
                     label="Số điện thoại"
                     rules={[
                       {
@@ -360,35 +331,24 @@ const LearnerManagement = () => {
                     <Input prefix={<PhoneOutlined />} />
                   </Form.Item>
                 </Col>
-                <Col span={12}>
-                  <Form.Item
-                    name="birthDate"
-                    label="Ngày sinh"
-                    rules={[
-                      { required: true, message: "Vui lòng chọn ngày sinh!" },
-                    ]}
-                  >
-                    <Input type="date" />
-                  </Form.Item>
-                </Col>
               </Row>
 
               <Form.Item
-                name="address"
-                label="Địa chỉ"
-                rules={[{ required: true, message: "Vui lòng nhập địa chỉ!" }]}
+                name="password"
+                label="Mật khẩu"
+                rules={[
+                  {
+                    required: true,
+                    message: "Vui lòng nhập mật khẩu!",
+                  },
+                  {
+                    min: 6,
+                    message: "Mật khẩu phải có ít nhất 6 ký tự!",
+                  },
+                ]}
               >
-                <Input.TextArea rows={2} />
+                <Input.Password prefix={<LockOutlined />} />
               </Form.Item>
-
-              {editingLearner && (
-                <Form.Item name="status" label="Trạng thái">
-                  <Select>
-                    <Option value="active">Hoạt động</Option>
-                    <Option value="inactive">Không hoạt động</Option>
-                  </Select>
-                </Form.Item>
-              )}
             </Form>
           </Modal>
 
@@ -405,71 +365,34 @@ const LearnerManagement = () => {
                 <div className="text-center mb-6">
                   <Avatar
                     size={100}
-                    src={selectedLearner.avatar}
                     icon={!selectedLearner.avatar && <UserOutlined />}
                   />
                   <h2 className="text-xl font-semibold mt-3">
-                    {selectedLearner.name}
+                    {selectedLearner.fullName}
                   </h2>
-                  <p className="text-gray-500">{selectedLearner.position}</p>
+                  <p className="text-gray-500">{selectedLearner.username}</p>
                 </div>
 
                 <Divider />
 
-                <Row gutter={24}>
-                  <Col span={12}>
-                    <Card title="Thông tin cá nhân" bordered={false}>
-                      <Descriptions column={1}>
-                        <Descriptions.Item label="Ngày sinh">
-                          {selectedLearner.birthDate}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="Giới tính">
-                          {selectedLearner.gender}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="CMND/CCCD">
-                          {selectedLearner.idCard}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="Địa chỉ">
-                          {selectedLearner.address}
-                        </Descriptions.Item>
-                      </Descriptions>
-                    </Card>
-                  </Col>
-                  <Col span={12}>
-                    <Card title="Thông tin học tập" bordered={false}>
-                      <Descriptions column={1}>
-                        <Descriptions.Item label="Ngày tham gia">
-                          {selectedLearner.joinDate}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="Trạng thái">
-                          <Tag
-                            color={
-                              selectedLearner.status === "active"
-                                ? "green"
-                                : "red"
-                            }
-                          >
-                            {selectedLearner.status === "active"
-                              ? "Hoạt động"
-                              : "Không hoạt động"}
-                          </Tag>
-                        </Descriptions.Item>
-                      </Descriptions>
-                    </Card>
-                  </Col>
-                </Row>
-
-                <Divider />
-
-                <Card title="Thông tin liên hệ" bordered={false}>
+                <Card title="Thông tin tài khoản" bordered={false}>
                   <Descriptions column={2}>
                     <Descriptions.Item label="Email">
                       <MailOutlined className="mr-2" />
                       {selectedLearner.email}
                     </Descriptions.Item>
-                    <Descriptions.Item label="Điện thoại">
+                    <Descriptions.Item label="Số điện thoại">
                       <PhoneOutlined className="mr-2" />
-                      {selectedLearner.phone}
+                      {selectedLearner.phoneNumber}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Trạng thái">
+                      <Tag
+                        color={selectedLearner.isActive === 1 ? "green" : "red"}
+                      >
+                        {selectedLearner.isActive === 1
+                          ? "Hoạt động"
+                          : "Đã khóa"}
+                      </Tag>
                     </Descriptions.Item>
                   </Descriptions>
                 </Card>

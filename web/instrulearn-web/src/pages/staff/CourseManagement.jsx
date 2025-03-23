@@ -66,11 +66,11 @@ const CourseManagement = () => {
     }
   };
 
-  const handleDelete = async (courseId, e) => {
+  const handleDelete = async (coursePackageId, e) => {
     e.stopPropagation();
     try {
       await axios.delete(
-        `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Course/delete/${courseId}`
+        `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Course/delete/${coursePackageId}`
       );
       message.success("Xóa khóa học thành công");
       fetchCourses();
@@ -80,7 +80,7 @@ const CourseManagement = () => {
   };
 
   const handleRowClick = (record) => {
-    navigate(`/course-detail/${record.courseId}`);
+    navigate(`/staff/course-detail/${record.coursePackageId}`);
   };
 
   const handleAddCourse = () => {
@@ -98,7 +98,8 @@ const CourseManagement = () => {
       course.courseDescription
         .toLowerCase()
         .includes(searchText.toLowerCase()) ||
-      course.typeName.toLowerCase().includes(searchText.toLowerCase())
+      course.typeName.toLowerCase().includes(searchText.toLowerCase()) ||
+      course.headline.toLowerCase().includes(searchText.toLowerCase())
   );
 
   const columns = [
@@ -108,6 +109,19 @@ const CourseManagement = () => {
       key: "courseName",
       render: (text) => <span className="font-medium">{text}</span>,
       sorter: (a, b) => a.courseName.localeCompare(b.courseName),
+    },
+    {
+      title: "Tiêu đề",
+      dataIndex: "headline",
+      key: "headline",
+      ellipsis: {
+        showTitle: false,
+      },
+      render: (text) => (
+        <Tooltip placement="topLeft" title={text}>
+          {text}
+        </Tooltip>
+      ),
     },
     {
       title: "Mô tả",
@@ -157,7 +171,7 @@ const CourseManagement = () => {
               icon={<DeleteOutlined />}
               size="small"
               danger
-              onClick={(e) => handleDelete(record.courseId, e)}
+              onClick={(e) => handleDelete(record.coursePackageId, e)}
             />
           </Tooltip>
         </Space>
@@ -213,7 +227,7 @@ const CourseManagement = () => {
               <Table
                 columns={columns}
                 dataSource={filteredCourses}
-                rowKey="courseId"
+                rowKey="coursePackageId"
                 onRow={(record) => ({
                   onClick: () => handleRowClick(record),
                   className: "cursor-pointer hover:bg-gray-50",

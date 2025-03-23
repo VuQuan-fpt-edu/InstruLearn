@@ -84,13 +84,15 @@ const AddCourse = () => {
   const handleSubmit = async (values) => {
     setLoading(true);
     try {
-      // Ensure all numeric values are actually numbers
       const payload = {
-        ...values,
+        typeId: Number(values.typeId),
+        courseName: values.courseName,
+        courseDescription: values.courseDescription,
+        headline: values.headline,
         rating: Number(values.rating),
         price: Number(values.price),
         discount: Number(values.discount),
-        typeId: Number(values.typeId),
+        imageUrl: values.imageUrl,
       };
 
       console.log("Submitting payload:", payload);
@@ -220,7 +222,7 @@ const AddCourse = () => {
         >
           <Card className="shadow-md">
             <Title level={2} className="text-center mb-6">
-              Thêm Khóa Học Mới
+              Thêm Gói Khóa Học Mới
             </Title>
             <Divider />
 
@@ -293,10 +295,10 @@ const AddCourse = () => {
                     <Select placeholder="Chọn loại nhạc cụ">
                       {instrumentTypes.map((instrument) => (
                         <Option
-                          key={instrument.typeId}
-                          value={instrument.typeId}
+                          key={instrument.courseTypeId}
+                          value={instrument.courseTypeId}
                         >
-                          {instrument.typeName}
+                          {instrument.courseTypeName}
                         </Option>
                       ))}
                     </Select>

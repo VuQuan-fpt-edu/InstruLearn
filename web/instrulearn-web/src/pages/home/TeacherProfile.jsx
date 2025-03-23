@@ -16,6 +16,7 @@ import {
   List,
   Timeline,
   Space,
+  Spin,
 } from "antd";
 import {
   UserOutlined,
@@ -30,7 +31,8 @@ import {
   TeamOutlined,
   CheckCircleOutlined,
 } from "@ant-design/icons";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const { Header, Content, Footer } = Layout;
 const { Title, Paragraph, Text } = Typography;
@@ -47,7 +49,7 @@ const generateTeacherDetails = (id) => {
       rating: 4.9,
       students: 42,
       description:
-        "Chuyên dạy Guitar Fingerstyle và Classic, tốt nghiệp Học viện Âm nhạc Quốc gia. Có kinh nghiệm dạy cho mọi lứa tuổi từ trẻ em đến người lớn, mở các lớp học online và offline.",
+        "Chuyên dạy Guitar Fingerstyle và Classic, tốt nghiệm Học viện Âm nhạc Quốc gia. Có kinh nghiệm dạy cho mọi lứa tuổi từ trẻ em đến người lớn, mở các lớp học online và offline.",
       image: "https://via.placeholder.com/200",
       education: [
         "Cử nhân Biểu diễn Guitar - Học viện Âm nhạc Quốc gia Việt Nam",
@@ -154,30 +156,65 @@ const generateTeacherDetails = (id) => {
 const TeacherProfilePage = () => {
   const [teacher, setTeacher] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  // Trong thực tế sẽ lấy id từ params, nhưng ở đây mặc định là 1
-  // const { id } = useParams();
-  const id = 1;
+  const { id } = useParams();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // Giả lập fetch dữ liệu từ API
-    const fetchTeacherDetails = () => {
-      setLoading(true);
-      setTimeout(() => {
-        const teacherData = generateTeacherDetails(id);
-        setTeacher(teacherData);
-        setLoading(false);
-      }, 500);
-    };
-
     fetchTeacherDetails();
   }, [id]);
 
-  if (loading || !teacher) {
+  const fetchTeacherDetails = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(
+        `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Teacher/${id}`
+      );
+
+      if (response.data?.isSucceed) {
+        const teacherData = response.data.data;
+        setTeacher({
+          id: teacherData.teacherId,
+          name: teacherData.fullname,
+          specialty: teacherData.major.majorName,
+          experience: teacherData.heading || "Chưa có thông tin",
+          description: teacherData.details || "Chưa có mô tả",
+          image: "https://randomuser.me/api/portraits/men/1.jpg",
+          contactInfo: {
+            phone: "Chưa có thông tin",
+            email: "Chưa có thông tin",
+            address: "Chưa có thông tin",
+          },
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching teacher details:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <Layout className="min-h-screen">
+        <Content className="p-6 flex items-center justify-center">
+          <Spin size="large" />
+        </Content>
+      </Layout>
+    );
+  }
+
+  if (!teacher) {
     return (
       <Layout className="min-h-screen">
         <Content className="p-6">
-          <Card loading={true} />
+          <Card>
+            <div className="text-center">
+              <Title level={3}>Không tìm thấy thông tin giáo viên</Title>
+              <Button type="primary" onClick={() => navigate("/teachers")}>
+                Quay lại danh sách
+              </Button>
+            </div>
+          </Card>
         </Content>
       </Layout>
     );
@@ -206,14 +243,7 @@ const TeacherProfilePage = () => {
                     <MusicNoteOutlined /> {teacher.specialty}
                   </Tag>
                   <span>
-                    <ClockCircleOutlined /> {teacher.experience} kinh nghiệm
-                  </span>
-                  <span>
-                    <StarOutlined /> {teacher.rating}/5 (
-                    {teacher.reviews.length} đánh giá)
-                  </span>
-                  <span>
-                    <TeamOutlined /> {teacher.students} học viên
+                    <ClockCircleOutlined /> {teacher.experience}
                   </span>
                 </Space>
                 <Paragraph className="mt-4 text-lg">
@@ -229,58 +259,22 @@ const TeacherProfilePage = () => {
               <Card bordered={false}>
                 <Row gutter={24}>
                   <Col xs={24} md={16}>
-                    <Title level={4}>Học vấn & Chứng chỉ</Title>
-                    <Timeline className="mt-4">
-                      {teacher.education.map((edu, index) => (
-                        <Timeline.Item
-                          key={index}
-                          color="blue"
-                          dot={<ReadOutlined />}
-                        >
-                          {edu}
-                        </Timeline.Item>
-                      ))}
-                    </Timeline>
+                    <Title level={4}>Thông tin chuyên môn</Title>
+                    <div className="mt-4">
+                      <p className="text-gray-600">
+                        <strong>Chuyên ngành:</strong> {teacher.specialty}
+                      </p>
+                      <p className="text-gray-600">
+                        <strong>Kinh nghiệm:</strong> {teacher.experience}
+                      </p>
+                    </div>
 
                     <Divider />
 
-                    <Title level={4}>Thành tựu</Title>
-                    <Timeline className="mt-4">
-                      {teacher.achievements.map((achievement, index) => (
-                        <Timeline.Item
-                          key={index}
-                          color="gold"
-                          dot={<TrophyOutlined />}
-                        >
-                          {achievement}
-                        </Timeline.Item>
-                      ))}
-                    </Timeline>
-
-                    <Divider />
-
-                    <Title level={4}>Phương pháp giảng dạy</Title>
-                    <List
-                      dataSource={teacher.teachingMethods}
-                      renderItem={(item) => (
-                        <List.Item>
-                          <CheckCircleOutlined style={{ color: "#52c41a" }} />{" "}
-                          {item}
-                        </List.Item>
-                      )}
-                    />
-
-                    <Divider />
-
-                    <Title level={4}>Các bài học phổ biến</Title>
-                    <List
-                      dataSource={teacher.repertoire}
-                      renderItem={(item) => (
-                        <List.Item>
-                          <MusicNoteOutlined /> {item}
-                        </List.Item>
-                      )}
-                    />
+                    <Title level={4}>Mô tả chi tiết</Title>
+                    <Paragraph className="mt-4 text-gray-600">
+                      {teacher.description}
+                    </Paragraph>
                   </Col>
 
                   <Col xs={24} md={8}>
@@ -299,44 +293,17 @@ const TeacherProfilePage = () => {
                       </p>
                     </Card>
 
-                    <Button type="primary" size="large" block className="mt-4">
+                    <Button
+                      type="primary"
+                      size="large"
+                      block
+                      className="mt-4"
+                      onClick={() => navigate("/booking1-1")}
+                    >
                       Đăng ký học
                     </Button>
                   </Col>
                 </Row>
-              </Card>
-            </TabPane>
-
-            <TabPane tab="Đánh giá" key="3">
-              <Card bordered={false}>
-                <div className="mb-6 text-center">
-                  <Title level={2}>{teacher.rating}</Title>
-                  <Rate disabled defaultValue={teacher.rating} allowHalf />
-                  <div className="mt-2 text-gray-500">
-                    {teacher.reviews.length} đánh giá từ học viên
-                  </div>
-                </div>
-
-                <Divider />
-
-                <List
-                  itemLayout="vertical"
-                  dataSource={teacher.reviews}
-                  renderItem={(review) => (
-                    <List.Item>
-                      <div className="flex justify-between">
-                        <div className="font-bold">{review.studentName}</div>
-                        <div className="text-gray-500">{review.date}</div>
-                      </div>
-                      <Rate
-                        disabled
-                        defaultValue={review.rating}
-                        className="mt-1 mb-2"
-                      />
-                      <div>{review.comment}</div>
-                    </List.Item>
-                  )}
-                />
               </Card>
             </TabPane>
           </Tabs>

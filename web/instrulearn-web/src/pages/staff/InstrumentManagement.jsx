@@ -36,14 +36,18 @@ const InstrumentManagement = () => {
     try {
       if (editingInstrument) {
         await axios.put(
-          `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/CourseType/update/${editingInstrument.typeId}`,
-          values
+          `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/CourseType/update/${editingInstrument.courseTypeId}`,
+          {
+            courseTypeName: values.courseTypeName,
+          }
         );
         message.success("Cập nhật nhạc cụ thành công!");
       } else {
         await axios.post(
           "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/CourseType/create",
-          values
+          {
+            courseTypeName: values.courseTypeName,
+          }
         );
         message.success("Thêm nhạc cụ mới thành công!");
       }
@@ -69,8 +73,12 @@ const InstrumentManagement = () => {
   };
 
   const columns = [
-    { title: "ID", dataIndex: "typeId", key: "typeId" },
-    { title: "Tên nhạc cụ", dataIndex: "typeName", key: "typeName" },
+    { title: "ID", dataIndex: "courseTypeId", key: "courseTypeId" },
+    {
+      title: "Tên nhạc cụ",
+      dataIndex: "courseTypeName",
+      key: "courseTypeName",
+    },
     {
       title: "Hành động",
       key: "action",
@@ -80,7 +88,9 @@ const InstrumentManagement = () => {
             icon={<EditOutlined />}
             onClick={() => {
               setEditingInstrument(record);
-              form.setFieldsValue(record);
+              form.setFieldsValue({
+                courseTypeName: record.courseTypeName,
+              });
               setIsModalOpen(true);
             }}
             style={{ marginRight: 8 }}
@@ -88,7 +98,7 @@ const InstrumentManagement = () => {
           <Button
             icon={<DeleteOutlined />}
             danger
-            onClick={() => handleDelete(record.typeId)}
+            onClick={() => handleDelete(record.courseTypeId)}
           />
         </>
       ),
@@ -129,7 +139,7 @@ const InstrumentManagement = () => {
           <Table
             columns={columns}
             dataSource={instruments}
-            rowKey="typeId"
+            rowKey="courseTypeId"
             className="mt-4"
           />
         </Content>
@@ -143,7 +153,7 @@ const InstrumentManagement = () => {
       >
         <Form form={form} layout="vertical" onFinish={handleAddOrUpdate}>
           <Form.Item
-            name="typeName"
+            name="courseTypeName"
             label="Tên nhạc cụ"
             rules={[{ required: true, message: "Vui lòng nhập tên nhạc cụ" }]}
           >

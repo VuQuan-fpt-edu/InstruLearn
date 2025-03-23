@@ -14,7 +14,6 @@ import CourseManagement from "./pages/staff/CourseManagement";
 import CourseDetail from "./pages/staff/CourseDetail";
 import CourseContentDetail from "./pages/staff/CourseContentDetail";
 import ItemTypeManagement from "./pages/staff/ItemTypeManagement";
-import CourseHomeDetails from "./pages/home/CourseHomeDetails";
 import Search from "./pages/home/Search";
 import StaffManagement from "./pages/admin/StaffManagement";
 import RequestManagement from "./pages/staff/RequestManagement";
@@ -22,7 +21,7 @@ import TeacherCenterSchedule from "./pages/staff/TeacherCenterSchedule";
 import StaffProfile from "./pages/staff/Profile";
 import Courses from "./pages/home/HomeAllCourses";
 import Booking11Management from "./pages/staff/Booking1-1Request";
-import StudentBookingForm from "./pages/home/Booking1-1";
+// import StudentBookingForm from "./pages/home/Booking1-1";
 import TeacherProfile from "./pages/home/TeacherProfile";
 import ClassManagement from "./pages/staff/ClassManagement";
 import AddClass from "./pages/staff/AddClass";
@@ -56,6 +55,12 @@ import PromotionCodes from "./pages/manager/PromotionCodes";
 import ManagerManagement from "./pages/admin/ManagerManagement";
 import LearnerManagement from "./pages/admin/LearnerManagement";
 import ClassFeedbacks from "./pages/teacher/ClassFeedback";
+import TeacherManagement from "./pages/admin/TeacherManagement";
+import StudentBookingForm from "./pages/home/Booking1-1/index";
+import TopUp from "./pages/home/profile/TopUp";
+import PackageDetail from "./pages/home/package/PackageDetail";
+// import StaffProfile from "./pages/staff/StaffProfile";
+
 export default function App() {
   return (
     <Router>
@@ -67,14 +72,33 @@ export default function App() {
           <Route path="/center-class-detail" element={<CenterClassDetail />} />
           <Route path="/home-allcourse" element={<Courses />} />
           <Route path="/teacher-list" element={<MusicTeachersList />} />
+          <Route path="/search" element={<Search />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/profile/topup" element={<TopUp />} />
+          <Route path="/purchase-history" element={<PurchaseHistory />} />
+          <Route path="/student-schedule" element={<StudentSchedule />} />
+          <Route path="/teacher-profile/:id" element={<TeacherProfile />} />
+          <Route path="/package/:id" element={<PackageDetail />} />
         </Route>
+
+        {/* Admin Routes */}
         <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="admin/staff-management" element={<StaffManagement />} />
+        <Route
+          path="admin/manager-management"
+          element={<ManagerManagement />}
+        />
+        <Route
+          path="admin/learner-management"
+          element={<LearnerManagement />}
+        />
+        <Route
+          path="/admin/teacher-management"
+          element={<TeacherManagement />}
+        />
+
+        {/* Staff Routes */}
         <Route path="/staff" element={<StaffDashboard />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/404" element={<Page404 />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/test" element={<TestFireBase />} />
         <Route
           path="staff/instrument-management"
           element={<InstrumentManagement />}
@@ -90,42 +114,18 @@ export default function App() {
           element={<CourseContentDetail />}
         />
         <Route path="staff/item-type" element={<ItemTypeManagement />} />
-        <Route path="/course/:id" element={<CourseHomeDetails />} />
-        <Route path="/search" element={<Search />} />
-        <Route path="admin/staff-management" element={<StaffManagement />} />
         <Route path="staff/refund-requests" element={<RequestManagement />} />
         <Route
           path="/staff/teacher-center-schedule"
           element={<TeacherCenterSchedule />}
         />
-        <Route path="/staff-profile" element={<StaffProfile />} />
-
+        <Route path="staff/profile" element={<StaffProfile />} />
         <Route
           path="staff/booking1-1-requests"
           element={<Booking11Management />}
         />
-
-        <Route path="/teacher-profile" element={<TeacherProfile />} />
         <Route path="staff/class-management" element={<ClassManagement />} />
         <Route path="staff/add-class" element={<AddClass />} />
-        <Route path="/purchase-history" element={<PurchaseHistory />} />
-        <Route path="/student-schedule" element={<StudentSchedule />} />
-        <Route path="teacher/students" element={<TeacherClassManagement />} />
-        <Route path="manager/revenue" element={<RevenueReport />} />
-        <Route path="/teacher/student-list" element={<StudentList />} />
-        <Route path="teacher/center-schedule" element={<CenterSchedule />} />
-        <Route path="teacher/private-schedule" element={<PrivateSchedule />} />
-        <Route
-          path="/teacher/class-attendance/:classId"
-          element={<ClassAttendance />}
-        />
-        <Route path="/teacher/class-progress" element={<ClassProgress />} />
-        <Route
-          path="/teacher/student-evaluation"
-          element={<StudentEvaluation />}
-        />
-        <Route path="/teacher" element={<TeacherDashBoard />} />
-        <Route path="/teacher/makeup-class" element={<MakeupClass />} />
         <Route
           path="staff/teacher-personal-schedule"
           element={<TeacherPersonalSchedule />}
@@ -146,6 +146,27 @@ export default function App() {
           path="staff/center-class-registration"
           element={<CenterClassRegistration />}
         />
+
+        {/* Teacher Routes */}
+        <Route path="/teacher" element={<TeacherDashBoard />} />
+        <Route path="teacher/students" element={<TeacherClassManagement />} />
+        <Route path="/teacher/student-list" element={<StudentList />} />
+        <Route path="teacher/center-schedule" element={<CenterSchedule />} />
+        <Route path="teacher/private-schedule" element={<PrivateSchedule />} />
+        <Route
+          path="/teacher/class-attendance/:classId"
+          element={<ClassAttendance />}
+        />
+        <Route path="/teacher/class-progress" element={<ClassProgress />} />
+        <Route
+          path="/teacher/student-evaluation"
+          element={<StudentEvaluation />}
+        />
+        <Route path="/teacher/makeup-class" element={<MakeupClass />} />
+        <Route path="/teacher/student-feedback" element={<ClassFeedbacks />} />
+
+        {/* Manager Routes */}
+        <Route path="manager/revenue" element={<RevenueReport />} />
         <Route
           path="manager/revenue/center-class-payments"
           element={<CenterClassPayments />}
@@ -171,15 +192,12 @@ export default function App() {
           element={<HistoryTransaction />}
         />
         <Route path="manager/promotions" element={<PromotionCodes />} />
-        <Route
-          path="admin/manager-management"
-          element={<ManagerManagement />}
-        />
-        <Route
-          path="admin/learner-management"
-          element={<LearnerManagement />}
-        />
-        <Route path="/teacher/student-feedback" element={<ClassFeedbacks />} />
+
+        {/* Auth Routes */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/404" element={<Page404 />} />
+        <Route path="/test" element={<TestFireBase />} />
       </Routes>
     </Router>
   );

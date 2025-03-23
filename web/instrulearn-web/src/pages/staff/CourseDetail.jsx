@@ -39,8 +39,8 @@ import {
 } from "@ant-design/icons";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
-import SSidebar from "../../components/staff/StaffSidebar";
-import SHeader from "../../components/staff/StaffHeader";
+import StaffSidebar from "../../components/staff/StaffSidebar";
+import StaffHeader from "../../components/staff/StaffHeader";
 import CourseContent from "./CourseContent";
 
 const { Content } = Layout;
@@ -52,7 +52,7 @@ const CourseDetail = () => {
   const { courseId } = useParams();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
-  const [selectedMenu, setSelectedMenu] = useState("courses");
+  const [selectedMenu, setSelectedMenu] = useState("course-management");
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
   const [updateLoading, setUpdateLoading] = useState(false);
@@ -90,13 +90,17 @@ const CourseDetail = () => {
       const response = await axios.get(
         `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Course/${courseId}`
       );
-      if (response.data && response.data.data) {
-        setCourse(response.data.data);
-        form.setFieldsValue(response.data.data);
-        setImagePreview(response.data.data.imageUrl);
-      } else if (response.data) {
+      if (response.data) {
         setCourse(response.data);
-        form.setFieldsValue(response.data);
+        form.setFieldsValue({
+          courseName: response.data.courseName,
+          headline: response.data.headline,
+          courseDescription: response.data.courseDescription,
+          price: response.data.price,
+          discount: response.data.discount,
+          imageUrl: response.data.imageUrl,
+          typeId: response.data.typeId,
+        });
         setImagePreview(response.data.imageUrl);
       } else {
         throw new Error("Invalid API response format");
@@ -115,8 +119,15 @@ const CourseDetail = () => {
     setUpdateLoading(true);
     try {
       const updateData = {
-        ...values,
+        coursePackageId: course.coursePackageId,
+        typeId: values.typeId,
+        courseName: values.courseName,
+        courseDescription: values.courseDescription,
+        headline: values.headline,
         rating: course.rating || 0,
+        price: values.price,
+        discount: values.discount,
+        imageUrl: values.imageUrl,
       };
 
       console.log("Sending update with data:", updateData);
@@ -126,39 +137,16 @@ const CourseDetail = () => {
         updateData
       );
 
-      console.log("API response:", response.data);
-
-      if (
-        response.data &&
-        (response.data.isSuccess ||
-          response.data.message?.includes("successfully"))
-      ) {
+      if (response.data && response.data.isSucceed) {
         message.success("Cập nhật khóa học thành công");
         setModalVisible(false);
-        setTimeout(() => {
-          fetchCourseDetail();
-        }, 500);
+        fetchCourseDetail();
       } else {
-        message.warning(
-          response.data?.message || "Cập nhật có vấn đề, vui lòng kiểm tra lại"
-        );
+        throw new Error(response.data?.message || "Cập nhật thất bại");
       }
     } catch (error) {
       console.error("Update error details:", error);
-
-      if (error.message && error.message.includes("successfully")) {
-        message.success("Cập nhật khóa học thành công");
-        setModalVisible(false);
-        setTimeout(() => {
-          fetchCourseDetail();
-        }, 500);
-      } else {
-        const errorMsg =
-          error.response?.data?.message ||
-          error.message ||
-          "Cập nhật khóa học thất bại";
-        message.error(errorMsg);
-      }
+      message.error(error.message || "Cập nhật khóa học thất bại");
     } finally {
       setUpdateLoading(false);
     }
@@ -176,25 +164,30 @@ const CourseDetail = () => {
   };
 
   const handleBackToCourses = () => {
-    navigate("/course-management");
+    navigate("/staff/course-management");
   };
 
   if (loading) {
     return (
       <Layout className="min-h-screen">
-        <SSidebar
+        <StaffSidebar
           collapsed={collapsed}
+          setCollapsed={setCollapsed}
           selectedMenu={selectedMenu}
-          onMenuSelect={setSelectedMenu}
-          toggleCollapsed={() => setCollapsed(!collapsed)}
         />
-        <Layout>
-          <SHeader
-            collapsed={collapsed}
-            toggleCollapsed={() => setCollapsed(!collapsed)}
-            selectedMenu={selectedMenu}
-          />
-          <Content className="p-6 bg-gray-50">
+        <Layout
+          style={{
+            marginLeft: collapsed ? "80px" : "250px",
+            transition: "all 0.2s",
+          }}
+        >
+          <StaffHeader collapsed={collapsed} setCollapsed={setCollapsed} />
+          <Content
+            className="p-6 bg-gray-50"
+            style={{
+              marginTop: "64px",
+            }}
+          >
             <div className="flex items-center justify-center h-full">
               <Spin size="large" tip="Đang tải thông tin khóa học..." />
             </div>
@@ -207,19 +200,24 @@ const CourseDetail = () => {
   if (!course) {
     return (
       <Layout className="min-h-screen">
-        <SSidebar
+        <StaffSidebar
           collapsed={collapsed}
+          setCollapsed={setCollapsed}
           selectedMenu={selectedMenu}
-          onMenuSelect={setSelectedMenu}
-          toggleCollapsed={() => setCollapsed(!collapsed)}
         />
-        <Layout>
-          <SHeader
-            collapsed={collapsed}
-            toggleCollapsed={() => setCollapsed(!collapsed)}
-            selectedMenu={selectedMenu}
-          />
-          <Content className="p-6 bg-gray-50 overflow-auto">
+        <Layout
+          style={{
+            marginLeft: collapsed ? "80px" : "250px",
+            transition: "all 0.2s",
+          }}
+        >
+          <StaffHeader collapsed={collapsed} setCollapsed={setCollapsed} />
+          <Content
+            className="p-6 bg-gray-50"
+            style={{
+              marginTop: "64px",
+            }}
+          >
             <Card bordered={false}>
               <Alert
                 message="Không thể tải thông tin khóa học"
@@ -241,25 +239,30 @@ const CourseDetail = () => {
 
   return (
     <Layout className="min-h-screen">
-      <SSidebar
+      <StaffSidebar
         collapsed={collapsed}
+        setCollapsed={setCollapsed}
         selectedMenu={selectedMenu}
-        onMenuSelect={setSelectedMenu}
-        toggleCollapsed={() => setCollapsed(!collapsed)}
       />
-      <Layout>
-        <SHeader
-          collapsed={collapsed}
-          toggleCollapsed={() => setCollapsed(!collapsed)}
-          selectedMenu={selectedMenu}
-        />
-        <Content className="p-6 bg-gray-50 overflow-auto">
+      <Layout
+        style={{
+          marginLeft: collapsed ? "80px" : "250px",
+          transition: "all 0.2s",
+        }}
+      >
+        <StaffHeader collapsed={collapsed} setCollapsed={setCollapsed} />
+        <Content
+          className="p-6 bg-gray-50"
+          style={{
+            marginTop: "64px",
+          }}
+        >
           <Breadcrumb className="mb-4">
             <Breadcrumb.Item href="/dashboard">
               <HomeOutlined />
               <span className="ml-1">Trang chủ</span>
             </Breadcrumb.Item>
-            <Breadcrumb.Item href="/course-management">
+            <Breadcrumb.Item href="/staff/course-management">
               <BookOutlined />
               <span className="ml-1">Quản lý khóa học</span>
             </Breadcrumb.Item>
@@ -306,7 +309,7 @@ const CourseDetail = () => {
                       size="small"
                     >
                       <Descriptions.Item label="Mã khóa học" span={2}>
-                        {course.courseId}
+                        {course.coursePackageId}
                       </Descriptions.Item>
                       <Descriptions.Item label="Tiêu đề" span={2}>
                         {course.headline}
