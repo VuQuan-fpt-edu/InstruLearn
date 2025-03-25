@@ -186,6 +186,30 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
         Text(
             'Thời lượng học: ${_calculateDuration(widget.registration.timeStart, widget.registration.timeEnd)} phút'),
         Text('Tổng số buổi: ${widget.registration.numberOfSession}'),
+        if (widget.registration.learningRequest?.isNotEmpty == true) ...[
+          const SizedBox(height: 16),
+          const Text(
+            'Mục tiêu học tập:',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.blue[50],
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.blue[200]!),
+            ),
+            child: Text(
+              widget.registration.learningRequest!,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+        ],
         if (widget.registration.status == 'Accepted' &&
             widget.registration.price != null) ...[
           const SizedBox(height: 16),
@@ -199,7 +223,7 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
           Text(
               'Tổng học phí: ${_formatCurrency(widget.registration.price! * widget.registration.numberOfSession)} VNĐ'),
           Text(
-            'Học phí cần thanh toán trước (40%): ${_formatCurrency((widget.registration.price! * widget.registration.numberOfSession * 0.4).round())} VNĐ',
+            'Học phí cần thanh toán trước (40%): ${_formatCurrency((widget.registration.price! * widget.registration.numberOfSession * 40 ~/ 100))} VNĐ',
             style: const TextStyle(
               color: Colors.red,
               fontWeight: FontWeight.bold,

@@ -380,6 +380,11 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
       return;
     }
 
+    if (learningGoalController.text.trim().isEmpty) {
+      _showError('Vui lòng nhập mục tiêu học tập');
+      return;
+    }
+
     bool? confirmed = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
@@ -476,6 +481,7 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
                   .toIso8601String()
                   .split('T')[0],
           'timeLearning': timeLearning,
+          'learningRequest': learningGoalController.text.trim(),
         }),
       );
 
@@ -572,8 +578,8 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
   Widget _buildTeacherSelector() {
     final filteredTeachers = selectedMajorId != null
         ? teachers
-            .where((teacher) =>
-                teacher.majors.any((major) => major.majorId == selectedMajorId))
+            .where((teacher) => teacher.majors.any((major) =>
+                major.majorId == selectedMajorId && major.status == 1))
             .toList()
         : [];
 
@@ -1045,7 +1051,13 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(color: Colors.grey[300]!),
         ),
+        errorText: learningGoalController.text.trim().isEmpty
+            ? 'Vui lòng nhập mục tiêu học tập'
+            : null,
       ),
+      onChanged: (value) {
+        setState(() {});
+      },
     );
   }
 
