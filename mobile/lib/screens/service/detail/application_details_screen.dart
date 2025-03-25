@@ -131,8 +131,6 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
                     _buildInfoSection(
                         'Create date: ${widget.registration.requestDate.split('T')[0]}'),
                     const SizedBox(height: 16),
-                    _buildCenterInfo(),
-                    const SizedBox(height: 16),
                     _buildTeacherInfo(),
                     const SizedBox(height: 16),
                     _buildLearningInfo(),
@@ -156,39 +154,6 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildCenterInfo() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Trung tâm InstrLearn',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.grey[300],
-              ),
-              child: const Icon(Icons.person, size: 30),
-            ),
-            const SizedBox(width: 12),
-            const Expanded(
-              child: Text(
-                'Chào em, trung tâm đã nhận được đơn yêu cầu học kèm của em, trung tâm sẽ là người thực hiện yêu cầu học tập của em',
-                style: TextStyle(fontSize: 14),
-              ),
-            ),
-          ],
-        ),
-      ],
     );
   }
 
@@ -221,6 +186,26 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
         Text(
             'Thời lượng học: ${_calculateDuration(widget.registration.timeStart, widget.registration.timeEnd)} phút'),
         Text('Tổng số buổi: ${widget.registration.numberOfSession}'),
+        if (widget.registration.status == 'Accepted' &&
+            widget.registration.price != null) ...[
+          const SizedBox(height: 16),
+          const Text(
+            'Thông tin học phí:',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Text(
+              'Học phí mỗi buổi: ${_formatCurrency(widget.registration.price!)} VNĐ'),
+          Text(
+              'Tổng học phí: ${_formatCurrency(widget.registration.price! * widget.registration.numberOfSession)} VNĐ'),
+          Text(
+            'Học phí cần thanh toán trước (40%): ${_formatCurrency((widget.registration.price! * widget.registration.numberOfSession * 0.4).round())} VNĐ',
+            style: const TextStyle(
+              color: Colors.red,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -287,6 +272,8 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
   }
 
   Widget _buildFeedback() {
+    if (widget.registration.feedback == null) return const SizedBox.shrink();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -303,9 +290,22 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: Colors.yellow[700]!),
           ),
-          child: Text(
-            widget.registration.feedback ?? '',
-            style: const TextStyle(color: Colors.black87),
+          child: RichText(
+            text: TextSpan(
+              children: [
+                const TextSpan(
+                  text: '[Trung tâm âm nhạc instruLearn]: ',
+                  style: TextStyle(
+                    color: Colors.blue,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                TextSpan(
+                  text: widget.registration.feedback ?? '',
+                  style: const TextStyle(color: Colors.black87),
+                ),
+              ],
+            ),
           ),
         ),
       ],
@@ -325,5 +325,18 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
     final startMinutes = startTime.hour * 60 + startTime.minute;
     final endMinutes = endTime.hour * 60 + endTime.minute;
     return endMinutes - startMinutes;
+  }
+
+  String _formatCurrency(num amount) {
+    final formatted = amount.toStringAsFixed(0);
+    final chars = formatted.split('').reversed.toList();
+    final withCommas = <String>[];
+    for (var i = 0; i < chars.length; i++) {
+      if (i > 0 && i % 3 == 0) {
+        withCommas.add(',');
+      }
+      withCommas.add(chars[i]);
+    }
+    return withCommas.reversed.join('');
   }
 }

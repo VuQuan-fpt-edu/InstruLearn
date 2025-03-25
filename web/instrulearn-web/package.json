@@ -13,6 +13,7 @@
     "antd": "^5.24.2",
     "axios": "^1.8.1",
     "firebase": "^11.4.0",
+    "instrulearn-web": "file:",
     "lucide-react": "^0.479.0",
     "moment": "^2.30.1",
     "react": "^19.0.0",

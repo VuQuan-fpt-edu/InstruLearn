@@ -7,6 +7,7 @@ import 'package:video_player/video_player.dart';
 import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:path/path.dart' as path;
+import '../../models/teacher.dart';
 import '../../services/teacher_service.dart';
 import '../../services/major_service.dart';
 
@@ -53,16 +54,18 @@ class TutoringRegistrationForm extends StatefulWidget {
 }
 
 class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
-  final TeacherService _teacherService = TeacherService();
-  final MajorService _majorService = MajorService();
+  final _teacherService = TeacherService();
+  final _majorService = MajorService();
 
   int learnerId = 0;
   int? selectedTeacherId;
-  int regisTypeId = 1; // Mặc định là "Đơn đăng ký học theo yêu cầu"
+  int regisTypeId = 1;
   int? selectedMajorId;
   String? videoUrl;
   DateTime? selectedTimeStart;
-  int numberOfSession = 5; // Mặc định 5 buổi
+  DateTime? startDay;
+  int timeLearning = 60;
+  int numberOfSession = 5;
   Set<int> selectedLearningDays = {};
   final TextEditingController learningGoalController = TextEditingController();
 
@@ -182,7 +185,7 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
 
       if (token == null) return;
 
-      print('Fetching major test for majorId: $selectedMajorId'); // Debug log
+      print('Fetching major test for majorId: $selectedMajorId');
 
       final response = await http.get(
         Uri.parse(
@@ -194,8 +197,8 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
         },
       );
 
-      print('Response status: ${response.statusCode}'); // Debug log
-      print('Response body: ${response.body}'); // Debug log
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -213,7 +216,7 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
           });
         }
       } else {
-        print('Error fetching major test: ${response.statusCode}'); // Debug log
+        print('Error fetching major test: ${response.statusCode}');
         setState(() {
           isLoadingMajorTest = false;
         });
@@ -246,10 +249,8 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
       final XFile? video = await picker.pickVideo(source: ImageSource.gallery);
 
       if (video != null) {
-        // Dispose old controller if exists
         await _videoController?.dispose();
 
-        // Create new controller
         _videoController = VideoPlayerController.file(File(video.path));
         await _videoController!.initialize();
 
@@ -314,8 +315,7 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
   }
 
   Future<void> _selectDateTime() async {
-    final List<int> availableHours =
-        List.generate(15, (index) => index + 7); // 7:00 đến 21:00
+    final List<int> availableHours = List.generate(15, (index) => index + 7);
 
     final int? selectedHour = await showDialog<int>(
       context: context,
@@ -380,7 +380,6 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
       return;
     }
 
-    // Hiển thị hộp thoại xác nhận
     bool? confirmed = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
@@ -420,7 +419,6 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
 
       String uploadedVideoUrl = '';
 
-      // Upload video to Firebase Storage if exists
       if (videoUrl != null) {
         try {
           final videoFile = File(videoUrl!);
@@ -428,7 +426,6 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
           final storageRef = FirebaseStorage.instance.ref().child('videos').child(
               '$learnerId-${DateTime.now().millisecondsSinceEpoch}-$fileName');
 
-          // Show loading dialog
           showDialog(
             context: context,
             barrierDismissible: false,
@@ -439,24 +436,19 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
             },
           );
 
-          // Upload video
           final uploadTask = storageRef.putFile(videoFile);
           await uploadTask.whenComplete(() => null);
 
-          // Get download URL
           uploadedVideoUrl = await storageRef.getDownloadURL();
 
-          // Close loading dialog
           Navigator.pop(context);
         } catch (e) {
-          // Close loading dialog if error
           Navigator.pop(context);
           _showError('Lỗi khi upload video: $e');
           return;
         }
       }
 
-      // Format timeStart theo định dạng HH:mm:ss
       final String formattedTime =
           '${selectedTimeStart!.hour.toString().padLeft(2, '0')}:00:00';
 
@@ -478,6 +470,12 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
           'requestDate': DateTime.now().toIso8601String(),
           'numberOfSession': numberOfSession,
           'learningDays': selectedLearningDays.toList(),
+          'startDay': startDay?.toIso8601String().split('T')[0] ??
+              DateTime.now()
+                  .add(const Duration(days: 7))
+                  .toIso8601String()
+                  .split('T')[0],
+          'timeLearning': timeLearning,
         }),
       );
 
@@ -538,6 +536,12 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
             _buildSectionTitle('Chọn ngày học'),
             _buildLearningDaysSelector(),
             const SizedBox(height: 24),
+            _buildSectionTitle('Chọn ngày bắt đầu học'),
+            _buildStartDaySelector(),
+            const SizedBox(height: 24),
+            _buildSectionTitle('Thời gian học mỗi buổi'),
+            _buildTimeLearningSelector(),
+            const SizedBox(height: 24),
             _buildSectionTitle('Số buổi học'),
             _buildSessionCountSelector(),
             const SizedBox(height: 24),
@@ -566,6 +570,13 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
   }
 
   Widget _buildTeacherSelector() {
+    final filteredTeachers = selectedMajorId != null
+        ? teachers
+            .where((teacher) =>
+                teacher.majors.any((major) => major.majorId == selectedMajorId))
+            .toList()
+        : [];
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
@@ -576,38 +587,44 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
         child: DropdownButton<int>(
           isExpanded: true,
           value: selectedTeacherId,
-          hint: const Text('Chọn giáo viên'),
-          items: teachers.map((Teacher teacher) {
-            return DropdownMenuItem<int>(
-              value: teacher.teacherId,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    teacher.fullname,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
+          hint: Text(selectedMajorId == null
+              ? 'Vui lòng chọn chuyên ngành trước'
+              : filteredTeachers.isEmpty
+                  ? 'Không có giáo viên cho chuyên ngành này'
+                  : 'Chọn giáo viên'),
+          items: filteredTeachers
+              .map((teacher) => DropdownMenuItem<int>(
+                    value: teacher.teacherId,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          teacher.fullname,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        if (teacher.heading != null)
+                          Text(
+                            teacher.heading!,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                      ],
                     ),
-                  ),
-                  if (teacher.heading != null)
-                    Text(
-                      teacher.heading!,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                ],
-              ),
-            );
-          }).toList(),
-          onChanged: (int? value) {
-            setState(() {
-              selectedTeacherId = value;
-            });
-          },
+                  ))
+              .toList(),
+          onChanged: selectedMajorId == null || filteredTeachers.isEmpty
+              ? null
+              : (int? value) {
+                  setState(() {
+                    selectedTeacherId = value;
+                  });
+                },
         ),
       ),
     );
@@ -634,10 +651,8 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
           onChanged: (int? value) {
             setState(() {
               selectedMajorId = value;
-              // Reset majorTest khi đổi major
               majorTest = null;
             });
-            // Nếu đã chọn kinh nghiệm và không phải là người mới, lấy major test
             if (selectedExperience != null &&
                 selectedExperience != "Tôi chưa chơi nhạc cụ này bao giờ") {
               _fetchMajorTest();
@@ -669,10 +684,8 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
           onChanged: (String? value) {
             setState(() {
               selectedExperience = value;
-              // Reset majorTest khi đổi kinh nghiệm
               majorTest = null;
             });
-            // Nếu đã chọn major và không phải là người mới, lấy major test
             if (selectedMajorId != null &&
                 value != "Tôi chưa chơi nhạc cụ này bao giờ") {
               _fetchMajorTest();
@@ -865,6 +878,133 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
           },
         );
       }),
+    );
+  }
+
+  Widget _buildStartDaySelector() {
+    final DateTime minDate = DateTime.now().add(const Duration(days: 7));
+    final DateTime maxDate = DateTime(
+      DateTime.now().year,
+      DateTime.now().month + 2,
+      0,
+    );
+    List<DateTime> availableDays = [];
+    DateTime currentDate = minDate;
+
+    while (!currentDate.isAfter(maxDate)) {
+      if (selectedLearningDays.contains(currentDate.weekday % 7)) {
+        availableDays.add(currentDate);
+      }
+      currentDate = currentDate.add(const Duration(days: 1));
+    }
+
+    return InkWell(
+      onTap: selectedLearningDays.isEmpty
+          ? null
+          : () async {
+              final DateTime? selectedDate = await showDialog<DateTime>(
+                context: context,
+                builder: (BuildContext context) {
+                  return AlertDialog(
+                    title: const Text('Chọn ngày bắt đầu học'),
+                    content: SizedBox(
+                      width: double.maxFinite,
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: availableDays.length,
+                        itemBuilder: (BuildContext context, int index) {
+                          final date = availableDays[index];
+                          final String dayName = [
+                            'Chủ nhật',
+                            'Thứ 2',
+                            'Thứ 3',
+                            'Thứ 4',
+                            'Thứ 5',
+                            'Thứ 6',
+                            'Thứ 7',
+                          ][date.weekday % 7];
+
+                          return ListTile(
+                            title: Text(
+                                '$dayName ${date.day}/${date.month}/${date.year}'),
+                            onTap: () {
+                              Navigator.of(context).pop(date);
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  );
+                },
+              );
+
+              if (selectedDate != null) {
+                setState(() {
+                  startDay = selectedDate;
+                });
+              }
+            },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey[300]!),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              selectedLearningDays.isEmpty
+                  ? 'Vui lòng chọn ngày học trước'
+                  : startDay != null
+                      ? '${[
+                          'Chủ nhật',
+                          'Thứ 2',
+                          'Thứ 3',
+                          'Thứ 4',
+                          'Thứ 5',
+                          'Thứ 6',
+                          'Thứ 7',
+                        ][startDay!.weekday % 7]} ${startDay!.day}/${startDay!.month}/${startDay!.year}'
+                      : 'Chọn ngày bắt đầu học (sau ${minDate.day}/${minDate.month}/${minDate.year})',
+              style: TextStyle(
+                color: selectedLearningDays.isEmpty || startDay == null
+                    ? Colors.grey[600]
+                    : Colors.black,
+              ),
+            ),
+            const Icon(Icons.calendar_today, color: Colors.grey),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTimeLearningSelector() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey[300]!),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<int>(
+          isExpanded: true,
+          value: timeLearning,
+          hint: const Text('Chọn thời gian học mỗi buổi'),
+          items: [45, 60, 90, 120].map((int minutes) {
+            return DropdownMenuItem<int>(
+              value: minutes,
+              child: Text('$minutes phút'),
+            );
+          }).toList(),
+          onChanged: (int? value) {
+            setState(() {
+              timeLearning = value ?? 60;
+            });
+          },
+        ),
+      ),
     );
   }
 

@@ -49,7 +49,6 @@ class ClassDetailScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Class Info Section
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
@@ -75,8 +74,6 @@ class ClassDetailScreen extends StatelessWidget {
                   ],
                 ),
               ),
-
-              // Teacher Info Section
               Container(
                 margin: const EdgeInsets.all(16),
                 padding: const EdgeInsets.all(16),
@@ -146,8 +143,6 @@ class ClassDetailScreen extends StatelessWidget {
                   ],
                 ),
               ),
-
-              // Students List Section
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 16),
                 child: Column(

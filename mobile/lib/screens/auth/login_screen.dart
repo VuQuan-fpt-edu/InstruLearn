@@ -62,21 +62,51 @@ class _LoginScreenState extends State<LoginScreen> {
               responseData['data']['refreshToken'],
             );
 
-            // Kiểm tra và xử lý learnerId
-            final learnerId = responseData['data']['learnerId'];
-            if (learnerId != null) {
-              await prefs.setInt('learnerId', learnerId);
-            }
-
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  responseData['message'] ?? 'Đăng nhập thành công!',
-                ),
+            final profileResponse = await http.get(
+              Uri.parse(
+                'https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Auth/Profile',
               ),
+              headers: {
+                'Content-Type': 'application/json; charset=UTF-8',
+                'Authorization': 'Bearer ${responseData['data']['token']}',
+              },
             );
 
-            _navigateToHome();
+            if (profileResponse.statusCode == 200) {
+              final profileData = json.decode(profileResponse.body);
+              if (profileData['isSucceed'] == true) {
+                final role = profileData['data']['role'];
+
+                if (role == 'Learner' &&
+                    profileData['data']['learnerId'] != null) {
+                  await prefs.setInt(
+                      'learnerId', profileData['data']['learnerId']);
+                } else if (role == 'Teacher' &&
+                    profileData['data']['teacherId'] != null) {
+                  await prefs.setInt(
+                      'teacherId', profileData['data']['teacherId']);
+                }
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      responseData['message'] ?? 'Đăng nhập thành công!',
+                    ),
+                  ),
+                );
+
+                if (role == 'Teacher') {
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(
+                        builder: (context) => const TeacherHomeScreen()),
+                  );
+                } else {
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(builder: (context) => const HomeScreen()),
+                  );
+                }
+              }
+            }
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -343,22 +373,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                     ],
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(
-                          builder: (context) => const TeacherHomeScreen(),
-                        ),
-                      );
-                    },
-                    child: const Text(
-                      'Teacher Home Screen',
-                      style: TextStyle(
-                        color: Colors.blue,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
                   ),
                 ],
               ),

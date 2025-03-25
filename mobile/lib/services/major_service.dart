@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'teacher_service.dart';
+import '../models/teacher.dart';
 
 class MajorService {
   static const String baseUrl =

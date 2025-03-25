@@ -2,7 +2,7 @@ class LearningRegistration {
   final int learningRegisId;
   final int learnerId;
   final String fullName;
-  final String phoneNumber;
+  final String? phoneNumber;
   final int teacherId;
   final String teacherName;
   final int regisTypeId;
@@ -26,7 +26,7 @@ class LearningRegistration {
     required this.learningRegisId,
     required this.learnerId,
     required this.fullName,
-    required this.phoneNumber,
+    this.phoneNumber,
     required this.teacherId,
     required this.teacherName,
     required this.regisTypeId,
