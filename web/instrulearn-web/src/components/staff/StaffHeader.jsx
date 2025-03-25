@@ -31,7 +31,9 @@ const StaffHeader = ({ collapsed, toggleCollapsed, selectedMenu }) => {
     const fetchUserInfo = async () => {
       try {
         const userProfile = await getCurrentUser();
-        setUsername(userProfile.username);
+        if (userProfile && userProfile.username) {
+          setUsername(userProfile.username);
+        }
       } catch (error) {
         console.error("Error fetching user profile:", error);
         message.error("Không thể tải thông tin người dùng");
@@ -160,13 +162,16 @@ const StaffHeader = ({ collapsed, toggleCollapsed, selectedMenu }) => {
           <BellOutlined className="text-xl cursor-pointer" />
         </Badge>
         <Dropdown
-          overlay={userMenu}
+          menu={{
+            items: userMenuItems,
+            onClick: ({ key }) => handleMenuClick(key),
+          }}
           placement="bottomRight"
           trigger={["click"]}
         >
           <div className="flex items-center cursor-pointer">
             <Avatar icon={<UserOutlined />} />
-            <span className="ml-2">Nguyễn Thị Nhân Viên</span>
+            <span className="ml-2">{username}</span>
           </div>
         </Dropdown>
       </div>

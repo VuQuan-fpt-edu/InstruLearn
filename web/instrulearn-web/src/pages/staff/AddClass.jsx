@@ -30,8 +30,8 @@ import {
   EnvironmentOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
-import SSidebar from "../../components/staff/StaffSidebar";
-import SHeader from "../../components/staff/StaffHeader";
+import StaffSidebar from "../../components/staff/StaffSidebar";
+import StaffHeader from "../../components/staff/StaffHeader";
 import dayjs from "dayjs";
 import locale from "antd/es/date-picker/locale/vi_VN";
 
@@ -139,15 +139,15 @@ const AddClass = () => {
   };
 
   return (
-    <Layout className="h-screen">
-      <SSidebar
+    <Layout style={{ minHeight: "100vh" }}>
+      <StaffSidebar
         collapsed={collapsed}
         selectedMenu={selectedMenu}
         onMenuSelect={setSelectedMenu}
         toggleCollapsed={() => setCollapsed(!collapsed)}
       />
       <Layout>
-        <SHeader
+        <StaffHeader
           collapsed={collapsed}
           toggleCollapsed={() => setCollapsed(!collapsed)}
           selectedMenu={selectedMenu}

@@ -9,73 +9,136 @@ import {
   Space,
   Popconfirm,
   message,
+  Tag,
+  Select,
+  Descriptions,
+  Divider,
+  Row,
+  Col,
+  Card,
+  Avatar,
 } from "antd";
-import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
-import ASidebar from "../../components/admin/AdminSidebar";
-import AHeader from "../../components/admin/AdminHeader";
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  EyeOutlined,
+  LockOutlined,
+  UserOutlined,
+  MailOutlined,
+  UnlockOutlined,
+} from "@ant-design/icons";
+import AdminSidebar from "../../components/admin/AdminSidebar";
+import AdminHeader from "../../components/admin/AdminHeader";
+import axios from "axios";
 
 const { Content } = Layout;
+const { Option } = Select;
 
 const StaffManagement = () => {
-  const [employees, setEmployees] = useState([]);
+  const [staffs, setStaffs] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingEmployee, setEditingEmployee] = useState(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [editingStaff, setEditingStaff] = useState(null);
+  const [selectedStaff, setSelectedStaff] = useState(null);
   const [collapsed, setCollapsed] = useState(false);
   const [selectedMenu, setSelectedMenu] = useState("staff");
   const [form] = Form.useForm();
 
   useEffect(() => {
-    fetchEmployees();
+    fetchStaffs();
   }, []);
 
-  const fetchEmployees = async () => {
-    const data = [
-      {
-        id: 1,
-        name: "Nguyễn Văn A",
-        email: "a@example.com",
-        phone: "123456789",
-      },
-      { id: 2, name: "Trần Thị B", email: "b@example.com", phone: "987654321" },
-    ];
-    setEmployees(data);
+  const fetchStaffs = async () => {
+    try {
+      const response = await axios.get(
+        "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Staff/get-all"
+      );
+      if (response.data.isSucceed) {
+        setStaffs(response.data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching staffs:", error);
+      message.error("Không thể tải danh sách nhân viên!");
+    }
   };
 
   const handleAdd = () => {
-    setEditingEmployee(null);
+    setEditingStaff(null);
     form.resetFields();
     setIsModalOpen(true);
   };
 
   const handleEdit = (record) => {
-    setEditingEmployee(record);
+    setEditingStaff(record);
     form.setFieldsValue(record);
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id) => {
-    setEmployees(employees.filter((emp) => emp.id !== id));
-    message.success("Xóa nhân viên thành công!");
+  const handleBanUnban = async (staffId, isActive) => {
+    try {
+      const endpoint =
+        isActive === 0
+          ? `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Staff/unban/${staffId}`
+          : `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Staff/delete/${staffId}`;
+
+      const response = await axios.delete(endpoint);
+
+      if (response.data.isSucceed) {
+        message.success(
+          isActive === 0
+            ? "Mở khóa tài khoản thành công!"
+            : "Khóa tài khoản thành công!"
+        );
+        fetchStaffs();
+      } else {
+        message.error(response.data.message || "Không thể thực hiện thao tác!");
+      }
+    } catch (error) {
+      console.error("Error banning/unbanning staff:", error);
+      message.error("Không thể thực hiện thao tác!");
+    }
   };
 
   const handleSave = async () => {
     try {
       const values = await form.validateFields();
-      if (editingEmployee) {
-        setEmployees(
-          employees.map((emp) =>
-            emp.id === editingEmployee.id ? { ...emp, ...values } : emp
-          )
-        );
-        message.success("Cập nhật nhân viên thành công!");
+      if (editingStaff) {
+        // TODO: Implement update API call
+        console.log("Update staff:", values);
+        message.success("Cập nhật thông tin nhân viên thành công!");
       } else {
-        setEmployees([...employees, { id: Date.now(), ...values }]);
-        message.success("Thêm nhân viên thành công!");
+        try {
+          const response = await axios.post(
+            "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Staff/create",
+            {
+              email: values.email,
+              username: values.username,
+              fullname: values.fullname,
+              password: values.password,
+            }
+          );
+          if (response.data.isSucceed) {
+            message.success("Thêm nhân viên mới thành công!");
+          } else {
+            message.error(response.data.message || "Không thể thêm nhân viên!");
+          }
+        } catch (error) {
+          console.error("Error creating staff:", error);
+          message.error("Không thể thêm nhân viên!");
+        }
       }
       setIsModalOpen(false);
+      fetchStaffs();
     } catch (error) {
-      console.error(error);
+      console.error("Lỗi khi lưu:", error);
+      message.error("Không thể lưu thông tin nhân viên!");
     }
+  };
+
+  const handleViewDetail = (record) => {
+    setSelectedStaff(record);
+    setIsDetailModalOpen(true);
   };
 
   const toggleCollapsed = () => {
@@ -83,20 +146,69 @@ const StaffManagement = () => {
   };
 
   const columns = [
-    { title: "Tên", dataIndex: "name", key: "name" },
-    { title: "Email", dataIndex: "email", key: "email" },
-    { title: "Số điện thoại", dataIndex: "phone", key: "phone" },
     {
-      title: "Hành động",
+      title: "Họ và tên",
+      dataIndex: "fullname",
+      key: "fullname",
+      width: "25%",
+    },
+    {
+      title: "Tên đăng nhập",
+      dataIndex: "username",
+      key: "username",
+      width: "25%",
+    },
+    {
+      title: "Email",
+      dataIndex: "email",
+      key: "email",
+      width: "25%",
+    },
+    {
+      title: "Trạng thái",
+      dataIndex: "isActive",
+      key: "isActive",
+      width: "15%",
+      render: (isActive) => (
+        <Tag color={isActive === 1 ? "green" : "red"}>
+          {isActive === 1 ? "Hoạt động" : "Đã khóa"}
+        </Tag>
+      ),
+    },
+    {
+      title: "Thao tác",
       key: "action",
+      width: "15%",
       render: (_, record) => (
         <Space>
-          <Button icon={<EditOutlined />} onClick={() => handleEdit(record)} />
+          <Button
+            type="primary"
+            icon={<EditOutlined />}
+            size="small"
+            onClick={() => handleEdit(record)}
+          />
+          <Button
+            icon={<EyeOutlined />}
+            size="small"
+            onClick={() => handleViewDetail(record)}
+          />
           <Popconfirm
-            title="Bạn có chắc chắn xóa?"
-            onConfirm={() => handleDelete(record.id)}
+            title={
+              record.isActive === 0
+                ? "Bạn có chắc chắn muốn mở khóa tài khoản?"
+                : "Bạn có chắc chắn muốn khóa tài khoản?"
+            }
+            onConfirm={() => handleBanUnban(record.staffId, record.isActive)}
+            okText="Đồng ý"
+            cancelText="Hủy"
           >
-            <Button danger icon={<DeleteOutlined />} />
+            <Button
+              type={record.isActive === 0 ? "primary" : "default"}
+              icon={
+                record.isActive === 0 ? <UnlockOutlined /> : <LockOutlined />
+              }
+              size="small"
+            />
           </Popconfirm>
         </Space>
       ),
@@ -104,79 +216,173 @@ const StaffManagement = () => {
   ];
 
   return (
-    <Layout className="h-screen">
-      <ASidebar
+    <Layout style={{ minHeight: "100vh" }}>
+      <AdminSidebar
         collapsed={collapsed}
+        setCollapsed={setCollapsed}
         selectedMenu={selectedMenu}
-        onMenuSelect={setSelectedMenu}
-        toggleCollapsed={toggleCollapsed}
       />
-      <Layout>
-        <AHeader
+      <Layout
+        style={{ marginLeft: collapsed ? 80 : 250, transition: "all 0.2s" }}
+      >
+        <AdminHeader
           collapsed={collapsed}
           toggleCollapsed={toggleCollapsed}
           selectedMenu={selectedMenu}
         />
-        <Content className="p-6 bg-gray-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg">
-            <div className="flex justify-between mb-4">
-              <h2 className="text-xl font-bold">Quản lý Nhân viên</h2>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={handleAdd}
-              >
-                Thêm nhân viên
-              </Button>
-            </div>
-            <Table
-              dataSource={employees}
-              columns={columns}
-              rowKey="id"
-              pagination={{ pageSize: 5 }}
-            />
-            <Modal
-              title={editingEmployee ? "Chỉnh sửa Nhân viên" : "Thêm Nhân viên"}
-              open={isModalOpen}
-              onOk={handleSave}
-              onCancel={() => setIsModalOpen(false)}
-            >
-              <Form form={form} layout="vertical">
-                <Form.Item
-                  name="name"
-                  label="Tên"
-                  rules={[{ required: true, message: "Vui lòng nhập tên!" }]}
-                >
-                  {" "}
-                  <Input />{" "}
-                </Form.Item>
-                <Form.Item
-                  name="email"
-                  label="Email"
-                  rules={[
-                    {
-                      required: true,
-                      type: "email",
-                      message: "Vui lòng nhập email hợp lệ!",
-                    },
-                  ]}
-                >
-                  {" "}
-                  <Input />{" "}
-                </Form.Item>
-                <Form.Item
-                  name="phone"
-                  label="Số điện thoại"
-                  rules={[
-                    { required: true, message: "Vui lòng nhập số điện thoại!" },
-                  ]}
-                >
-                  {" "}
-                  <Input />{" "}
-                </Form.Item>
-              </Form>
-            </Modal>
+        <Content
+          style={{
+            margin: "74px 16px 16px",
+            padding: 24,
+            minHeight: 280,
+            background: "#fff",
+            borderRadius: 8,
+          }}
+        >
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-semibold">Quản lý tài khoản Staff</h2>
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
+              Thêm nhân viên
+            </Button>
           </div>
+
+          <Table
+            dataSource={staffs}
+            columns={columns}
+            rowKey="staffId"
+            pagination={{
+              pageSize: 10,
+              showTotal: (total, range) =>
+                `${range[0]}-${range[1]} của ${total} mục`,
+            }}
+            bordered
+            size="middle"
+          />
+
+          {/* Modal thêm/sửa nhân viên */}
+          <Modal
+            title={editingStaff ? "Chỉnh sửa thông tin" : "Thêm nhân viên mới"}
+            open={isModalOpen}
+            onOk={handleSave}
+            onCancel={() => {
+              setIsModalOpen(false);
+            }}
+            width={700}
+          >
+            <Form form={form} layout="vertical">
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item
+                    name="fullname"
+                    label="Họ và tên"
+                    rules={[
+                      {
+                        required: true,
+                        message: "Vui lòng nhập họ và tên!",
+                      },
+                    ]}
+                  >
+                    <Input prefix={<UserOutlined />} />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item
+                    name="username"
+                    label="Tên đăng nhập"
+                    rules={[
+                      {
+                        required: true,
+                        message: "Vui lòng nhập tên đăng nhập!",
+                      },
+                    ]}
+                  >
+                    <Input prefix={<UserOutlined />} />
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item
+                    name="email"
+                    label="Email"
+                    rules={[
+                      {
+                        required: true,
+                        message: "Vui lòng nhập email!",
+                      },
+                      {
+                        type: "email",
+                        message: "Email không hợp lệ!",
+                      },
+                    ]}
+                  >
+                    <Input prefix={<MailOutlined />} />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item
+                    name="password"
+                    label="Mật khẩu"
+                    rules={[
+                      {
+                        required: true,
+                        message: "Vui lòng nhập mật khẩu!",
+                      },
+                      {
+                        min: 6,
+                        message: "Mật khẩu phải có ít nhất 6 ký tự!",
+                      },
+                    ]}
+                  >
+                    <Input.Password prefix={<LockOutlined />} />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </Form>
+          </Modal>
+
+          {/* Modal xem chi tiết nhân viên */}
+          <Modal
+            title="Chi tiết thông tin nhân viên"
+            open={isDetailModalOpen}
+            onCancel={() => setIsDetailModalOpen(false)}
+            footer={null}
+            width={800}
+          >
+            {selectedStaff && (
+              <>
+                <div className="text-center mb-6">
+                  <Avatar
+                    size={100}
+                    icon={!selectedStaff.avatar && <UserOutlined />}
+                  />
+                  <h2 className="text-xl font-semibold mt-3">
+                    {selectedStaff.fullname}
+                  </h2>
+                  <p className="text-gray-500">{selectedStaff.username}</p>
+                </div>
+
+                <Divider />
+
+                <Card title="Thông tin tài khoản" bordered={false}>
+                  <Descriptions column={2}>
+                    <Descriptions.Item label="Email">
+                      <MailOutlined className="mr-2" />
+                      {selectedStaff.email}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Trạng thái">
+                      <Tag
+                        color={selectedStaff.isActive === 1 ? "green" : "red"}
+                      >
+                        {selectedStaff.isActive === 1 ? "Hoạt động" : "Đã khóa"}
+                      </Tag>
+                    </Descriptions.Item>
+                  </Descriptions>
+                </Card>
+              </>
+            )}
+          </Modal>
         </Content>
       </Layout>
     </Layout>

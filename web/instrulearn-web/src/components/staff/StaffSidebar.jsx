@@ -90,6 +90,12 @@ const StaffSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
       case "class-requests":
         navigate("/staff/center-class-registration");
         break;
+      case "refund-requests":
+        navigate("/staff/refund-requests");
+        break;
+      case "add-class":
+        navigate("/staff/add-class");
+        break;
       default:
         break;
     }
@@ -138,13 +144,15 @@ const StaffSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
         { key: "class-requests", label: "Tham gia lớp" },
         { key: "makeup-class-requests", label: "Yêu cầu học bù" },
         { key: "booking1-1-requests", label: "Học 1-1" },
+        { key: "refund-requests", label: "Yêu cầu hoàn tiền" },
       ],
     },
     {
       key: "progress-tracking",
       icon: <SolutionOutlined />,
-      label: "Theo dõi học tập",
+      label: "Theo dõi lớp học",
       children: [
+        { key: "add-class", label: "Thêm lớp" },
         { key: "class-progress", label: "Tiến độ lớp" },
         { key: "assessments", label: "Đánh giá" },
         { key: "grades", label: "Điểm số" },
