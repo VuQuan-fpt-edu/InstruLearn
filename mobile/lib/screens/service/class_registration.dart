@@ -58,7 +58,6 @@ class _ClassRegistrationScreenState extends State<ClassRegistrationScreen> {
         ),
         child: Column(
           children: [
-            // Image Grid
             Container(
               height: 200,
               padding: const EdgeInsets.all(8),
@@ -78,8 +77,6 @@ class _ClassRegistrationScreenState extends State<ClassRegistrationScreen> {
                 ),
               ),
             ),
-
-            // Instrument Selection
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -101,15 +98,14 @@ class _ClassRegistrationScreenState extends State<ClassRegistrationScreen> {
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
                         value: selectedInstrument,
-                        items:
-                            ['Guitar', 'Piano', 'Violin', 'Drums'].map((
-                              String value,
-                            ) {
-                              return DropdownMenuItem<String>(
-                                value: value,
-                                child: Text(value),
-                              );
-                            }).toList(),
+                        items: ['Guitar', 'Piano', 'Violin', 'Drums'].map((
+                          String value,
+                        ) {
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(value),
+                          );
+                        }).toList(),
                         onChanged: (newValue) {
                           setState(() {
                             selectedInstrument = newValue!;
@@ -121,8 +117,6 @@ class _ClassRegistrationScreenState extends State<ClassRegistrationScreen> {
                 ],
               ),
             ),
-
-            // Class List
             Expanded(
               child: ListView.builder(
                 padding: const EdgeInsets.all(16),
@@ -151,21 +145,19 @@ class _ClassRegistrationScreenState extends State<ClassRegistrationScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder:
-                                    (context) => ClassDetailScreen(
-                                      className: classInfo.name,
-                                      classCode: classInfo.code,
-                                      startDate: classInfo.startDate,
-                                      endDate: classInfo.endDate,
-                                      timeSlot: classInfo.timeSlot,
-                                      teacherName: classInfo.teacher,
-                                      teacherSpecialty: 'Nghệ sĩ Guitar',
-                                      teacherSchool:
-                                          'Giáo viên hướng dẫn - HungLD\nTốt nghiệp Học viện âm nhạc TP.HCM',
-                                      currentStudents:
-                                          classInfo.currentStudents,
-                                      maxStudents: classInfo.maxStudents,
-                                    ),
+                                builder: (context) => ClassDetailScreen(
+                                  className: classInfo.name,
+                                  classCode: classInfo.code,
+                                  startDate: classInfo.startDate,
+                                  endDate: classInfo.endDate,
+                                  timeSlot: classInfo.timeSlot,
+                                  teacherName: classInfo.teacher,
+                                  teacherSpecialty: 'Nghệ sĩ Guitar',
+                                  teacherSchool:
+                                      'Giáo viên hướng dẫn - HungLD\nTốt nghiệp Học viện âm nhạc TP.HCM',
+                                  currentStudents: classInfo.currentStudents,
+                                  maxStudents: classInfo.maxStudents,
+                                ),
                               ),
                             );
                           },
@@ -204,9 +196,7 @@ class _ClassRegistrationScreenState extends State<ClassRegistrationScreen> {
                           ),
                         ),
                         InkWell(
-                          onTap: () {
-                            // Xử lý khi nhấn nút tham gia
-                          },
+                          onTap: () {},
                           child: Container(
                             width: double.infinity,
                             padding: const EdgeInsets.symmetric(vertical: 12),

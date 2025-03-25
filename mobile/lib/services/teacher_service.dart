@@ -1,55 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-
-class Teacher {
-  final int teacherId;
-  final String accountId;
-  final String fullname;
-  final String? heading;
-  final String? details;
-  final String? links;
-  final Major major;
-
-  Teacher({
-    required this.teacherId,
-    required this.accountId,
-    required this.fullname,
-    this.heading,
-    this.details,
-    this.links,
-    required this.major,
-  });
-
-  factory Teacher.fromJson(Map<String, dynamic> json) {
-    return Teacher(
-      teacherId: json['teacherId'],
-      accountId: json['accountId'],
-      fullname: json['fullname'],
-      heading: json['heading'],
-      details: json['details'],
-      links: json['links'],
-      major: Major.fromJson(json['major']),
-    );
-  }
-}
-
-class Major {
-  final int majorId;
-  final String majorName;
-
-  Major({
-    required this.majorId,
-    required this.majorName,
-  });
-
-  factory Major.fromJson(Map<String, dynamic> json) {
-    return Major(
-      majorId: json['majorId'],
-      majorName: json['majorName'],
-    );
-  }
-}
+import '../models/teacher.dart';
 
 class TeacherService {
   static const String baseUrl =

@@ -31,7 +31,6 @@ class CourseService {
           final List<dynamic> purchases = jsonResponse['data'];
           final List<CoursePackage> courses = [];
 
-          // Lấy thông tin khóa học từ mỗi purchase item
           for (var purchase in purchases) {
             final List<dynamic> purchaseItems = purchase['purchaseItems'] ?? [];
             for (var item in purchaseItems) {
