@@ -51,19 +51,19 @@ class CoursePackage {
 class CourseContent {
   final int contentId;
   final int coursePackageId;
-  final String title;
+  final String heading;
   final List<CourseContentItem> courseContentItems;
 
   CourseContent({
     required this.contentId,
     required this.coursePackageId,
-    required this.title,
+    required this.heading,
     required this.courseContentItems,
   });
 
   String? get videoUrl {
     final videoItem = courseContentItems.firstWhere(
-      (item) => item.itemTypeId == 1,
+      (item) => item.itemTypeId == 2,
       orElse: () => CourseContentItem(
         itemId: 0,
         itemTypeId: 0,
@@ -71,14 +71,14 @@ class CourseContent {
         itemDes: '',
       ),
     );
-    return videoItem.itemTypeId == 1 ? videoItem.itemDes : null;
+    return videoItem.itemTypeId == 2 ? videoItem.itemDes : null;
   }
 
   factory CourseContent.fromJson(Map<String, dynamic> json) {
     return CourseContent(
       contentId: json['contentId'] ?? 0,
       coursePackageId: json['coursePackageId'] ?? 0,
-      title: json['heading'] ?? '',
+      heading: json['heading'] ?? '',
       courseContentItems: (json['courseContentItems'] as List<dynamic>?)
               ?.map((x) => CourseContentItem.fromJson(x))
               .toList() ??

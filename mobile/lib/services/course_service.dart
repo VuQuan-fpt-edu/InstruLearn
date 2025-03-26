@@ -49,7 +49,7 @@ class CourseService {
                                 contentId: content['contentId'] ?? 0,
                                 coursePackageId:
                                     content['coursePackageId'] ?? 0,
-                                title: content['heading'] ?? '',
+                                heading: content['heading'] ?? '',
                                 courseContentItems: (content[
                                                 'courseContentItems']
                                             as List<dynamic>?)

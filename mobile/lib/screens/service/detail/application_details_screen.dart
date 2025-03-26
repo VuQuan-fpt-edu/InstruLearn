@@ -219,11 +219,9 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-              'Học phí mỗi buổi: ${_formatCurrency(widget.registration.price!)} VNĐ'),
+              'Tổng học phí: ${_formatCurrency(widget.registration.price!)} VNĐ'),
           Text(
-              'Tổng học phí: ${_formatCurrency(widget.registration.price! * widget.registration.numberOfSession)} VNĐ'),
-          Text(
-            'Học phí cần thanh toán trước (40%): ${_formatCurrency((widget.registration.price! * widget.registration.numberOfSession * 40 ~/ 100))} VNĐ',
+            'Học phí cần thanh toán trước (40%): ${_formatCurrency((widget.registration.price! * 40 ~/ 100))} VNĐ',
             style: const TextStyle(
               color: Colors.red,
               fontWeight: FontWeight.bold,

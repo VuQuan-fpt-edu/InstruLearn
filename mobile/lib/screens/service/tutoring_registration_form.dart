@@ -370,6 +370,17 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
       return;
     }
 
+    if (selectedExperience == null) {
+      _showError('Vui lòng chọn kinh nghiệm của bạn');
+      return;
+    }
+
+    if (selectedExperience != "Tôi chưa chơi nhạc cụ này bao giờ" &&
+        videoUrl == null) {
+      _showError('Vui lòng tải video đánh giá trình độ lên');
+      return;
+    }
+
     if (selectedTimeStart == null) {
       _showError('Vui lòng chọn thời gian bắt đầu');
       return;
@@ -691,6 +702,13 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
             setState(() {
               selectedExperience = value;
               majorTest = null;
+              if (value == "Tôi chưa chơi nhạc cụ này bao giờ") {
+                if (_videoController != null) {
+                  _videoController!.dispose();
+                  _videoController = null;
+                }
+                videoUrl = null;
+              }
             });
             if (selectedMajorId != null &&
                 value != "Tôi chưa chơi nhạc cụ này bao giờ") {
@@ -703,11 +721,8 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
   }
 
   Widget _buildVideoUploadSection() {
-    if (selectedExperience == null) {
-      return const SizedBox.shrink();
-    }
-
-    if (selectedExperience == "Tôi chưa chơi nhạc cụ này bao giờ") {
+    if (selectedExperience == null ||
+        selectedExperience == "Tôi chưa chơi nhạc cụ này bao giờ") {
       return const SizedBox.shrink();
     }
 
@@ -749,14 +764,23 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Vui lòng quay video theo yêu cầu trên và tải lên:',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.black87,
-              ),
-            ),
           ],
+          const Text(
+            'Vui lòng quay video theo yêu cầu trên và tải lên:',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            '* Bắt buộc tải video lên để đánh giá trình độ',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.red,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
           const SizedBox(height: 16),
           if (videoUrl != null) ...[
             Container(
@@ -780,7 +804,7 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
                     _videoController!.value.isPlaying
                         ? Icons.pause
                         : Icons.play_arrow,
-                    color: Colors.white,
+                    color: Colors.blue,
                   ),
                   onPressed: () {
                     setState(() {

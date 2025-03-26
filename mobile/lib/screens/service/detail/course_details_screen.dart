@@ -789,8 +789,12 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                           child: Stack(
                             alignment: Alignment.center,
                             children: [
-                              const Icon(
-                                Icons.play_circle_outline,
+                              Icon(
+                                item.itemTypeId == 1
+                                    ? Icons.image
+                                    : item.itemTypeId == 2
+                                        ? Icons.play_circle_outline
+                                        : Icons.description,
                                 size: 32,
                                 color: Colors.white,
                               ),
@@ -806,9 +810,13 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                                     color: Colors.black.withOpacity(0.7),
                                     borderRadius: BorderRadius.circular(4),
                                   ),
-                                  child: const Text(
-                                    'Video',
-                                    style: TextStyle(
+                                  child: Text(
+                                    item.itemTypeId == 1
+                                        ? 'Hình ảnh'
+                                        : item.itemTypeId == 2
+                                            ? 'Video'
+                                            : 'Tài liệu',
+                                    style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 10,
                                     ),
@@ -826,7 +834,11 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                           ),
                         ),
                         subtitle: Text(
-                          'Bài học video',
+                          item.itemTypeId == 1
+                              ? 'Bài học hình ảnh'
+                              : item.itemTypeId == 2
+                                  ? 'Bài học video'
+                                  : 'Tài liệu học tập',
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey[600],
@@ -834,15 +846,43 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                         ),
                         onTap: () {
                           if (isPurchased) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => VideoPlayerScreen(
-                                  title: 'Bài ${index + 1}',
-                                  videoUrl: item.itemDes,
+                            if (item.itemTypeId == 2) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => VideoPlayerScreen(
+                                    title: 'Bài ${index + 1}',
+                                    videoUrl: item.itemDes,
+                                  ),
                                 ),
-                              ),
-                            );
+                              );
+                            } else if (item.itemTypeId == 1) {
+                              showDialog(
+                                context: context,
+                                builder: (context) => Dialog(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Image.network(
+                                        item.itemDes,
+                                        fit: BoxFit.contain,
+                                      ),
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context),
+                                        child: const Text('Đóng'),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                      'Tính năng xem tài liệu đang được phát triển'),
+                                ),
+                              );
+                            }
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(

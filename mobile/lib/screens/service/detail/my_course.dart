@@ -17,6 +17,7 @@ class _MyCourseScreenState extends State<MyCourseScreen> {
   late VideoPlayerController? _videoController;
   ChewieController? _chewieController;
   int _selectedContentIndex = 0;
+  int _selectedItemIndex = 0;
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -26,40 +27,44 @@ class _MyCourseScreenState extends State<MyCourseScreen> {
   }
 
   Future<void> _initializeVideo() async {
-    if (widget.course.courseContents.isNotEmpty &&
-        widget.course.courseContents[_selectedContentIndex].videoUrl != null) {
-      _videoController = VideoPlayerController.network(
-        widget.course.courseContents[_selectedContentIndex].videoUrl!,
-      );
+    if (widget.course.courseContents.isNotEmpty) {
+      final content = widget.course.courseContents[_selectedContentIndex];
+      if (_selectedItemIndex < content.courseContentItems.length) {
+        final item = content.courseContentItems[_selectedItemIndex];
 
-      try {
-        await _videoController!.initialize();
-        _chewieController = ChewieController(
-          videoPlayerController: _videoController!,
-          autoPlay: false,
-          looping: false,
-          aspectRatio: _videoController!.value.aspectRatio,
-          placeholder: Container(
-            color: Colors.black,
-          ),
-          materialProgressColors: ChewieProgressColors(
-            playedColor: const Color(0xFF8C9EFF),
-            handleColor: const Color(0xFF8C9EFF),
-            backgroundColor: Colors.grey,
-            bufferedColor: Colors.grey[400]!,
-          ),
-          showControlsOnInitialize: false,
-          allowFullScreen: true,
-          deviceOrientationsAfterFullScreen: [DeviceOrientation.portraitUp],
-        );
-        setState(() {});
-      } catch (e) {
-        print('Lỗi khi khởi tạo video: $e');
+        if (item.itemTypeId == 2) {
+          _videoController = VideoPlayerController.network(item.itemDes);
+
+          try {
+            await _videoController!.initialize();
+            _chewieController = ChewieController(
+              videoPlayerController: _videoController!,
+              autoPlay: false,
+              looping: false,
+              aspectRatio: _videoController!.value.aspectRatio,
+              placeholder: Container(
+                color: Colors.black,
+              ),
+              materialProgressColors: ChewieProgressColors(
+                playedColor: const Color(0xFF8C9EFF),
+                handleColor: const Color(0xFF8C9EFF),
+                backgroundColor: Colors.grey,
+                bufferedColor: Colors.grey[400]!,
+              ),
+              showControlsOnInitialize: false,
+              allowFullScreen: true,
+              deviceOrientationsAfterFullScreen: [DeviceOrientation.portraitUp],
+            );
+            setState(() {});
+          } catch (e) {
+            print('Lỗi khi khởi tạo video: $e');
+          }
+        }
       }
     }
   }
 
-  Future<void> _changeVideo(int index) async {
+  Future<void> _changeContent(int contentIndex, int itemIndex) async {
     if (_videoController != null) {
       await _videoController!.dispose();
     }
@@ -68,7 +73,8 @@ class _MyCourseScreenState extends State<MyCourseScreen> {
     }
 
     setState(() {
-      _selectedContentIndex = index;
+      _selectedContentIndex = contentIndex;
+      _selectedItemIndex = itemIndex;
       _videoController = null;
       _chewieController = null;
     });
@@ -99,7 +105,7 @@ class _MyCourseScreenState extends State<MyCourseScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildVideoPlayer(),
+                _buildContentDisplay(),
                 _buildCourseInfo(),
                 const Padding(
                   padding: EdgeInsets.all(16.0),
@@ -157,6 +163,61 @@ class _MyCourseScreenState extends State<MyCourseScreen> {
       ),
       backgroundColor: const Color(0xFF8C9EFF),
     );
+  }
+
+  Widget _buildContentDisplay() {
+    if (widget.course.courseContents.isEmpty) {
+      return Container(
+        height: 200,
+        color: Colors.black,
+        child: const Center(
+          child: Text(
+            'Không có nội dung',
+            style: TextStyle(color: Colors.white),
+          ),
+        ),
+      );
+    }
+
+    final content = widget.course.courseContents[_selectedContentIndex];
+    if (_selectedItemIndex >= content.courseContentItems.length) {
+      return Container(
+        height: 200,
+        color: Colors.black,
+        child: const Center(
+          child: Text(
+            'Không có nội dung hiển thị',
+            style: TextStyle(color: Colors.white),
+          ),
+        ),
+      );
+    }
+
+    final item = content.courseContentItems[_selectedItemIndex];
+
+    if (item.itemTypeId == 2) {
+      return _buildVideoPlayer();
+    } else if (item.itemTypeId == 1) {
+      return Container(
+        height: 200,
+        color: Colors.black,
+        child: Image.network(
+          item.itemDes,
+          fit: BoxFit.contain,
+        ),
+      );
+    } else {
+      return Container(
+        height: 200,
+        color: Colors.black,
+        child: const Center(
+          child: Text(
+            'Tài liệu không thể hiển thị',
+            style: TextStyle(color: Colors.white),
+          ),
+        ),
+      );
+    }
   }
 
   Widget _buildVideoPlayer() {
@@ -235,7 +296,6 @@ class _MyCourseScreenState extends State<MyCourseScreen> {
       delegate: SliverChildBuilderDelegate(
         (context, index) {
           final content = widget.course.courseContents[index];
-          final hasVideo = content.videoUrl != null;
           final isSelected = _selectedContentIndex == index;
 
           return Container(
@@ -253,11 +313,7 @@ class _MyCourseScreenState extends State<MyCourseScreen> {
                 width: 1,
               ),
             ),
-            child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 8,
-              ),
+            child: ExpansionTile(
               leading: Container(
                 width: 40,
                 height: 40,
@@ -267,37 +323,121 @@ class _MyCourseScreenState extends State<MyCourseScreen> {
                       : const Color(0xFF8C9EFF).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: Icon(
-                  hasVideo ? Icons.play_circle_outline : Icons.image,
-                  color: isSelected ? Colors.white : const Color(0xFF8C9EFF),
+                child: Center(
+                  child: Text(
+                    (index + 1).toString(),
+                    style: TextStyle(
+                      color:
+                          isSelected ? Colors.white : const Color(0xFF8C9EFF),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ),
               title: Text(
-                content.title,
+                content.heading,
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                   color: isSelected ? const Color(0xFF8C9EFF) : Colors.black,
                 ),
               ),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 4),
-                  Text(
-                    hasVideo ? 'Video bài học' : 'Tài liệu học tập',
+              children: content.courseContentItems.asMap().entries.map((entry) {
+                final itemIndex = entry.key;
+                final item = entry.value;
+                final isItemSelected = _selectedContentIndex == index &&
+                    _selectedItemIndex == itemIndex;
+
+                return ListTile(
+                  leading: Container(
+                    width: 120,
+                    height: 68,
+                    decoration: BoxDecoration(
+                      color: isItemSelected
+                          ? const Color(0xFF8C9EFF).withOpacity(0.1)
+                          : Colors.grey[200],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Icon(
+                          item.itemTypeId == 1
+                              ? Icons.image
+                              : item.itemTypeId == 2
+                                  ? Icons.play_circle_outline
+                                  : Icons.description,
+                          size: 32,
+                          color: isItemSelected
+                              ? const Color(0xFF8C9EFF)
+                              : Colors.white,
+                        ),
+                        Positioned(
+                          bottom: 4,
+                          right: 4,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.7),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              item.itemTypeId == 1
+                                  ? 'Hình ảnh'
+                                  : item.itemTypeId == 2
+                                      ? 'Video'
+                                      : 'Tài liệu',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  title: Text(
+                    'Bài giảng ${itemIndex + 1}',
                     style: TextStyle(
                       fontSize: 14,
+                      fontWeight:
+                          isItemSelected ? FontWeight.bold : FontWeight.w500,
+                      color: isItemSelected
+                          ? const Color(0xFF8C9EFF)
+                          : Colors.black,
+                    ),
+                  ),
+                  subtitle: Text(
+                    item.itemTypeId == 1
+                        ? 'Bài học hình ảnh'
+                        : item.itemTypeId == 2
+                            ? 'Bài học video'
+                            : 'Tài liệu học tập',
+                    style: TextStyle(
+                      fontSize: 12,
                       color: Colors.grey[600],
                     ),
                   ),
-                ],
-              ),
-              onTap: hasVideo ? () => _changeVideo(index) : null,
-              enabled: hasVideo,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+                  onTap: () {
+                    if (item.itemTypeId == 2) {
+                      _changeContent(index, itemIndex);
+                    } else if (item.itemTypeId == 1) {
+                      _changeContent(index, itemIndex);
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                              'Tính năng xem tài liệu đang được phát triển'),
+                        ),
+                      );
+                    }
+                  },
+                );
+              }).toList(),
             ),
           );
         },
