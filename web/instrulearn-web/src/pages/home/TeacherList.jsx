@@ -34,28 +34,46 @@ export default function MusicTeachersList() {
       );
 
       if (response.data) {
-        // Nhóm giáo viên theo majorName
-        const groupedTeachers = response.data.reduce((acc, teacher) => {
-          const majorName = teacher.data.major.majorName;
-          if (!acc[majorName]) {
-            acc[majorName] = {
-              instrument: majorName,
-              description: `Học ${majorName} để phát triển kỹ năng chơi nhạc cụ`,
-              teachers: [],
-            };
-          }
-          acc[majorName].teachers.push({
-            id: teacher.data.teacherId,
-            name: teacher.data.fullname,
-            experience: teacher.data.heading || "Chưa có thông tin",
-            details: teacher.data.details || "Chưa có mô tả",
-            image: "https://randomuser.me/api/portraits/men/1.jpg",
-            links: teacher.data.links,
-          });
-          return acc;
-        }, {});
+        // Tạo một map để lưu trữ giáo viên theo nhạc cụ
+        const teachersByInstrument = {};
 
-        const teachersArray = Object.values(groupedTeachers);
+        // Lặp qua từng giáo viên
+        response.data.forEach((teacherResponse) => {
+          if (teacherResponse.isSucceed && teacherResponse.data) {
+            const teacher = teacherResponse.data;
+
+            // Lặp qua từng nhạc cụ của giáo viên
+            teacher.majors.forEach((major) => {
+              if (!teachersByInstrument[major.majorName]) {
+                teachersByInstrument[major.majorName] = {
+                  instrument: major.majorName,
+                  description: `Học ${major.majorName} để phát triển kỹ năng chơi nhạc cụ`,
+                  teachers: [],
+                };
+              }
+
+              // Thêm giáo viên vào danh sách của nhạc cụ
+              teachersByInstrument[major.majorName].teachers.push({
+                id: teacher.teacherId,
+                name: teacher.fullname,
+                experience: teacher.heading || "Chưa có thông tin",
+                details: teacher.details || "Chưa có mô tả",
+                image:
+                  teacher.avatar ||
+                  "https://randomuser.me/api/portraits/men/1.jpg",
+                phoneNumber: teacher.phoneNumber,
+                gender: teacher.gender,
+                address: teacher.address,
+                dateOfEmployment: teacher.dateOfEmployment,
+                isActive: teacher.isActive,
+                majors: teacher.majors,
+                links: teacher.links,
+              });
+            });
+          }
+        });
+
+        const teachersArray = Object.values(teachersByInstrument);
         setTeachers(teachersArray);
         setExpandedCategories(teachersArray.map((cat) => cat.instrument));
       }

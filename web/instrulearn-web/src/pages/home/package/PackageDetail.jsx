@@ -23,6 +23,8 @@ import {
   MessageOutlined,
   QuestionCircleOutlined,
   FileImageOutlined,
+  FileTextOutlined,
+  VideoCameraOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
 
@@ -597,12 +599,16 @@ export default function PackageDetail() {
                         onClick={() => handleVideoClick(item)}
                       >
                         {item.itemTypeId === 1 ? (
-                          <PlayCircleFilled className="text-2xl text-purple-600 mr-3" />
-                        ) : (
                           <FileImageOutlined className="text-2xl text-purple-600 mr-3" />
+                        ) : item.itemTypeId === 2 ? (
+                          <VideoCameraOutlined className="text-2xl text-purple-600 mr-3" />
+                        ) : (
+                          <FileTextOutlined className="text-2xl text-purple-600 mr-3" />
                         )}
                         <span>
                           {item.itemTypeId === 1
+                            ? "Hình ảnh bài học"
+                            : item.itemTypeId === 2
                             ? "Video bài học"
                             : "Tài liệu bài học"}
                         </span>
@@ -1141,7 +1147,7 @@ export default function PackageDetail() {
             type="primary"
             onClick={() => {
               setShowSuccessModal(false);
-              navigate("/profile/courses");
+              navigate("/profile");
             }}
             style={{ width: "100%" }}
             className="bg-purple-600 hover:bg-purple-700 h-10 text-base font-medium"
@@ -1224,6 +1230,21 @@ export default function PackageDetail() {
         {selectedVideo && (
           <div className="space-y-4">
             {selectedVideo.itemTypeId === 1 ? (
+              <div className="mt-4">
+                <h3 className="text-lg font-semibold mb-2">Hình ảnh bài học</h3>
+                <img
+                  src={selectedVideo.itemDes}
+                  alt="Hình ảnh bài học"
+                  className="w-full rounded-lg shadow-md"
+                  onError={(e) => {
+                    console.error("Image error:", e);
+                    message.error(
+                      "Không thể tải hình ảnh. Vui lòng thử lại sau."
+                    );
+                  }}
+                />
+              </div>
+            ) : selectedVideo.itemTypeId === 2 ? (
               <div className="aspect-w-16 aspect-h-9">
                 <video
                   controls
@@ -1243,17 +1264,17 @@ export default function PackageDetail() {
             ) : (
               <div className="mt-4">
                 <h3 className="text-lg font-semibold mb-2">Tài liệu bài học</h3>
-                <img
-                  src={selectedVideo.itemDes}
-                  alt="Tài liệu bài học"
-                  className="w-full rounded-lg shadow-md"
-                  onError={(e) => {
-                    console.error("Image error:", e);
-                    message.error(
-                      "Không thể tải hình ảnh. Vui lòng thử lại sau."
-                    );
-                  }}
-                />
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <a
+                    href={selectedVideo.itemDes}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-purple-600 hover:text-purple-800 flex items-center"
+                  >
+                    <FileTextOutlined className="mr-2" />
+                    Xem tài liệu
+                  </a>
+                </div>
               </div>
             )}
           </div>

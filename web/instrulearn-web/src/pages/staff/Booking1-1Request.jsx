@@ -203,15 +203,13 @@ const Booking11Management = () => {
         "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/LearningRegis/get-all"
       );
       if (response.data?.isSucceed) {
-        // Chuyển đổi dữ liệu sang tiếng Việt
-        const vietnameseData = response.data.data.map((booking) =>
-          convertBookingDataToVietnamese(booking)
-        );
-        // Sắp xếp theo ngày yêu cầu mới nhất
-        const sortedData = vietnameseData.sort((a, b) => {
-          return new Date(b.requestDate) - new Date(a.requestDate);
-        });
-        setBookings(sortedData);
+        const bookings = response.data.data.map((booking) => ({
+          ...booking,
+          learningDays: booking.learningDays.map((day) =>
+            convertDayToVietnamese(day)
+          ),
+        }));
+        setBookings(bookings);
       } else {
         throw new Error(
           response.data?.message || "Không thể tải danh sách yêu cầu"
@@ -232,7 +230,6 @@ const Booking11Management = () => {
 
       const updateData = {
         learningRegisId: booking.learningRegisId,
-        startDay: values.startDay.format("YYYY-MM-DD"),
         score: values.score || 0,
         levelAssigned: values.levelAssigned,
         price: values.price || 0,
@@ -319,31 +316,35 @@ const Booking11Management = () => {
     form.resetFields();
   };
 
-  const filteredBookings = bookings.filter((booking) => {
-    // Lọc theo text tìm kiếm
-    const searchMatches =
-      booking.fullName?.toLowerCase().includes(searchText.toLowerCase()) ||
-      booking.teacherName?.toLowerCase().includes(searchText.toLowerCase()) ||
-      booking.majorName?.toLowerCase().includes(searchText.toLowerCase()) ||
-      false;
+  const filteredBookings = bookings
+    .filter((booking) => {
+      // Lọc theo text tìm kiếm
+      const searchMatches =
+        booking.fullName?.toLowerCase().includes(searchText.toLowerCase()) ||
+        booking.teacherName?.toLowerCase().includes(searchText.toLowerCase()) ||
+        booking.majorName?.toLowerCase().includes(searchText.toLowerCase()) ||
+        false;
 
-    // Lọc theo nhạc cụ
-    const instrumentMatches =
-      !instrumentFilter || booking.majorName === instrumentFilter;
+      // Lọc theo nhạc cụ
+      const instrumentMatches =
+        !instrumentFilter || booking.majorName === instrumentFilter;
 
-    // Lọc theo trạng thái
-    const statusMatches = !statusFilter || booking.status === statusFilter;
+      // Lọc theo trạng thái
+      const statusMatches = !statusFilter || booking.status === statusFilter;
 
-    // Lọc theo khoảng thời gian
-    const dateMatches =
-      !dateRange ||
-      !dateRange[0] ||
-      !dateRange[1] ||
-      (dayjs(booking.requestDate).isAfter(dateRange[0], "day") &&
-        dayjs(booking.requestDate).isBefore(dateRange[1], "day"));
+      // Lọc theo khoảng thời gian
+      const dateMatches =
+        !dateRange ||
+        !dateRange[0] ||
+        !dateRange[1] ||
+        (dayjs(booking.requestDate).isAfter(dateRange[0], "day") &&
+          dayjs(booking.requestDate).isBefore(dateRange[1], "day"));
 
-    return searchMatches && instrumentMatches && statusMatches && dateMatches;
-  });
+      return searchMatches && instrumentMatches && statusMatches && dateMatches;
+    })
+    .sort(
+      (a, b) => dayjs(b.requestDate).valueOf() - dayjs(a.requestDate).valueOf()
+    ); // Sắp xếp theo thời gian mới nhất
 
   const columns = [
     {
@@ -351,36 +352,32 @@ const Booking11Management = () => {
       dataIndex: "fullName",
       key: "fullName",
       render: (text) => <span className="font-medium">{text}</span>,
-      sorter: (a, b) => a.fullName.localeCompare(b.fullName),
+      width: 150,
     },
     {
       title: "Nhạc cụ",
       dataIndex: "majorName",
       key: "majorName",
       render: (text) => <Tag color="blue">{text}</Tag>,
-      sorter: (a, b) => a.majorName.localeCompare(b.majorName),
+      width: 100,
     },
     {
       title: "Giáo viên",
       dataIndex: "teacherName",
       key: "teacherName",
-      render: (text) => <span>{text}</span>,
-      sorter: (a, b) => a.teacherName.localeCompare(b.teacherName),
+      width: 150,
     },
     {
       title: "Thời gian học",
       key: "schedule",
-      render: (_, record) => (
-        <span>
-          {record.timeStart?.substring(0, 5)} -{" "}
-          {record.timeEnd?.substring(0, 5)}
-        </span>
-      ),
+      render: (_, record) => <span>{record.timeLearning} phút</span>,
+      width: 120,
     },
     {
       title: "Số buổi",
       dataIndex: "numberOfSession",
       key: "numberOfSession",
+      width: 80,
     },
     {
       title: "Video",
@@ -400,16 +397,25 @@ const Booking11Management = () => {
           )}
         </>
       ),
+      width: 100,
     },
     {
       title: "Trạng thái",
       dataIndex: "status",
       key: "status",
       render: (status) => getStatusTag(status),
+      filters: [
+        { text: "Chờ xác nhận", value: "Pending" },
+        { text: "Đã chấp nhận", value: "Accepted" },
+        { text: "Từ chối", value: "Rejected" },
+      ],
+      onFilter: (value, record) => record.status === value,
+      width: 120,
     },
     {
       title: "Hành động",
       key: "actions",
+      fixed: "right",
       render: (_, record) => (
         <Space size="small">
           <Tooltip title="Xem chi tiết">
@@ -432,6 +438,7 @@ const Booking11Management = () => {
           )}
         </Space>
       ),
+      width: 100,
     },
   ];
 
@@ -469,11 +476,12 @@ const Booking11Management = () => {
               <Title level={4}>Quản lý đơn học 1-1</Title>
               <Space>
                 <Input
-                  placeholder="Tìm kiếm..."
+                  placeholder="Tìm kiếm theo tên học viên, giáo viên..."
                   prefix={<SearchOutlined />}
                   value={searchText}
                   onChange={(e) => setSearchText(e.target.value)}
-                  style={{ width: 250 }}
+                  style={{ width: 300 }}
+                  allowClear
                 />
                 <Tooltip title="Bộ lọc nâng cao">
                   <Button
@@ -492,11 +500,14 @@ const Booking11Management = () => {
                 columns={columns}
                 dataSource={filteredBookings}
                 rowKey="bookingId"
+                scroll={{ x: 1300 }}
                 pagination={{
                   showSizeChanger: true,
                   pageSizeOptions: ["10", "20", "50"],
-                  showTotal: (total) => `Tổng cộng ${total} lịch học`,
+                  showTotal: (total) => `Tổng cộng ${total} đơn đăng ký`,
+                  defaultPageSize: 20,
                 }}
+                size="middle"
               />
             </Spin>
           </Card>
@@ -570,7 +581,9 @@ const Booking11Management = () => {
               <div>
                 <p className="font-bold">Thời gian học:</p>
                 <p>
-                  {selectedBooking.timeStart} - {selectedBooking.timeEnd}
+                  {selectedBooking.timeStart?.substring(0, 5)} -{" "}
+                  {selectedBooking.timeEnd?.substring(0, 5)} (
+                  {selectedBooking.timeLearning} phút)
                 </p>
               </div>
               <div>
@@ -590,24 +603,32 @@ const Booking11Management = () => {
               </div>
             </div>
 
-            {selectedBooking.videoUrl && (
+            {selectedBooking.learningRequest && (
               <div>
-                <p className="font-bold mb-2">Video đã tải lên:</p>
-                <div className="w-full aspect-video">
-                  <video
-                    src={selectedBooking.videoUrl}
-                    controls
-                    className="w-full h-full rounded-lg"
-                    controlsList="nodownload"
-                    playsInline
-                    preload="auto"
-                    style={{ maxHeight: "50vh" }}
-                  >
-                    Trình duyệt của bạn không hỗ trợ thẻ video.
-                  </video>
-                </div>
+                <p className="font-bold">Yêu cầu học:</p>
+                <p>{selectedBooking.learningRequest}</p>
               </div>
             )}
+
+            {selectedBooking.videoUrl &&
+              selectedBooking.videoUrl !== "string" && (
+                <div>
+                  <p className="font-bold mb-2">Video đã tải lên:</p>
+                  <div className="w-full aspect-video">
+                    <video
+                      src={selectedBooking.videoUrl}
+                      controls
+                      className="w-full h-full rounded-lg"
+                      controlsList="nodownload"
+                      playsInline
+                      preload="auto"
+                      style={{ maxHeight: "50vh" }}
+                    >
+                      Trình duyệt của bạn không hỗ trợ thẻ video.
+                    </video>
+                  </div>
+                </div>
+              )}
 
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -637,6 +658,13 @@ const Booking11Management = () => {
               <div>
                 <p className="font-bold">Điểm đánh giá:</p>
                 <p>{selectedBooking.score}</p>
+              </div>
+            )}
+
+            {selectedBooking.price && (
+              <div>
+                <p className="font-bold">Học phí:</p>
+                <p>{selectedBooking.price.toLocaleString("vi-VN")} VNĐ</p>
               </div>
             )}
 
@@ -743,14 +771,6 @@ const Booking11Management = () => {
       >
         <Form form={form} layout="vertical">
           <Form.Item
-            name="startDay"
-            label="Ngày bắt đầu"
-            rules={[{ required: true, message: "Vui lòng chọn ngày bắt đầu" }]}
-          >
-            <DatePicker style={{ width: "100%" }} />
-          </Form.Item>
-
-          <Form.Item
             name="score"
             label="Điểm đánh giá"
             rules={[{ required: true, message: "Vui lòng nhập điểm đánh giá" }]}
@@ -764,10 +784,11 @@ const Booking11Management = () => {
             rules={[{ required: true, message: "Vui lòng chọn cấp độ" }]}
           >
             <Select placeholder="Chọn cấp độ">
-              <Option value="Người mới bắt đầu">Người mới bắt đầu</Option>
-              <Option value="Cơ bản">Cơ bản</Option>
-              <Option value="Trung cấp">Trung cấp</Option>
-              <Option value="Nâng cao">Nâng cao</Option>
+              <Option value="Gà">Gà</Option>
+              <Option value="Trung bình">Trung bình</Option>
+              <Option value="Khá">Khá</Option>
+              <Option value="Giỏi">Giỏi</Option>
+              <Option value="Chuyên gia">Chuyên gia</Option>
             </Select>
           </Form.Item>
 

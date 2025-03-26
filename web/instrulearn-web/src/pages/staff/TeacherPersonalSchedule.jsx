@@ -19,6 +19,9 @@ import {
   Drawer,
   Descriptions,
   Divider,
+  Empty,
+  Row,
+  Col,
 } from "antd";
 import {
   PlusOutlined,
@@ -33,19 +36,21 @@ import {
   PhoneOutlined,
   MailOutlined,
   BookOutlined,
+  UserOutlined,
+  CalendarOutlined,
 } from "@ant-design/icons";
-import {
-  mockPersonalSchedules,
-  mockTeachers,
-  mockStudents,
-  mockCourses,
-  mockApiCall,
-} from "../../utils/mockData";
+import axios from "axios";
+import dayjs from "dayjs";
+import isBetween from "dayjs/plugin/isBetween";
+import weekOfYear from "dayjs/plugin/weekOfYear";
+import isoWeek from "dayjs/plugin/isoWeek";
 import StaffSidebar from "../../components/staff/StaffSidebar";
 import StaffHeader from "../../components/staff/StaffHeader";
-import dayjs from "dayjs";
-import "dayjs/locale/vi";
 import locale from "antd/es/date-picker/locale/vi_VN";
+
+dayjs.extend(isBetween);
+dayjs.extend(weekOfYear);
+dayjs.extend(isoWeek);
 
 const { Content } = Layout;
 const { Title } = Typography;
@@ -53,54 +58,206 @@ const { Option } = Select;
 
 const TeacherPersonalSchedule = () => {
   const [collapsed, setCollapsed] = useState(false);
+  const [selectedTeacher, setSelectedTeacher] = useState(null);
+  const [teachers, setTeachers] = useState([]);
   const [schedules, setSchedules] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [selectedWeek, setSelectedWeek] = useState(dayjs());
+  const [dateRange, setDateRange] = useState({ start: null, end: null });
+  const [timeSlots, setTimeSlots] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [selectedSchedule, setSelectedSchedule] = useState(null);
   const [form] = Form.useForm();
 
   useEffect(() => {
-    fetchSchedules();
+    fetchTeachers();
   }, []);
 
-  const fetchSchedules = async () => {
+  const fetchTeachers = async () => {
+    try {
+      const response = await axios.get(
+        "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Teacher/get-all"
+      );
+      if (response.data) {
+        const activeTeachers = response.data
+          .filter((item) => item.isSucceed && item.data.isActive === 1)
+          .map((item) => ({
+            ...item.data,
+            majors: item.data.majors.filter((major) => major.status === 1),
+          }));
+        setTeachers(activeTeachers);
+      }
+    } catch (error) {
+      console.error("Error fetching teachers:", error);
+      message.error("Không thể tải danh sách giáo viên");
+    }
+  };
+
+  const fetchTeacherSchedules = async (teacherId) => {
     try {
       setLoading(true);
-      const response = await mockApiCall(mockPersonalSchedules);
-      setSchedules(response.data);
+      const response = await axios.get(
+        `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Schedules/teacher/${teacherId}/schedules`
+      );
+
+      if (response.data?.isSucceed) {
+        const scheduleData = response.data.data;
+        console.log("Schedule Data:", scheduleData);
+
+        if (scheduleData.length > 0) {
+          const startDate = dayjs(scheduleData[0].registrationStartDay);
+          const endDate = dayjs(
+            scheduleData[scheduleData.length - 1].startDate
+          );
+
+          setDateRange({
+            start: startDate,
+            end: endDate,
+          });
+          setSelectedWeek(startDate);
+        }
+
+        setSchedules(scheduleData);
+      }
     } catch (error) {
       console.error("Error fetching schedules:", error);
-      message.error("Không thể tải danh sách lịch dạy");
+      message.error("Không thể tải lịch dạy");
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    setTimeSlots(getTimeSlotsForCurrentWeek());
+  }, [selectedWeek, schedules]);
+
+  const getTimeSlotsForCurrentWeek = () => {
+    const weekStart = dayjs(selectedWeek).startOf("isoWeek");
+    const weekEnd = dayjs(selectedWeek).endOf("isoWeek");
+
+    const schedulesInWeek = schedules.filter(
+      (schedule) =>
+        dayjs(schedule.startDate).isBetween(weekStart, weekEnd, "day", "[]") &&
+        schedule.mode !== 0
+    );
+
+    const uniqueTimeSlots = [
+      ...new Set(
+        schedulesInWeek.map(
+          (schedule) => `${schedule.timeStart} - ${schedule.timeEnd}`
+        )
+      ),
+    ].sort();
+
+    return uniqueTimeSlots;
+  };
+
+  const days = [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+  ];
+
+  const getDayOfWeekTag = (day) => {
+    const dayMap = {
+      Monday: { color: "red", text: "Thứ 2" },
+      Tuesday: { color: "orange", text: "Thứ 3" },
+      Wednesday: { color: "yellow", text: "Thứ 4" },
+      Thursday: { color: "green", text: "Thứ 5" },
+      Friday: { color: "blue", text: "Thứ 6" },
+      Saturday: { color: "purple", text: "Thứ 7" },
+      Sunday: { color: "magenta", text: "Chủ nhật" },
+    };
+
+    const dayInfo = dayMap[day] || { color: "default", text: day };
+    return <Tag color={dayInfo.color}>{dayInfo.text}</Tag>;
+  };
+
+  const getWeekDates = (date) => {
+    const startOfWeek = date.startOf("isoWeek");
+    const endOfWeek = date.endOf("isoWeek");
+    return {
+      start: startOfWeek.format("DD/MM/YYYY"),
+      end: endOfWeek.format("DD/MM/YYYY"),
+    };
+  };
+
+  const getScheduleForTimeSlot = (day, timeSlot) => {
+    const weekStart = dayjs(selectedWeek).startOf("isoWeek");
+    const weekEnd = dayjs(selectedWeek).endOf("isoWeek");
+
+    const schedule = schedules.find(
+      (schedule) =>
+        schedule.dayOfWeek === day &&
+        `${schedule.timeStart} - ${schedule.timeEnd}` === timeSlot &&
+        dayjs(schedule.startDate).isBetween(weekStart, weekEnd, "day", "[]") &&
+        schedule.mode !== 0
+    );
+
+    if (schedule) {
+      console.log("Found schedule:", schedule);
+    }
+    return schedule;
+  };
+
+  const handleWeekChange = (date) => {
+    const selectedDate = dayjs(date);
+    setSelectedWeek(selectedDate);
+  };
+
+  const handleTeacherChange = (teacherId) => {
+    const teacher = teachers.find((t) => t.teacherId === teacherId);
+    setSelectedTeacher(teacher);
+    fetchTeacherSchedules(teacherId);
+  };
+
+  const hasSchedulesInCurrentWeek = () => {
+    const weekStart = dayjs(selectedWeek).startOf("isoWeek");
+    const weekEnd = dayjs(selectedWeek).endOf("isoWeek");
+
+    return schedules.some((schedule) =>
+      dayjs(schedule.startDate).isBetween(weekStart, weekEnd, "day", "[]")
+    );
+  };
+
+  const weekDates = getWeekDates(selectedWeek);
 
   const handleAddSchedule = async (values) => {
     try {
       const newSchedule = {
         scheduleId: schedules.length + 1,
         ...values,
-        teacherName: mockTeachers.find((t) => t.teacherId === values.teacherId)
-          ?.teacherName,
-        studentName: mockStudents.find((s) => s.studentId === values.studentId)
-          ?.studentName,
-        courseName: mockCourses.find((c) => c.courseId === values.courseId)
-          ?.courseName,
+        teacherName: teachers.find((t) => t.teacherId === values.teacherId)
+          ?.fullname,
+        studentName: teachers
+          .find((t) => t.teacherId === values.teacherId)
+          ?.majors.find((m) => m.majorId === values.majorId)?.studentName,
+        courseName: teachers
+          .find((t) => t.teacherId === values.teacherId)
+          ?.majors.find((m) => m.majorId === values.majorId)?.courseName,
         status: "scheduled",
         payment: {
           amount:
-            mockCourses.find((c) => c.courseId === values.courseId)?.price || 0,
+            teachers
+              .find((t) => t.teacherId === values.teacherId)
+              ?.majors.find((m) => m.majorId === values.majorId)?.price || 0,
           status: "pending",
         },
       };
 
-      await mockApiCall(newSchedule);
+      await axios.post(
+        "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Schedules/add",
+        newSchedule
+      );
       message.success("Thêm lịch dạy thành công");
       setModalVisible(false);
       form.resetFields();
-      fetchSchedules();
+      fetchTeacherSchedules(values.teacherId);
     } catch (error) {
       console.error("Error adding schedule:", error);
       message.error("Thêm lịch dạy thất bại");
@@ -269,26 +426,134 @@ const TeacherPersonalSchedule = () => {
         >
           <Card>
             <div className="flex justify-between items-center mb-4">
-              <Title level={4}>Quản lý lịch dạy tại nhà</Title>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => setModalVisible(true)}
-              >
-                Thêm lịch dạy
-              </Button>
+              <Title level={4}>Quản lý lịch dạy</Title>
+              <Space>
+                <Select
+                  placeholder="Chọn giáo viên"
+                  style={{ width: 200 }}
+                  onChange={handleTeacherChange}
+                >
+                  {teachers.map((teacher) => (
+                    <Option key={teacher.teacherId} value={teacher.teacherId}>
+                      {teacher.fullname}
+                    </Option>
+                  ))}
+                </Select>
+                <DatePicker
+                  picker="week"
+                  value={selectedWeek}
+                  onChange={handleWeekChange}
+                  format="DD/MM/YYYY"
+                />
+              </Space>
             </div>
 
-            <Table
-              columns={columns}
-              dataSource={schedules}
-              rowKey="scheduleId"
-              loading={loading}
-              pagination={{
-                showSizeChanger: true,
-                showTotal: (total) => `Tổng cộng ${total} lịch dạy`,
-              }}
-            />
+            {selectedTeacher && (
+              <div className="mb-4">
+                <div className="text-gray-600">
+                  <UserOutlined className="mr-2" />
+                  Giáo viên: {selectedTeacher.fullname}
+                  <br />
+                  <CalendarOutlined className="mr-2" />
+                  {dateRange.start && dateRange.end ? (
+                    <>
+                      Lịch dạy từ {dateRange.start.format("DD/MM/YYYY")} đến{" "}
+                      {dateRange.end.format("DD/MM/YYYY")}
+                      <br />
+                      Tuần hiện tại: {weekDates.start} - {weekDates.end}
+                      {!hasSchedulesInCurrentWeek() && (
+                        <div className="text-orange-500 mt-1">
+                          Không có lịch dạy trong tuần này
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    "Chưa có lịch dạy"
+                  )}
+                </div>
+              </div>
+            )}
+
+            {selectedTeacher ? (
+              hasSchedulesInCurrentWeek() ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr>
+                        <th className="border p-2 bg-gray-100 w-32">
+                          Thời gian
+                        </th>
+                        {days.map((day) => (
+                          <th key={day} className="border p-2 bg-gray-100">
+                            <div className="text-center">
+                              {getDayOfWeekTag(day)}
+                              <div className="text-xs text-gray-500 mt-1">
+                                {dayjs(selectedWeek)
+                                  .day(
+                                    day === "Sunday" ? 7 : days.indexOf(day) + 1
+                                  )
+                                  .format("DD/MM")}
+                              </div>
+                            </div>
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {timeSlots.map((timeSlot) => (
+                        <tr key={timeSlot}>
+                          <td className="border p-2 text-center bg-gray-50">
+                            <ClockCircleOutlined className="mr-1" />
+                            {timeSlot}
+                          </td>
+                          {days.map((day) => {
+                            const schedule = getScheduleForTimeSlot(
+                              day,
+                              timeSlot
+                            );
+                            return (
+                              <td
+                                key={`${day}-${timeSlot}`}
+                                className="border p-2"
+                              >
+                                {schedule && (
+                                  <div className="text-sm">
+                                    <div className="font-medium">
+                                      {schedule.learnerName || "---"}
+                                    </div>
+                                  </div>
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <Empty
+                  description="Không có lịch dạy trong tuần này"
+                  className="py-8"
+                />
+              )
+            ) : (
+              <Empty
+                description="Vui lòng chọn giáo viên để xem lịch dạy"
+                className="py-8"
+              />
+            )}
+          </Card>
+
+          <Card title="Chú thích" className="mt-4">
+            <Row gutter={[16, 16]}>
+              <Col>
+                <Space>
+                  <Tag color="blue">1-1</Tag>
+                  <span>Học một kèm một</span>
+                </Space>
+              </Col>
+            </Row>
           </Card>
 
           <Modal
@@ -321,39 +586,29 @@ const TeacherPersonalSchedule = () => {
                 rules={[{ required: true, message: "Vui lòng chọn giáo viên" }]}
               >
                 <Select placeholder="Chọn giáo viên">
-                  {mockTeachers.map((teacher) => (
+                  {teachers.map((teacher) => (
                     <Option key={teacher.teacherId} value={teacher.teacherId}>
-                      {teacher.teacherName} - {teacher.specialization}
+                      {teacher.fullname}
                     </Option>
                   ))}
                 </Select>
               </Form.Item>
 
               <Form.Item
-                name="studentId"
-                label="Học viên"
-                rules={[{ required: true, message: "Vui lòng chọn học viên" }]}
-              >
-                <Select placeholder="Chọn học viên">
-                  {mockStudents.map((student) => (
-                    <Option key={student.studentId} value={student.studentId}>
-                      {student.studentName}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-
-              <Form.Item
-                name="courseId"
+                name="majorId"
                 label="Khóa học"
                 rules={[{ required: true, message: "Vui lòng chọn khóa học" }]}
               >
                 <Select placeholder="Chọn khóa học">
-                  {mockCourses.map((course) => (
-                    <Option key={course.courseId} value={course.courseId}>
-                      {course.courseName}
-                    </Option>
-                  ))}
+                  {teachers
+                    .find(
+                      (t) => t.teacherId === form.getFieldValue("teacherId")
+                    )
+                    ?.majors.map((major) => (
+                      <Option key={major.majorId} value={major.majorId}>
+                        {major.courseName}
+                      </Option>
+                    ))}
                 </Select>
               </Form.Item>
 

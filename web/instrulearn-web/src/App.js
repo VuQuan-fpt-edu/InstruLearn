@@ -22,7 +22,7 @@ import StaffProfile from "./pages/staff/Profile";
 import Courses from "./pages/home/HomeAllCourses";
 import Booking11Management from "./pages/staff/Booking1-1Request";
 // import StudentBookingForm from "./pages/home/Booking1-1";
-import TeacherProfile from "./pages/home/TeacherProfile";
+import TeacherInfo from "./pages/home/TeacherProfile";
 import ClassManagement from "./pages/staff/ClassManagement";
 import AddClass from "./pages/staff/AddClass";
 import PurchaseHistory from "./pages/home/profile/PurchaseHistory";
@@ -60,6 +60,9 @@ import StudentBookingForm from "./pages/home/Booking1-1/index";
 import TopUp from "./pages/home/profile/TopUp";
 import PackageDetail from "./pages/home/package/PackageDetail";
 // import StaffProfile from "./pages/staff/StaffProfile";
+import MusicalInstrument from "./pages/staff/MusicalInstrument";
+import MajorTest from "./pages/staff/MajorTest";
+import TeacherProfiles from "./pages/teacher/Profile";
 
 export default function App() {
   return (
@@ -77,7 +80,7 @@ export default function App() {
           <Route path="/profile/topup" element={<TopUp />} />
           <Route path="/purchase-history" element={<PurchaseHistory />} />
           <Route path="/student-schedule" element={<StudentSchedule />} />
-          <Route path="/teacher-profile/:id" element={<TeacherProfile />} />
+          <Route path="/teacher-profile/:id" element={<TeacherInfo />} />
           <Route path="/package/:id" element={<PackageDetail />} />
         </Route>
 
@@ -100,7 +103,7 @@ export default function App() {
         {/* Staff Routes */}
         <Route path="/staff" element={<StaffDashboard />} />
         <Route
-          path="staff/instrument-management"
+          path="staff/instrument-type-management"
           element={<InstrumentManagement />}
         />
         <Route path="staff/add-course" element={<AddCourse />} />
@@ -146,9 +149,15 @@ export default function App() {
           path="staff/center-class-registration"
           element={<CenterClassRegistration />}
         />
+        <Route
+          path="staff/instrument-management"
+          element={<MusicalInstrument />}
+        />
+        <Route path="staff/major-test" element={<MajorTest />} />
 
         {/* Teacher Routes */}
         <Route path="/teacher" element={<TeacherDashBoard />} />
+        <Route path="/teacher/profile" element={<TeacherProfiles />} />
         <Route path="teacher/students" element={<TeacherClassManagement />} />
         <Route path="/teacher/student-list" element={<StudentList />} />
         <Route path="teacher/center-schedule" element={<CenterSchedule />} />

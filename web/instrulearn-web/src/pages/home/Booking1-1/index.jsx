@@ -55,10 +55,10 @@ const StudentBookingForm = () => {
         "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Teacher/get-all"
       );
       if (response.data && Array.isArray(response.data)) {
-        const allTeachers = response.data
-          .filter((item) => item.isSucceed)
+        const activeTeachers = response.data
+          .filter((item) => item.isSucceed && item.data.isActive === 1)
           .map((item) => item.data);
-        setTeachers(allTeachers);
+        setTeachers(activeTeachers);
       }
     } catch (error) {
       console.error("Error fetching teachers:", error);
@@ -113,7 +113,10 @@ const StudentBookingForm = () => {
         "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Major/get-all"
       );
       if (response.data?.isSucceed) {
-        setMajors(response.data.data);
+        const activeMajors = response.data.data.filter(
+          (major) => major.status === 1
+        );
+        setMajors(activeMajors);
       }
     } catch (error) {
       message.error("Không thể tải danh sách nhạc cụ");
@@ -124,8 +127,11 @@ const StudentBookingForm = () => {
   const handleInstrumentChange = (value) => {
     const selectedMajor = majors.find((m) => m.majorName === value);
     if (selectedMajor) {
-      const filtered = teachers.filter(
-        (teacher) => teacher.major?.majorId === selectedMajor.majorId
+      const filtered = teachers.filter((teacher) =>
+        teacher.majors.some(
+          (major) =>
+            major.majorId === selectedMajor.majorId && major.status === 1
+        )
       );
       setFilteredTeachers(filtered);
     }
@@ -133,19 +139,33 @@ const StudentBookingForm = () => {
     setSelectedTeacher(null);
   };
 
-  const handleTeacherChange = (value) => {
-    const teacher = filteredTeachers.find((t) => t.teacherId === value);
-    setSelectedTeacher(teacher);
-  };
+  const handleTeacherChange = (teacherId) => {
+    if (!teacherId) {
+      setSelectedTeacher(null);
+      form.setFieldsValue({ teacherId: undefined });
+      return;
+    }
 
-  const handleViewTeacher = () => {
-    if (selectedTeacher) {
-      navigate(`/teacher-profile/${selectedTeacher.teacherId}`);
+    const teacher = teachers.find((t) => t.teacherId === teacherId);
+    if (teacher) {
+      setSelectedTeacher(teacher);
+      form.setFieldsValue({ teacherId: teacherId });
+      setSelectedDays([]);
+      form.setFieldsValue({
+        bookingDays: [],
+        bookingSlot: undefined,
+      });
     }
   };
 
   const handleDayChange = (values) => {
     setSelectedDays(values);
+  };
+
+  const handleViewTeacher = () => {
+    if (selectedTeacher) {
+      setIsModalVisible(true);
+    }
   };
 
   const handleSubmit = async (values) => {
@@ -170,7 +190,7 @@ const StudentBookingForm = () => {
         throw new Error("Không tìm thấy thông tin nhạc cụ");
       }
 
-      if (!values.videoUrl) {
+      if (values.level !== "none" && !values.videoUrl) {
         throw new Error("Vui lòng tải lên video trình độ");
       }
 
@@ -179,10 +199,13 @@ const StudentBookingForm = () => {
         teacherId: parseInt(values.teacherId),
         regisTypeId: 1,
         majorId: parseInt(selectedMajor.majorId),
-        videoUrl: values.videoUrl,
+        videoUrl: values.videoUrl || "",
+        startDay: dayjs(values.startDay).format("YYYY-MM-DD"),
         timeStart: dayjs(values.bookingSlot).format("HH:mm:00"),
+        timeLearning: parseInt(values.timeLearning),
         requestDate: dayjs().format("YYYY-MM-DDTHH:mm:ss"),
         numberOfSession: parseInt(values.numberOfSlots),
+        learningRequest: values.learningRequest || "",
         learningDays: values.bookingDays.map((day) => parseInt(day)),
       };
 
@@ -204,7 +227,7 @@ const StudentBookingForm = () => {
           ...values,
           teacherName: selectedTeacher?.fullname,
           bookingId:
-            response.data.data?.regisId ||
+            response.data.data?.learningRegisId ||
             `BK${Math.floor(1000 + Math.random() * 9000)}`,
           createdAt: dayjs().format(),
           status: "pending",

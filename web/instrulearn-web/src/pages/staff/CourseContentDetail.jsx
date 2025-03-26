@@ -128,7 +128,6 @@ const CourseContentDetail = () => {
     }
   };
 
-  // Modified to use direct file input instead of Ant Design's Upload component
   const handleFileSelect = (e) => {
     if (e.target.files[0]) {
       const selectedFile = e.target.files[0];
@@ -143,11 +142,15 @@ const CourseContentDetail = () => {
       // Clear fileURL when a new file is selected
       setFileURL("");
 
-      // Determine file type
+      // Determine file type and set corresponding itemTypeId
       if (selectedFile.type.startsWith("image/")) {
         setFileType("image");
+        form.setFieldsValue({ itemTypeId: 1 }); // Images is type 1
+        editForm.setFieldsValue({ itemTypeId: 1 });
       } else if (selectedFile.type.startsWith("video/")) {
         setFileType("video");
+        form.setFieldsValue({ itemTypeId: 2 }); // Video is type 2
+        editForm.setFieldsValue({ itemTypeId: 2 });
       } else if (
         selectedFile.type === "application/pdf" ||
         selectedFile.type === "application/msword" ||
@@ -155,6 +158,8 @@ const CourseContentDetail = () => {
           "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
       ) {
         setFileType("document");
+        form.setFieldsValue({ itemTypeId: 3 }); // Document is type 3
+        editForm.setFieldsValue({ itemTypeId: 3 });
       } else {
         setFileType("other");
       }
@@ -236,9 +241,16 @@ const CourseContentDetail = () => {
       const values = await form.validateFields();
       setAddingItem(true);
 
-      let itemDesValue = values.itemDes;
+      // Kiểm tra xem có file được chọn không
+      if (!file && !fileURL) {
+        message.error("Vui lòng chọn file để tải lên");
+        setAddingItem(false);
+        return;
+      }
 
-      // If there's a file selected and it hasn't been uploaded yet
+      let itemDesValue = "";
+
+      // Nếu có file được chọn và chưa upload
       if (file && !fileURL) {
         try {
           console.log("Uploading file for new item");
@@ -246,6 +258,10 @@ const CourseContentDetail = () => {
           if (fileUrl) {
             console.log("File uploaded successfully:", fileUrl);
             itemDesValue = fileUrl;
+          } else {
+            message.error("Không thể tải file lên");
+            setAddingItem(false);
+            return;
           }
         } catch (uploadError) {
           console.error("Error uploading file:", uploadError);
@@ -254,8 +270,15 @@ const CourseContentDetail = () => {
           return;
         }
       } else if (fileURL) {
-        // Use the already uploaded file URL
+        // Sử dụng URL đã upload trước đó
         itemDesValue = fileURL;
+      }
+
+      // Kiểm tra lại một lần nữa xem có itemDes không
+      if (!itemDesValue) {
+        message.error("Không có đường dẫn file");
+        setAddingItem(false);
+        return;
       }
 
       const newItem = {
@@ -318,9 +341,16 @@ const CourseContentDetail = () => {
       const values = await editForm.validateFields();
       setEditingItem(true);
 
-      let itemDesValue = values.itemDes;
+      // Kiểm tra xem có file được chọn không
+      if (!file && !fileURL && !selectedItem.itemDes) {
+        message.error("Vui lòng chọn file để tải lên");
+        setEditingItem(false);
+        return;
+      }
 
-      // If there's a file selected and it hasn't been uploaded yet
+      let itemDesValue = selectedItem.itemDes; // Giữ lại giá trị cũ nếu không có file mới
+
+      // Nếu có file được chọn và chưa upload
       if (file && !fileURL) {
         try {
           console.log("Uploading file for edit item");
@@ -328,6 +358,10 @@ const CourseContentDetail = () => {
           if (fileUrl) {
             console.log("File uploaded successfully:", fileUrl);
             itemDesValue = fileUrl;
+          } else {
+            message.error("Không thể tải file lên");
+            setEditingItem(false);
+            return;
           }
         } catch (uploadError) {
           console.error("Error uploading file:", uploadError);
@@ -336,8 +370,15 @@ const CourseContentDetail = () => {
           return;
         }
       } else if (fileURL) {
-        // Use the already uploaded file URL
+        // Sử dụng URL đã upload trước đó
         itemDesValue = fileURL;
+      }
+
+      // Kiểm tra lại một lần nữa xem có itemDes không
+      if (!itemDesValue) {
+        message.error("Không có đường dẫn file");
+        setEditingItem(false);
+        return;
       }
 
       const updatedItem = {
@@ -413,12 +454,12 @@ const CourseContentDetail = () => {
 
   const getItemTypeIcon = (typeId) => {
     switch (typeId) {
-      case 1:
-        return <VideoCameraOutlined />;
-      case 2:
-        return <FileTextOutlined />;
-      case 3:
+      case 1: // Images
         return <FileImageOutlined />;
+      case 2: // Video
+        return <VideoCameraOutlined />;
+      case 3: // Document
+        return <FileTextOutlined />;
       default:
         return <FileTextOutlined />;
     }
@@ -438,60 +479,20 @@ const CourseContentDetail = () => {
   };
 
   const renderItemContent = (item) => {
-    if (item.itemTypeId === 1) {
-      return (
-        <div className="mt-2">
-          <div className="mb-2">
-            <Tag color="blue" icon={<VideoCameraOutlined />}>
-              Video
-            </Tag>
-          </div>
-          <div className="mb-2">
-            {item.itemDes && item.itemDes.startsWith("http") ? (
-              <div>
-                <video
-                  src={item.itemDes}
-                  controls
-                  style={{
-                    maxWidth: "100%",
-                    maxHeight: "200px",
-                  }}
-                />
-              </div>
-            ) : (
-              <img
-                src={item.itemDes}
-                alt="Video thumbnail"
-                style={{
-                  maxWidth: "100%",
-                  maxHeight: "200px",
-                  objectFit: "cover",
-                }}
-              />
-            )}
-          </div>
-        </div>
-      );
-    } else if (
-      item.itemDes &&
-      item.itemDes.startsWith("http") &&
-      item.itemDes.includes("firebase")
-    ) {
-      // For items that have Firebase URLs but aren't videos
-      const isImage = item.itemDes.includes("image");
-
-      return (
-        <div className="mt-2">
-          <div className="mb-2">
-            <Tag color="green" icon={getItemTypeIcon(item.itemTypeId)}>
-              {getItemTypeLabel(item.itemTypeId)}
-            </Tag>
-          </div>
-          {isImage ? (
+    // Kiểm tra loại nội dung dựa vào itemTypeId
+    switch (item.itemTypeId) {
+      case 1: // Images
+        return (
+          <div className="mt-2">
+            <div className="mb-2">
+              <Tag color="green" icon={<FileImageOutlined />}>
+                Hình ảnh
+              </Tag>
+            </div>
             <div className="mb-2">
               <img
                 src={item.itemDes}
-                alt="Content preview"
+                alt="Content"
                 style={{
                   maxWidth: "100%",
                   maxHeight: "200px",
@@ -499,24 +500,55 @@ const CourseContentDetail = () => {
                 }}
               />
             </div>
-          ) : (
+          </div>
+        );
+
+      case 2: // Video
+        return (
+          <div className="mt-2">
+            <div className="mb-2">
+              <Tag color="blue" icon={<VideoCameraOutlined />}>
+                Video
+              </Tag>
+            </div>
+            <div className="mb-2">
+              <video
+                src={item.itemDes}
+                controls
+                style={{
+                  maxWidth: "100%",
+                  maxHeight: "200px",
+                }}
+              />
+            </div>
+          </div>
+        );
+
+      case 3: // Document
+        return (
+          <div className="mt-2">
+            <div className="mb-2">
+              <Tag color="purple" icon={<FileTextOutlined />}>
+                Tài liệu
+              </Tag>
+            </div>
             <a href={item.itemDes} target="_blank" rel="noopener noreferrer">
               Xem tài liệu
             </a>
-          )}
-        </div>
-      );
-    } else {
-      return (
-        <div className="mt-2">
-          <div className="mb-2">
-            <Tag color="green" icon={<FileTextOutlined />}>
-              {getItemTypeLabel(item.itemTypeId)}
-            </Tag>
           </div>
-          <Text>{item.itemDes}</Text>
-        </div>
-      );
+        );
+
+      default:
+        return (
+          <div className="mt-2">
+            <div className="mb-2">
+              <Tag color="default" icon={<FileTextOutlined />}>
+                {getItemTypeLabel(item.itemTypeId)}
+              </Tag>
+            </div>
+            <Text>{item.itemDes}</Text>
+          </div>
+        );
     }
   };
 

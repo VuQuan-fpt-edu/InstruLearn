@@ -7,151 +7,31 @@ import {
   Divider,
   Tag,
   Tabs,
-  Calendar,
-  Badge,
   Row,
   Col,
-  Rate,
   Button,
-  List,
-  Timeline,
   Space,
   Spin,
+  Statistic,
 } from "antd";
 import {
   UserOutlined,
   CalendarOutlined,
-  ClockCircleOutlined,
-  StarOutlined,
   EnvironmentOutlined,
   PhoneOutlined,
   MailOutlined,
   TrophyOutlined,
-  ReadOutlined,
-  TeamOutlined,
-  CheckCircleOutlined,
+  BookOutlined,
+  ClockCircleOutlined,
+  HeartOutlined,
+  StarOutlined,
 } from "@ant-design/icons";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
+import dayjs from "dayjs";
 
 const { Header, Content, Footer } = Layout;
 const { Title, Paragraph, Text } = Typography;
-const { TabPane } = Tabs;
-
-// Giả lập dữ liệu giáo viên chi tiết
-const generateTeacherDetails = (id) => {
-  const teachers = [
-    {
-      id: 1,
-      name: "Nguyễn Văn An",
-      specialty: "Guitar",
-      experience: "5 năm",
-      rating: 4.9,
-      students: 42,
-      description:
-        "Chuyên dạy Guitar Fingerstyle và Classic, tốt nghiệm Học viện Âm nhạc Quốc gia. Có kinh nghiệm dạy cho mọi lứa tuổi từ trẻ em đến người lớn, mở các lớp học online và offline.",
-      image: "https://via.placeholder.com/200",
-      education: [
-        "Cử nhân Biểu diễn Guitar - Học viện Âm nhạc Quốc gia Việt Nam",
-        "Chứng chỉ Master Class với nghệ sĩ Guitar Tommy Emmanuel",
-      ],
-      achievements: [
-        "Giải nhất cuộc thi Guitar Fingerstyle Việt Nam 2019",
-        "Xuất bản 2 album Guitar solo",
-      ],
-      teachingMethods: [
-        "Phương pháp giảng dạy tương tác",
-        "Chú trọng kỹ thuật và cảm thụ âm nhạc",
-        "Thiết kế lộ trình học phù hợp với từng học viên",
-      ],
-      contactInfo: {
-        phone: "0912.345.678",
-        email: "nguyen.van.an@music.com",
-        address: "Quận Hai Bà Trưng, Hà Nội",
-      },
-      reviews: [
-        {
-          studentName: "Trần Minh",
-          rating: 5,
-          comment:
-            "Thầy An dạy rất tận tình, có phương pháp giảng dạy dễ hiểu và thú vị.",
-          date: "15/02/2024",
-        },
-        {
-          studentName: "Lê Hương",
-          rating: 5,
-          comment:
-            "Sau 3 tháng học với thầy, tôi đã có thể chơi được nhiều bài hát yêu thích. Thầy rất kiên nhẫn và luôn động viên học viên.",
-          date: "20/01/2024",
-        },
-        {
-          studentName: "Phạm Tuấn",
-          rating: 4,
-          comment:
-            "Thầy An có kiến thức chuyên môn sâu rộng, giảng dạy rất chi tiết từ kỹ thuật cơ bản đến nâng cao.",
-          date: "05/12/2023",
-        },
-      ],
-      repertoire: [
-        "Classical Pieces (Bach, Tarrega, Sor)",
-        "Fingerstyle Arrangements (Pop, Folk)",
-        "Vietnamese Traditional Music",
-      ],
-    },
-    {
-      id: 2,
-      name: "Trần Thị Bình",
-      specialty: "Piano",
-      experience: "8 năm",
-      rating: 4.8,
-      students: 56,
-      description:
-        "Giáo viên dạy Piano cổ điển và hiện đại, tốt nghiệp Conservatory of Music. Có phương pháp giảng dạy phù hợp với từng lứa tuổi, từ trẻ em 4 tuổi đến người lớn.",
-      image: "https://via.placeholder.com/200",
-      education: [
-        "Thạc sĩ Piano Performance - Royal College of Music, London",
-        "Cử nhân Piano - Học viện Âm nhạc Quốc gia Việt Nam",
-      ],
-      achievements: [
-        "Giải nhì cuộc thi Piano Quốc tế Hà Nội 2018",
-        "Biểu diễn tại nhiều concert quốc tế",
-      ],
-      teachingMethods: [
-        "Phương pháp Suzuki cho trẻ em",
-        "Kết hợp lý thuyết âm nhạc và thực hành",
-        "Rèn luyện kỹ thuật và biểu cảm",
-      ],
-      contactInfo: {
-        phone: "0987.654.321",
-        email: "tran.thi.binh@music.com",
-        address: "Quận Ba Đình, Hà Nội",
-      },
-      reviews: [
-        {
-          studentName: "Nguyễn Hà",
-          rating: 5,
-          comment:
-            "Cô Bình dạy rất tận tâm, phương pháp dễ hiểu. Con tôi rất thích học piano với cô.",
-          date: "10/03/2024",
-        },
-        {
-          studentName: "Đặng Minh",
-          rating: 4,
-          comment:
-            "Cô có kiến thức chuyên môn tốt, giúp tôi tiến bộ nhanh chóng sau 6 tháng học.",
-          date: "25/01/2024",
-        },
-      ],
-      repertoire: [
-        "Classical (Mozart, Beethoven, Chopin)",
-        "Contemporary Piano",
-        "Jazz & Blues basics",
-      ],
-    },
-  ];
-
-  return teachers.find((teacher) => teacher.id === parseInt(id)) || teachers[0];
-};
 
 const TeacherProfilePage = () => {
   const [teacher, setTeacher] = useState(null);
@@ -175,15 +55,23 @@ const TeacherProfilePage = () => {
         setTeacher({
           id: teacherData.teacherId,
           name: teacherData.fullname,
-          specialty: teacherData.major.majorName,
+          specialty: teacherData.majors[0]?.majorName,
           experience: teacherData.heading || "Chưa có thông tin",
           description: teacherData.details || "Chưa có mô tả",
-          image: "https://randomuser.me/api/portraits/men/1.jpg",
+          image:
+            teacherData.avatar ||
+            "https://randomuser.me/api/portraits/men/1.jpg",
           contactInfo: {
-            phone: "Chưa có thông tin",
+            phone: teacherData.phoneNumber || "Chưa có thông tin",
             email: "Chưa có thông tin",
-            address: "Chưa có thông tin",
+            address: teacherData.address || "Chưa có thông tin",
+            links: teacherData.links || "Chưa có thông tin",
           },
+          gender: teacherData.gender,
+          dateOfEmployment: teacherData.dateOfEmployment,
+          isActive: teacherData.isActive,
+          majors: teacherData.majors,
+          accountId: teacherData.accountId,
         });
       }
     } catch (error) {
@@ -221,115 +109,160 @@ const TeacherProfilePage = () => {
   }
 
   return (
-    <Layout className="min-h-screen">
-      <Header className="bg-blue-600 flex items-center">
-        <div className="text-white text-2xl font-bold">
-          Trung Tâm Âm Nhạc XYZ
+    <Layout className="min-h-screen bg-gray-100">
+      {/* Hero Section */}
+      <div className="bg-gradient-to-r from-blue-600 to-blue-400 py-12">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="flex items-center">
+            <Avatar
+              size={160}
+              src={teacher.image}
+              className="border-4 border-white shadow-lg"
+            />
+            <div className="text-white ml-8">
+              <Title level={2} className="!text-white mb-2">
+                {teacher.name}
+              </Title>
+              <Space size="large" className="mb-4">
+                <Tag color="blue" className="text-base py-1 px-3">
+                  <BookOutlined className="mr-1" /> {teacher.specialty}
+                </Tag>
+                <Tag
+                  color={teacher.isActive === 1 ? "success" : "error"}
+                  className="text-base py-1 px-3"
+                >
+                  {teacher.isActive === 1
+                    ? "Đang hoạt động"
+                    : "Không hoạt động"}
+                </Tag>
+              </Space>
+              <Paragraph className="text-white opacity-90">
+                {teacher.experience}
+              </Paragraph>
+            </div>
+          </div>
         </div>
-      </Header>
+      </div>
 
-      <Content className="p-6 bg-gray-50">
+      <Content className="py-8 px-4">
         <div className="max-w-6xl mx-auto">
-          {/* Header Card */}
-          <Card className="mb-6">
-            <Row gutter={24} align="middle">
-              <Col xs={24} md={6} className="text-center">
-                <Avatar size={150} src={teacher.image} />
-              </Col>
-              <Col xs={24} md={18}>
-                <Title level={2}>{teacher.name}</Title>
-                <Space size="large">
-                  <Tag color="blue" className="text-base py-1">
-                    <MusicNoteOutlined /> {teacher.specialty}
-                  </Tag>
-                  <span>
-                    <ClockCircleOutlined /> {teacher.experience}
-                  </span>
-                </Space>
-                <Paragraph className="mt-4 text-lg">
+          <Row gutter={24}>
+            {/* Main Content */}
+            <Col xs={24} lg={16}>
+              <Card className="mb-6 shadow-sm">
+                <Title level={4} className="mb-4">
+                  <UserOutlined className="mr-2" />
+                  Giới thiệu
+                </Title>
+                <Paragraph className="text-gray-600">
                   {teacher.description}
                 </Paragraph>
-              </Col>
-            </Row>
-          </Card>
+              </Card>
 
-          {/* Main Content */}
-          <Tabs defaultActiveKey="1" type="card" className="bg-white">
-            <TabPane tab="Giới thiệu" key="1">
-              <Card bordered={false}>
-                <Row gutter={24}>
-                  <Col xs={24} md={16}>
-                    <Title level={4}>Thông tin chuyên môn</Title>
-                    <div className="mt-4">
-                      <p className="text-gray-600">
-                        <strong>Chuyên ngành:</strong> {teacher.specialty}
-                      </p>
-                      <p className="text-gray-600">
-                        <strong>Kinh nghiệm:</strong> {teacher.experience}
-                      </p>
-                    </div>
-
-                    <Divider />
-
-                    <Title level={4}>Mô tả chi tiết</Title>
-                    <Paragraph className="mt-4 text-gray-600">
-                      {teacher.description}
-                    </Paragraph>
+              <Card className="mb-6 shadow-sm">
+                <Title level={4} className="mb-4">
+                  <BookOutlined className="mr-2" />
+                  Chuyên môn
+                </Title>
+                <Row gutter={[16, 16]}>
+                  <Col span={8}>
+                    <Statistic
+                      title="Chuyên ngành"
+                      value={teacher.majors
+                        ?.map((major) => major.majorName)
+                        .join(", ")}
+                      prefix={<TrophyOutlined />}
+                    />
                   </Col>
-
-                  <Col xs={24} md={8}>
-                    <Card title="Thông tin liên hệ" className="mb-6">
-                      <p>
-                        <PhoneOutlined className="mr-2" />
-                        {teacher.contactInfo.phone}
-                      </p>
-                      <p>
-                        <MailOutlined className="mr-2" />
-                        {teacher.contactInfo.email}
-                      </p>
-                      <p>
-                        <EnvironmentOutlined className="mr-2" />
-                        {teacher.contactInfo.address}
-                      </p>
-                    </Card>
-
-                    <Button
-                      type="primary"
-                      size="large"
-                      block
-                      className="mt-4"
-                      onClick={() => navigate("/booking1-1")}
-                    >
-                      Đăng ký học
-                    </Button>
+                  <Col span={8}>
+                    <Statistic
+                      title="Kinh nghiệm"
+                      value={teacher.experience}
+                      prefix={<ClockCircleOutlined />}
+                    />
+                  </Col>
+                  <Col span={8}>
+                    <Statistic
+                      title="Ngày bắt đầu"
+                      value={dayjs(teacher.dateOfEmployment).format(
+                        "DD/MM/YYYY"
+                      )}
+                      prefix={<CalendarOutlined />}
+                    />
                   </Col>
                 </Row>
               </Card>
-            </TabPane>
-          </Tabs>
+            </Col>
+
+            {/* Sidebar */}
+            <Col xs={24} lg={8}>
+              <Card className="shadow-sm">
+                <Title level={4} className="mb-4">
+                  <PhoneOutlined className="mr-2" />
+                  Thông tin liên hệ
+                </Title>
+                <Space direction="vertical" className="w-full">
+                  <div className="flex items-center p-3 bg-gray-50 rounded">
+                    <PhoneOutlined className="text-blue-500 mr-3" />
+                    <div>
+                      <div className="text-gray-500 text-sm">Số điện thoại</div>
+                      <div>{teacher.contactInfo.phone}</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center p-3 bg-gray-50 rounded">
+                    <MailOutlined className="text-blue-500 mr-3" />
+                    <div>
+                      <div className="text-gray-500 text-sm">
+                        Liên kết mạng xã hội
+                      </div>
+                      <div>
+                        {teacher.contactInfo.links !== "Chưa có thông tin" ? (
+                          <a
+                            href={teacher.contactInfo.links}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-500 hover:text-blue-700"
+                          >
+                            {teacher.contactInfo.links}
+                          </a>
+                        ) : (
+                          teacher.contactInfo.links
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center p-3 bg-gray-50 rounded">
+                    <EnvironmentOutlined className="text-blue-500 mr-3" />
+                    <div>
+                      <div className="text-gray-500 text-sm">Địa chỉ</div>
+                      <div>{teacher.contactInfo.address}</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center p-3 bg-gray-50 rounded">
+                    <UserOutlined className="text-blue-500 mr-3" />
+                    <div>
+                      <div className="text-gray-500 text-sm">Giới tính</div>
+                      <div>
+                        {teacher.gender === "male"
+                          ? "Nam"
+                          : teacher.gender === "female"
+                          ? "Nữ"
+                          : "Chưa cập nhật"}
+                      </div>
+                    </div>
+                  </div>
+                </Space>
+              </Card>
+            </Col>
+          </Row>
         </div>
       </Content>
 
-      <Footer className="text-center bg-blue-600 text-white">
-        © 2024 Trung Tâm Âm Nhạc XYZ - Tất cả các quyền được bảo lưu
+      <Footer className="text-center bg-white">
+        © 2024 InstruLearn - Nền tảng học nhạc trực tuyến
       </Footer>
     </Layout>
   );
 };
-
-// Thêm component MusicNoteOutlined vì không có trong iconlist
-const MusicNoteOutlined = () => (
-  <svg
-    viewBox="64 64 896 896"
-    focusable="false"
-    data-icon="music"
-    width="1em"
-    height="1em"
-    fill="currentColor"
-    aria-hidden="true"
-  >
-    <path d="M512 128l256 0 0 512c0 35.34-14.36 48-32 48s-32-12.66-32-48 14.36-48 32-48 32 12.66 32 48L768 160l-224 0 0 608c0 35.34-14.36 48-32 48s-32-12.66-32-48 14.36-48 32-48 32 12.66 32 48L544 128z"></path>
-  </svg>
-);
 
 export default TeacherProfilePage;

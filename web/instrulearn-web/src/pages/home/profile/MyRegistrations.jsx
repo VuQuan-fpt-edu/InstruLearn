@@ -73,6 +73,9 @@ const MyRegistrations = () => {
           learningDays: reg.learningDays.map((day) =>
             convertDayToVietnamese(day)
           ),
+          calculatedPrice: reg.price
+            ? reg.price * reg.numberOfSession * 0.4
+            : null,
         }));
         setRegistrations(vietnameseData);
 
@@ -365,7 +368,8 @@ const MyRegistrations = () => {
                     <Text type="secondary">Thời gian học</Text>
                     <div className="text-lg font-medium">
                       {selectedRegistration.timeStart?.substring(0, 5)} -{" "}
-                      {selectedRegistration.timeEnd?.substring(0, 5)}
+                      {selectedRegistration.timeEnd?.substring(0, 5)} (
+                      {selectedRegistration.timeLearning} phút)
                     </div>
                   </div>
                 </Col>
@@ -393,6 +397,15 @@ const MyRegistrations = () => {
                   ))}
                 </div>
               </div>
+
+              {selectedRegistration.learningRequest && (
+                <div className="mt-6">
+                  <Text type="secondary">Yêu cầu học</Text>
+                  <div className="text-lg font-medium mt-1">
+                    {selectedRegistration.learningRequest}
+                  </div>
+                </div>
+              )}
             </div>
 
             {selectedRegistration.videoUrl &&
@@ -474,12 +487,19 @@ const MyRegistrations = () => {
                       </Col>
                     )}
 
-                    {selectedRegistration.price && (
+                    {selectedRegistration.calculatedPrice && (
                       <Col xs={24}>
                         <div className="space-y-1">
-                          <Text type="secondary">Học phí</Text>
+                          <Text type="secondary">
+                            Học phí (40% tổng học phí)
+                          </Text>
                           <div className="text-lg font-medium text-red-600">
-                            {selectedRegistration.price.toLocaleString()} VNĐ
+                            {selectedRegistration.calculatedPrice.toLocaleString()}{" "}
+                            VNĐ
+                            <Text type="secondary" className="text-sm ml-2">
+                              ({selectedRegistration.price.toLocaleString()}{" "}
+                              VNĐ/buổi )
+                            </Text>
                           </div>
                         </div>
                       </Col>

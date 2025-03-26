@@ -13,6 +13,7 @@ import {
   BellOutlined,
   SettingOutlined,
   CalendarOutlined,
+  SoundOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 
@@ -34,7 +35,7 @@ const StaffSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
         navigate("/staff/add-course");
         break;
       case "musical instrument-type":
-        navigate("/staff/instrument-management");
+        navigate("/staff/instrument-type-management");
         break;
       case "item-type":
         navigate("/staff/item-type");
@@ -72,8 +73,8 @@ const StaffSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
       case "announcements":
         navigate("/staff/announcements");
         break;
-      case "resources":
-        navigate("/staff/resources");
+      case "major-test":
+        navigate("/staff/major-test");
         break;
       case "teacher-personal-schedule":
         navigate("/staff/teacher-personal-schedule");
@@ -96,6 +97,9 @@ const StaffSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
       case "add-class":
         navigate("/staff/add-class");
         break;
+      case "instrument-management":
+        navigate("/staff/instrument-management");
+        break;
       default:
         break;
     }
@@ -114,7 +118,7 @@ const StaffSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
       children: [
         { key: "course-management", label: "Quản lý gói khóa học" },
         { key: "add-course", label: "Thêm gói khóa học" },
-        { key: "musical instrument-type", label: "Quản lý nhạc cụ" },
+        { key: "musical instrument-type", label: "Quản lý loại nhạc cụ" },
         { key: "item-type", label: "Nội dung gói khóa học" },
       ],
     },
@@ -168,9 +172,13 @@ const StaffSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
       ],
     },
     {
-      key: "resources",
-      icon: <FileTextOutlined />,
-      label: "Tài nguyên",
+      key: "instrument-management",
+      icon: <SoundOutlined />,
+      label: "Nhạc cụ",
+      children: [
+        { key: "instrument-management", label: "Quản lý nhạc cụ" },
+        { key: "major-test", label: "Đề bài" },
+      ],
     },
   ];
 
