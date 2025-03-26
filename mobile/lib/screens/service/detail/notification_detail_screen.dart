@@ -169,9 +169,7 @@ class NotificationDetailScreen extends StatelessWidget {
                               backgroundColor: Colors.green,
                               padding: const EdgeInsets.symmetric(vertical: 12),
                             ),
-                            onPressed: () {
-                              // Xử lý thanh toán
-                            },
+                            onPressed: () {},
                             child: const Text('Thanh toán'),
                           ),
                         ),
@@ -189,9 +187,7 @@ class NotificationDetailScreen extends StatelessWidget {
                               vertical: 12,
                             ),
                           ),
-                          onPressed: () {
-                            // Xử lý nạp tiền
-                          },
+                          onPressed: () {},
                           icon: const Icon(Icons.account_balance_wallet),
                           label: const Text('Nạp tiền'),
                         ),

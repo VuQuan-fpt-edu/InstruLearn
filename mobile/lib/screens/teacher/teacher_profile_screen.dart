@@ -4,14 +4,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import '../auth/login_screen.dart';
 
-class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({Key? key}) : super(key: key);
+class TeacherProfileScreen extends StatefulWidget {
+  const TeacherProfileScreen({Key? key}) : super(key: key);
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  State<TeacherProfileScreen> createState() => _TeacherProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
   bool isLoading = true;
   Map<String, dynamic> userProfile = {};
 
@@ -44,8 +44,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['isSucceed'] == true) {
-          if (data['data']['learnerId'] != null) {
-            await prefs.setInt('learnerId', data['data']['learnerId']);
+          if (data['data']['teacherId'] != null) {
+            await prefs.setInt('teacherId', data['data']['teacherId']);
           }
           if (data['data']['accountId'] != null) {
             await prefs.setString('accountId', data['data']['accountId']);
@@ -166,7 +166,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         const SizedBox(height: 15),
                         Text(
-                          userProfile['fullName'] ?? 'Không có thông tin',
+                          userProfile['fullname'] ?? 'Không có thông tin',
                           style: const TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
@@ -242,7 +242,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _buildInfoItem(
             icon: Icons.person,
             title: 'Họ và tên',
-            value: userProfile['fullName'] ?? 'Không có thông tin',
+            value: userProfile['fullname'] ?? 'Không có thông tin',
           ),
           _buildInfoItem(
             icon: Icons.phone,
@@ -261,8 +261,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           _buildInfoItem(
             icon: Icons.badge,
-            title: 'ID học viên',
-            value: userProfile['learnerId']?.toString() ?? 'Không có thông tin',
+            title: 'ID giáo viên',
+            value: userProfile['teacherId']?.toString() ?? 'Không có thông tin',
+          ),
+          _buildInfoItem(
+            icon: Icons.calendar_today,
+            title: 'Ngày vào làm',
+            value: userProfile['dateOfEmployment']?.toString() ??
+                'Không có thông tin',
             isLast: true,
           ),
         ],
