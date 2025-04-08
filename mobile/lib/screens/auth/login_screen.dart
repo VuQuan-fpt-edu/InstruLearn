@@ -36,7 +36,7 @@ class _LoginScreenState extends State<LoginScreen> {
       try {
         final response = await http.post(
           Uri.parse(
-            'https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Auth/Login',
+            'https://instrulearnapplication2025-h7hfdte3etdth7av.southeastasia-01.azurewebsites.net/api/Auth/Login',
           ),
           headers: <String, String>{
             'Content-Type': 'application/json; charset=UTF-8',
@@ -64,7 +64,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
             final profileResponse = await http.get(
               Uri.parse(
-                'https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Auth/Profile',
+                'https://instrulearnapplication2025-h7hfdte3etdth7av.southeastasia-01.azurewebsites.net/api/Auth/Profile',
               ),
               headers: {
                 'Content-Type': 'application/json; charset=UTF-8',

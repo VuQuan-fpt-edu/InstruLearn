@@ -16,6 +16,7 @@ class Course {
   final String imageUrl;
   final String typeName;
   final int durationInHours;
+  final int coursePackageType;
 
   Course({
     required this.coursePackageId,
@@ -28,6 +29,7 @@ class Course {
     required this.imageUrl,
     required this.typeName,
     this.durationInHours = 0,
+    this.coursePackageType = 0,
   });
 
   factory Course.fromJson(Map<String, dynamic> json) {
@@ -43,6 +45,9 @@ class Course {
       typeName: json['typeName'] as String,
       durationInHours: json['durationInHours'] != null
           ? (json['durationInHours'] as num).toInt()
+          : 0,
+      coursePackageType: json['coursePackageType'] != null
+          ? (json['coursePackageType'] as num).toInt()
           : 0,
     );
   }
@@ -140,7 +145,7 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
 
       final response = await http.get(
         Uri.parse(
-          'https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Course/get-all',
+          'https://instrulearnapplication2025-h7hfdte3etdth7av.southeastasia-01.azurewebsites.net/api/Course/get-all',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
@@ -154,7 +159,11 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
 
           setState(() {
             courses = data.map((item) => Course.fromJson(item)).toList();
-            filteredCourses = List.from(courses);
+            filteredCourses = courses
+                .where((course) =>
+                    course.coursePackageType == 0 ||
+                    course.coursePackageType == 2)
+                .toList();
             isLoading = false;
           });
         } catch (e) {
@@ -185,6 +194,10 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
   void _applyFilters() {
     setState(() {
       filteredCourses = courses.where((course) {
+        if (course.coursePackageType != 0 && course.coursePackageType != 2) {
+          return false;
+        }
+
         final matchesSearch = searchQuery.isEmpty ||
             course.courseName.toLowerCase().contains(
                   searchQuery.toLowerCase(),
@@ -385,7 +398,11 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
                                       selectedDuration = null;
                                       searchQuery = '';
                                       _searchController.clear();
-                                      filteredCourses = List.from(courses);
+                                      filteredCourses = courses
+                                          .where((course) =>
+                                              course.coursePackageType == 0 ||
+                                              course.coursePackageType == 2)
+                                          .toList();
                                     });
                                   },
                                   child: const Text('Xóa bộ lọc'),

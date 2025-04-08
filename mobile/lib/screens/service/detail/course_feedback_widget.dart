@@ -131,7 +131,7 @@ class _CourseFeedbackWidgetState extends State<CourseFeedbackWidget> {
 
       final response = await http.get(
         Uri.parse(
-          'https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Auth/Profile',
+          'https://instrulearnapplication2025-h7hfdte3etdth7av.southeastasia-01.azurewebsites.net/api/Auth/Profile',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
@@ -175,7 +175,7 @@ class _CourseFeedbackWidgetState extends State<CourseFeedbackWidget> {
 
       final response = await http.get(
         Uri.parse(
-          'https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Feedback/get-all',
+          'https://instrulearnapplication2025-h7hfdte3etdth7av.southeastasia-01.azurewebsites.net/api/Feedback/get-all',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
@@ -261,7 +261,7 @@ class _CourseFeedbackWidgetState extends State<CourseFeedbackWidget> {
 
       final response = await http.post(
         Uri.parse(
-          'https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Feedback/create',
+          'https://instrulearnapplication2025-h7hfdte3etdth7av.southeastasia-01.azurewebsites.net/api/Feedback/create',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
@@ -334,7 +334,7 @@ class _CourseFeedbackWidgetState extends State<CourseFeedbackWidget> {
 
       final response = await http.post(
         Uri.parse(
-          'https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/FeedbackReplies/create',
+          'https://instrulearnapplication2025-h7hfdte3etdth7av.southeastasia-01.azurewebsites.net/api/FeedbackReplies/create',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',

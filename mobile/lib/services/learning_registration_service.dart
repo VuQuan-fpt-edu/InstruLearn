@@ -4,7 +4,7 @@ import '../models/learning_registration.dart';
 
 class LearningRegistrationService {
   static const String baseUrl =
-      'https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api';
+      'https://instrulearnapplication2025-h7hfdte3etdth7av.southeastasia-01.azurewebsites.net/api';
 
   Future<List<LearningRegistration>> getRegistrationsByLearnerId(
       int learnerId) async {
