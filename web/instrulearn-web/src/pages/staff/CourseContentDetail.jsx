@@ -96,7 +96,7 @@ const CourseContentDetail = () => {
     setLoading(true);
     try {
       const response = await axios.get(
-        `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/CourseContent/${contentId}`
+        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/CourseContent/${contentId}`
       );
 
       if (response.data?.isSucceed && response.data.data) {
@@ -116,7 +116,7 @@ const CourseContentDetail = () => {
   const fetchItemTypes = async () => {
     try {
       const response = await axios.get(
-        "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/ItemType/get-all"
+        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/ItemType/get-all"
       );
 
       if (response.data?.isSucceed && response.data.data) {
@@ -290,7 +290,7 @@ const CourseContentDetail = () => {
       console.log("Submitting new item:", newItem);
 
       const response = await axios.post(
-        "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/CourseContentItem/create",
+        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/CourseContentItem/create",
         newItem
       );
 
@@ -331,6 +331,7 @@ const CourseContentDetail = () => {
     editForm.setFieldsValue({
       itemTypeId: item.itemTypeId,
       itemDes: item.itemDes,
+      status: item.status,
     });
 
     setEditItemModalVisible(true);
@@ -385,12 +386,13 @@ const CourseContentDetail = () => {
         itemTypeId: parseInt(values.itemTypeId),
         contentId: parseInt(contentId),
         itemDes: itemDesValue,
+        status: parseInt(values.status),
       };
 
       console.log("Updating item:", updatedItem);
 
       const response = await axios.put(
-        `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/CourseContentItem/update/${selectedItem.itemId}`,
+        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/CourseContentItem/update/${selectedItem.itemId}`,
         updatedItem
       );
 
@@ -429,7 +431,7 @@ const CourseContentDetail = () => {
     setDeleteLoading(true);
     try {
       const response = await axios.delete(
-        `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/CourseContentItem/delete/${itemId}`
+        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/CourseContentItem/delete/${itemId}`
       );
 
       if (response.data?.isSucceed) {
@@ -484,9 +486,12 @@ const CourseContentDetail = () => {
       case 1: // Images
         return (
           <div className="mt-2">
-            <div className="mb-2">
+            <div className="mb-2 flex gap-2">
               <Tag color="green" icon={<FileImageOutlined />}>
                 Hình ảnh
+              </Tag>
+              <Tag color={item.status === 0 ? "error" : "success"}>
+                {item.status === 0 ? "Đã khóa" : "Đã mở khóa"}
               </Tag>
             </div>
             <div className="mb-2">
@@ -506,9 +511,12 @@ const CourseContentDetail = () => {
       case 2: // Video
         return (
           <div className="mt-2">
-            <div className="mb-2">
+            <div className="mb-2 flex gap-2">
               <Tag color="blue" icon={<VideoCameraOutlined />}>
                 Video
+              </Tag>
+              <Tag color={item.status === 0 ? "error" : "success"}>
+                {item.status === 0 ? "Đã khóa" : "Đã mở khóa"}
               </Tag>
             </div>
             <div className="mb-2">
@@ -527,9 +535,12 @@ const CourseContentDetail = () => {
       case 3: // Document
         return (
           <div className="mt-2">
-            <div className="mb-2">
+            <div className="mb-2 flex gap-2">
               <Tag color="purple" icon={<FileTextOutlined />}>
                 Tài liệu
+              </Tag>
+              <Tag color={item.status === 0 ? "error" : "success"}>
+                {item.status === 0 ? "Đã khóa" : "Đã mở khóa"}
               </Tag>
             </div>
             <a href={item.itemDes} target="_blank" rel="noopener noreferrer">
@@ -541,9 +552,12 @@ const CourseContentDetail = () => {
       default:
         return (
           <div className="mt-2">
-            <div className="mb-2">
+            <div className="mb-2 flex gap-2">
               <Tag color="default" icon={<FileTextOutlined />}>
                 {getItemTypeLabel(item.itemTypeId)}
+              </Tag>
+              <Tag color={item.status === 0 ? "error" : "success"}>
+                {item.status === 0 ? "Đã khóa" : "Đã mở khóa"}
               </Tag>
             </div>
             <Text>{item.itemDes}</Text>
@@ -823,12 +837,24 @@ const CourseContentDetail = () => {
                 </Select>
               </Form.Item>
 
+              <Form.Item
+                name="status"
+                label="Trạng thái"
+                rules={[
+                  { required: true, message: "Vui lòng chọn trạng thái" },
+                ]}
+              >
+                <Select placeholder="Chọn trạng thái">
+                  <Option value={0}>Đã khóa</Option>
+                  <Option value={1}>Đã mở khóa</Option>
+                </Select>
+              </Form.Item>
+
               <Form.Item label="Tải lên tệp mới">
                 <input
                   type="file"
                   onChange={handleFileSelect}
                   className="block w-full text-sm border border-gray-300 rounded p-2"
-                  required
                 />
                 {file && renderUploadButton()}
                 {filePreview()}
@@ -847,17 +873,16 @@ const CourseContentDetail = () => {
                 selectedItem.itemDes.startsWith("http") && (
                   <div className="border p-3 rounded mt-2">
                     <div className="font-medium mb-2">Nội dung hiện tại:</div>
-                    {selectedItem.itemTypeId === 1 ||
-                    selectedItem.itemDes.includes("video") ? (
-                      <video
-                        src={selectedItem.itemDes}
-                        controls
-                        style={{ maxWidth: "100%", maxHeight: "150px" }}
-                      />
-                    ) : selectedItem.itemDes.includes("image") ? (
+                    {selectedItem.itemTypeId === 1 ? (
                       <img
                         src={selectedItem.itemDes}
                         alt="Preview"
+                        style={{ maxWidth: "100%", maxHeight: "150px" }}
+                      />
+                    ) : selectedItem.itemTypeId === 2 ? (
+                      <video
+                        src={selectedItem.itemDes}
+                        controls
                         style={{ maxWidth: "100%", maxHeight: "150px" }}
                       />
                     ) : (

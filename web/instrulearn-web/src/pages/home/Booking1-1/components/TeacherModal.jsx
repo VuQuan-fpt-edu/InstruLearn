@@ -67,21 +67,14 @@ const TeacherModal = ({ isVisible, onClose, teacher, onViewProfile }) => {
         <Divider />
 
         <Row gutter={16}>
-          <Col span={8}>
+          <Col span={12}>
             <Statistic
               title="Kinh nghiệm"
               value={teacher.heading || "Chưa cập nhật"}
               prefix={<ClockCircleOutlined />}
             />
           </Col>
-          <Col span={8}>
-            <Statistic
-              title="Trạng thái"
-              value={teacher.isActive === 1 ? "Đang hoạt động" : "Tạm nghỉ"}
-              prefix={<UserOutlined />}
-            />
-          </Col>
-          <Col span={8}>
+          <Col span={12}>
             <Statistic
               title="Ngày vào nghề"
               value={new Date(teacher.dateOfEmployment).toLocaleDateString(

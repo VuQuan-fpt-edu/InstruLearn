@@ -28,6 +28,9 @@ import {
   PhoneOutlined,
   MailOutlined,
   UnlockOutlined,
+  EnvironmentOutlined,
+  UserSwitchOutlined,
+  PictureOutlined,
 } from "@ant-design/icons";
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import AdminHeader from "../../components/admin/AdminHeader";
@@ -53,7 +56,7 @@ const LearnerManagement = () => {
   const fetchLearners = async () => {
     try {
       const response = await axios.get(
-        "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Learner/get-all"
+        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Learner/get-all"
       );
       if (response.data.isSucceed) {
         setLearners(response.data.data);
@@ -80,10 +83,10 @@ const LearnerManagement = () => {
     try {
       const endpoint =
         isActive === 0
-          ? `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Learner/unban/${learnerId}`
-          : `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Learner/delete/${learnerId}`;
+          ? `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Learner/unban/${learnerId}`
+          : `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Learner/ban/${learnerId}`;
 
-      const response = await axios.delete(endpoint);
+      const response = await axios.put(endpoint);
 
       if (response.data.isSucceed) {
         message.success(
@@ -93,11 +96,13 @@ const LearnerManagement = () => {
         );
         fetchLearners();
       } else {
-        message.error(response.data.message || "Không thể thực hiện thao tác!");
+        throw new Error(
+          response.data.message || "Không thể thực hiện thao tác!"
+        );
       }
     } catch (error) {
       console.error("Error banning/unbanning learner:", error);
-      message.error("Không thể thực hiện thao tác!");
+      message.error(error.message || "Không thể thực hiện thao tác!");
     }
   };
 
@@ -105,19 +110,35 @@ const LearnerManagement = () => {
     try {
       const values = await form.validateFields();
       if (editingLearner) {
-        // TODO: Implement update API call
-        console.log("Update learner:", values);
-        message.success("Cập nhật thông tin học viên thành công!");
+        const updateData = {
+          phoneNumber: values.phoneNumber,
+          gender: values.gender,
+          address: values.address,
+          avatar: values.avatar,
+        };
+
+        const response = await axios.put(
+          `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Learner/update/${editingLearner.learnerId}`,
+          updateData
+        );
+
+        if (response.data.isSucceed) {
+          message.success("Cập nhật thông tin học viên thành công!");
+          setIsModalOpen(false);
+          fetchLearners();
+        } else {
+          throw new Error(
+            response.data.message || "Không thể cập nhật thông tin!"
+          );
+        }
       } else {
         // TODO: Implement create API call
         console.log("Create learner:", values);
         message.success("Thêm học viên mới thành công!");
       }
-      setIsModalOpen(false);
-      fetchLearners();
     } catch (error) {
       console.error("Lỗi khi lưu:", error);
-      message.error("Không thể lưu thông tin học viên!");
+      message.error(error.message || "Không thể lưu thông tin học viên!");
     }
   };
 
@@ -333,22 +354,79 @@ const LearnerManagement = () => {
                 </Col>
               </Row>
 
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item
+                    name="gender"
+                    label="Giới tính"
+                    rules={[
+                      {
+                        required: true,
+                        message: "Vui lòng chọn giới tính!",
+                      },
+                    ]}
+                  >
+                    <Select prefix={<UserSwitchOutlined />}>
+                      <Option value="male">Nam</Option>
+                      <Option value="female">Nữ</Option>
+                      <Option value="other">Khác</Option>
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item
+                    name="address"
+                    label="Địa chỉ"
+                    rules={[
+                      {
+                        required: true,
+                        message: "Vui lòng nhập địa chỉ!",
+                      },
+                    ]}
+                  >
+                    <Input prefix={<EnvironmentOutlined />} />
+                  </Form.Item>
+                </Col>
+              </Row>
+
               <Form.Item
-                name="password"
-                label="Mật khẩu"
+                name="avatar"
+                label="Ảnh đại diện"
                 rules={[
                   {
                     required: true,
-                    message: "Vui lòng nhập mật khẩu!",
+                    message: "Vui lòng nhập URL ảnh đại diện!",
                   },
                   {
-                    min: 6,
-                    message: "Mật khẩu phải có ít nhất 6 ký tự!",
+                    type: "url",
+                    message: "URL không hợp lệ!",
                   },
                 ]}
               >
-                <Input.Password prefix={<LockOutlined />} />
+                <Input
+                  prefix={<PictureOutlined />}
+                  placeholder="Nhập URL ảnh đại diện"
+                />
               </Form.Item>
+
+              {!editingLearner && (
+                <Form.Item
+                  name="password"
+                  label="Mật khẩu"
+                  rules={[
+                    {
+                      required: true,
+                      message: "Vui lòng nhập mật khẩu!",
+                    },
+                    {
+                      min: 6,
+                      message: "Mật khẩu phải có ít nhất 6 ký tự!",
+                    },
+                  ]}
+                >
+                  <Input.Password prefix={<LockOutlined />} />
+                </Form.Item>
+              )}
             </Form>
           </Modal>
 

@@ -28,7 +28,7 @@ const WalletComponent = () => {
 
         setLoading(true);
         const response = await axios.get(
-          `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/wallet/${learnerId}`,
+          `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/wallet/${learnerId}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -62,7 +62,7 @@ const WalletComponent = () => {
       const learnerId = localStorage.getItem("learnerId");
 
       const response = await axios.get(
-        `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/wallet/${learnerId}`,
+        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/wallet/${learnerId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

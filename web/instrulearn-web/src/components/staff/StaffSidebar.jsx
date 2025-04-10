@@ -61,8 +61,8 @@ const StaffSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
       case "class-progress":
         navigate("/staff/class-progress");
         break;
-      case "assessments":
-        navigate("/staff/assessments");
+      case "syllabus":
+        navigate("/staff/syllabus");
         break;
       case "grades":
         navigate("/staff/grades");
@@ -94,11 +94,17 @@ const StaffSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
       case "refund-requests":
         navigate("/staff/refund-requests");
         break;
-      case "add-class":
-        navigate("/staff/add-class");
+      case "class-management":
+        navigate("/staff/class-management");
         break;
       case "instrument-management":
         navigate("/staff/instrument-management");
+        break;
+      case "teacher-management":
+        navigate("/staff/teacher-management");
+        break;
+      case "syllabus":
+        navigate("/staff/syllabus");
         break;
       default:
         break;
@@ -114,12 +120,12 @@ const StaffSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
     {
       key: "course-management",
       icon: <BookOutlined />,
-      label: "Quản lý khóa học",
+      label: "Quản lý gói khóa học",
       children: [
         { key: "course-management", label: "Quản lý gói khóa học" },
         { key: "add-course", label: "Thêm gói khóa học" },
-        { key: "musical instrument-type", label: "Quản lý loại nhạc cụ" },
-        { key: "item-type", label: "Nội dung gói khóa học" },
+        { key: "musical instrument-type", label: "Quản lý nhạc cụ của gói" },
+        { key: "item-type", label: "Quản lý nội dung gói" },
       ],
     },
     {
@@ -156,9 +162,9 @@ const StaffSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
       icon: <SolutionOutlined />,
       label: "Theo dõi lớp học",
       children: [
-        { key: "add-class", label: "Thêm lớp" },
+        { key: "class-management", label: "Quản lý lớp học" },
         { key: "class-progress", label: "Tiến độ lớp" },
-        { key: "assessments", label: "Đánh giá" },
+        { key: "syllabus", label: "Giáo trình" },
         { key: "grades", label: "Điểm số" },
       ],
     },
@@ -174,11 +180,17 @@ const StaffSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
     {
       key: "instrument-management",
       icon: <SoundOutlined />,
-      label: "Nhạc cụ",
+      label: "Quản lý nhạc cụ",
       children: [
         { key: "instrument-management", label: "Quản lý nhạc cụ" },
         { key: "major-test", label: "Đề bài" },
       ],
+    },
+    {
+      key: "teacher-management",
+      icon: <UserOutlined />,
+      label: "Quản lý giáo viên",
+      children: [{ key: "teacher-management", label: "Quản lý giáo viên" }],
     },
   ];
 

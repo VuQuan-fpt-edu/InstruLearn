@@ -45,7 +45,7 @@ const MusicalInstrument = () => {
     try {
       setLoading(true);
       const response = await axios.get(
-        "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Major/get-all"
+        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Major/get-all"
       );
       if (response.data?.isSucceed) {
         setInstruments(response.data.data);
@@ -82,7 +82,7 @@ const MusicalInstrument = () => {
   const handleDelete = async (id) => {
     try {
       const response = await axios.delete(
-        `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Major/delete/${id}`
+        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Major/delete/${id}`
       );
       if (response.data?.isSucceed) {
         message.success("Xóa nhạc cụ thành công");
@@ -100,7 +100,7 @@ const MusicalInstrument = () => {
       if (editingInstrument) {
         // Update
         const response = await axios.put(
-          `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Major/update/${editingInstrument.majorId}`,
+          `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Major/update/${editingInstrument.majorId}`,
           values
         );
         if (response.data?.isSucceed) {
@@ -111,7 +111,7 @@ const MusicalInstrument = () => {
       } else {
         // Create
         const response = await axios.post(
-          "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Major/create",
+          "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Major/create",
           values
         );
         if (response.data?.isSucceed) {
@@ -134,8 +134,8 @@ const MusicalInstrument = () => {
   const handleStatusChange = async (id, checked) => {
     try {
       const endpoint = checked
-        ? `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Major/update-status-available/${id}`
-        : `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Major/update-status-unavailable/${id}`;
+        ? `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Major/update-status-available/${id}`
+        : `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Major/update-status-unavailable/${id}`;
 
       const response = await axios.put(endpoint);
 

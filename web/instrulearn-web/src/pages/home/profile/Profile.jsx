@@ -18,6 +18,11 @@ import {
   Select,
   Upload,
   Progress,
+  Dropdown,
+  Menu,
+  Drawer,
+  List,
+  Collapse,
 } from "antd";
 import {
   UserOutlined,
@@ -34,9 +39,15 @@ import {
   EditOutlined,
   UploadOutlined,
   FileImageOutlined,
+  HistoryOutlined,
+  MenuOutlined,
+  HomeOutlined,
+  RightOutlined,
+  AppstoreOutlined,
+  ReadOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { initializeApp } from "firebase/app";
 import {
   getStorage,
@@ -50,6 +61,8 @@ import Achievements from "./Achievements";
 import WalletComponent from "./MyWallet";
 import MyRegistrations from "./MyRegistrations";
 import MySchedule from "./MySchedule";
+import TransactionHistory from "./TransactionHistory";
+import MyLibrary from "./MyLibrary";
 
 // Firebase configuration
 const firebaseConfig = {
@@ -68,6 +81,7 @@ const storage = getStorage(app);
 
 const { Title, Text } = Typography;
 const { Option } = Select;
+const { Panel } = Collapse;
 
 const Profile = () => {
   const [profile, setProfile] = useState(null);
@@ -75,8 +89,10 @@ const Profile = () => {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("1");
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [isEditInfoModalVisible, setIsEditInfoModalVisible] = useState(false);
   const [form] = Form.useForm();
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Firebase upload states
   const [uploadFile, setUploadFile] = useState(null);
@@ -84,6 +100,10 @@ const Profile = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("");
   const [previewImage, setPreviewImage] = useState("");
+
+  const [activeContent, setActiveContent] = useState(null);
+  const [selectedMenu, setSelectedMenu] = useState("profile");
+  const [visible, setVisible] = useState(false);
 
   const convertRoleToVietnamese = (role) => {
     const roleMap = {
@@ -103,7 +123,7 @@ const Profile = () => {
 
       setLoading(true);
       const response = await axios.get(
-        "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Auth/Profile",
+        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Auth/Profile",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -137,6 +157,93 @@ const Profile = () => {
   useEffect(() => {
     fetchProfile();
   }, []);
+
+  // Xử lý callback từ PayOS
+  useEffect(() => {
+    const handlePaymentCallback = async () => {
+      try {
+        // Decode URL trước khi parse
+        const decodedSearch = decodeURIComponent(window.location.search);
+        console.log("Decoded search:", decodedSearch);
+
+        // Parse URL để lấy tất cả các params
+        const urlParams = new URLSearchParams(decodedSearch);
+
+        // Log tất cả các params để debug
+        const allParams = {};
+        urlParams.forEach((value, key) => {
+          allParams[key] = value;
+        });
+        console.log("All URL params:", allParams);
+
+        // Lấy orderCode và status từ URL
+        const orderCode = urlParams.get("orderCode");
+        const status = urlParams.get("status");
+
+        console.log("Payment params check:", {
+          orderCode,
+          status,
+          hasOrderCode: !!orderCode,
+          hasStatus: !!status,
+        });
+
+        if (orderCode && status) {
+          const token = localStorage.getItem("authToken");
+
+          console.log("Calling payment status update API with:", {
+            orderCode: parseInt(orderCode),
+            status: status,
+          });
+
+          try {
+            // Gọi API cập nhật trạng thái thanh toán
+            const response = await axios.put(
+              `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/wallet/update-payment-status-by-ordercode`,
+              {
+                orderCode: parseInt(orderCode),
+                status: status,
+              },
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  "Content-Type": "application/json",
+                },
+              }
+            );
+
+            console.log("API Response:", response.data);
+
+            if (response.data.isSucceed) {
+              message.success("Cập nhật trạng thái thanh toán thành công");
+              // Reload trang profile để cập nhật số dư
+              window.location.href = "/profile";
+            } else {
+              message.error(
+                response.data.message ||
+                  "Cập nhật trạng thái thanh toán thất bại"
+              );
+            }
+          } catch (error) {
+            console.error("API call error:", error.response?.data || error);
+            message.error("Có lỗi xảy ra khi cập nhật trạng thái thanh toán");
+          }
+        }
+      } catch (error) {
+        console.error("Error processing payment callback:", error);
+        message.error("Có lỗi xảy ra khi xử lý kết quả thanh toán");
+      }
+    };
+
+    // Kiểm tra xem URL có chứa params thanh toán không
+    const hasPaymentParams =
+      window.location.search.includes("orderCode") &&
+      window.location.search.includes("status");
+
+    if (hasPaymentParams) {
+      console.log("Detected payment callback, processing...");
+      handlePaymentCallback();
+    }
+  }, [location.search]); // Chạy lại khi URL thay đổi
 
   const enrolledCourses = [
     {
@@ -260,6 +367,26 @@ const Profile = () => {
     );
   };
 
+  const showEditModal = () => {
+    if (!profile) return;
+
+    form.setFieldsValue({
+      avatar: profile?.avatar || "",
+    });
+    setIsEditModalVisible(true);
+  };
+
+  const showEditInfoModal = () => {
+    if (!profile) return;
+
+    form.setFieldsValue({
+      phoneNumber: profile?.phoneNumber || "",
+      gender: profile?.gender || undefined,
+      address: profile?.address || "",
+    });
+    setIsEditInfoModalVisible(true);
+  };
+
   const handleUpdateProfile = async (values) => {
     try {
       const token = localStorage.getItem("authToken");
@@ -271,14 +398,17 @@ const Profile = () => {
         throw new Error("Không tìm thấy ID người dùng");
       }
 
+      // Sử dụng dữ liệu hiện tại cho các trường khác
+      const updateData = {
+        phoneNumber: profile.phoneNumber || "",
+        gender: profile.gender || "",
+        address: profile.address || "",
+        avatar: values.avatar,
+      };
+
       const response = await axios.put(
-        `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Learner/update/${profile.learnerId}`,
-        {
-          phoneNumber: values.phoneNumber,
-          gender: values.gender,
-          address: values.address,
-          avatar: values.avatar,
-        },
+        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Learner/update/${profile.learnerId}`,
+        updateData,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -287,9 +417,8 @@ const Profile = () => {
       );
 
       if (response.data.isSucceed) {
-        message.success("Cập nhật thông tin thành công!");
+        message.success("Cập nhật ảnh đại diện thành công!");
         setIsEditModalVisible(false);
-        // Refresh profile data
         fetchProfile();
       } else {
         throw new Error(response.data.message || "Cập nhật thất bại");
@@ -300,15 +429,231 @@ const Profile = () => {
     }
   };
 
-  const showEditModal = () => {
-    form.setFieldsValue({
-      phoneNumber: profile.phoneNumber,
-      gender: profile.gender,
-      address: profile.address,
-      avatar: profile.avatar,
-    });
-    setIsEditModalVisible(true);
+  const handleUpdateInfo = async (values) => {
+    try {
+      const token = localStorage.getItem("authToken");
+      if (!token) {
+        throw new Error("Bạn chưa đăng nhập");
+      }
+
+      if (!profile?.learnerId) {
+        throw new Error("Không tìm thấy ID người dùng");
+      }
+
+      // Sử dụng dữ liệu hiện tại cho avatar
+      const updateData = {
+        phoneNumber: values.phoneNumber || "",
+        gender: values.gender || "",
+        address: values.address || "",
+        avatar: profile.avatar || "",
+      };
+
+      const response = await axios.put(
+        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Learner/update/${profile.learnerId}`,
+        updateData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data.isSucceed) {
+        message.success("Cập nhật thông tin thành công!");
+        setIsEditInfoModalVisible(false);
+        fetchProfile();
+      } else {
+        throw new Error(response.data.message || "Cập nhật thất bại");
+      }
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      message.error(error.message || "Có lỗi xảy ra khi cập nhật thông tin");
+    }
   };
+
+  const renderMenuContent = () => {
+    switch (selectedMenu) {
+      case "profile":
+        return (
+          <Row gutter={[24, 24]}>
+            <Col xs={24} lg={12}>
+              <Card
+                className="h-full shadow-sm hover:shadow transition-shadow duration-300 border border-gray-100"
+                title={
+                  <div className="flex items-center text-lg font-medium">
+                    <UserOutlined className="text-purple-700 text-xl mr-4 mt-1" />
+                    <span>Thông tin đăng ký</span>
+                  </div>
+                }
+              >
+                <div className="space-y-8">
+                  <div className="flex items-start">
+                    <UserOutlined className="text-purple-700 text-xl mr-4 mt-1" />
+                    <div className="flex-1">
+                      <Text type="secondary" className="block mb-1">
+                        Họ và tên
+                      </Text>
+                      <div>
+                        <Text strong className="text-lg">
+                          {profile?.fullName || "Chưa cập nhật"}
+                        </Text>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start">
+                    <MailOutlined className="text-purple-700 text-xl mr-4 mt-1" />
+                    <div className="flex-1">
+                      <Text type="secondary" className="block mb-1">
+                        Email
+                      </Text>
+                      <div>
+                        <Text strong className="text-lg">
+                          {profile?.email || "Chưa cập nhật"}
+                        </Text>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start">
+                    <LockOutlined className="text-purple-700 text-xl mr-4 mt-1" />
+                    <div className="flex-1">
+                      <Text type="secondary" className="block mb-1">
+                        Tên đăng nhập
+                      </Text>
+                      <div>
+                        <Text strong className="text-lg">
+                          {profile?.username || "Chưa cập nhật"}
+                        </Text>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </Col>
+            <Col xs={24} lg={12}>
+              <Card
+                className="h-full shadow-sm hover:shadow transition-shadow duration-300 border border-gray-100"
+                title={
+                  <div className="flex items-center justify-between text-lg font-medium">
+                    <div className="flex items-center">
+                      <UserOutlined className="text-purple-700 mr-2" />
+                      <span>Thông tin bổ sung</span>
+                    </div>
+                    <Button
+                      type="primary"
+                      icon={<EditOutlined />}
+                      onClick={showEditInfoModal}
+                      className="bg-purple-700 hover:bg-purple-800"
+                    >
+                      Chỉnh sửa
+                    </Button>
+                  </div>
+                }
+              >
+                <div className="space-y-8">
+                  <div>
+                    <Text type="secondary" className="block mb-1">
+                      Số điện thoại
+                    </Text>
+                    <div>
+                      <Text strong className="text-lg">
+                        {profile?.phoneNumber || "Chưa cập nhật"}
+                      </Text>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Text type="secondary" className="block mb-1">
+                      Giới tính
+                    </Text>
+                    <div>
+                      <Text strong className="text-lg">
+                        {profile?.gender || "Chưa cập nhật"}
+                      </Text>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Text type="secondary" className="block mb-1">
+                      Địa chỉ
+                    </Text>
+                    <div>
+                      <Text strong className="text-lg">
+                        {profile?.address || "Chưa cập nhật"}
+                      </Text>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </Col>
+          </Row>
+        );
+      case "registrations":
+        return <MyRegistrations />;
+      case "schedule":
+        return <MySchedule />;
+      case "courses":
+        return <EnrolledCourses courses={enrolledCourses} />;
+      case "achievements":
+        return <Achievements achievements={achievements} />;
+      case "wallet":
+        return <WalletComponent />;
+      case "transactions":
+        return <TransactionHistory />;
+      case "library":
+        return <MyLibrary />;
+      default:
+        return (
+          <div className="text-center py-12">
+            <Text>Vui lòng chọn một mục từ menu</Text>
+          </div>
+        );
+    }
+  };
+
+  const menuItems = [
+    {
+      key: "profile",
+      icon: <UserOutlined className="text-lg" />,
+      label: "Thông tin cá nhân",
+    },
+    {
+      key: "registrations",
+      icon: <FormOutlined className="text-lg" />,
+      label: "Đăng ký học",
+    },
+    {
+      key: "schedule",
+      icon: <CalendarOutlined className="text-lg" />,
+      label: "Lịch học",
+    },
+    {
+      key: "library",
+      icon: <ReadOutlined className="text-lg" />,
+      label: "Thư viện khóa học",
+    },
+    {
+      key: "courses",
+      icon: <BookOutlined className="text-lg" />,
+      label: "Khoá học của tôi",
+    },
+    {
+      key: "achievements",
+      icon: <TrophyOutlined className="text-lg" />,
+      label: "Thành tích",
+    },
+    {
+      key: "wallet",
+      icon: <WalletOutlined className="text-lg" />,
+      label: "Ví của tôi",
+    },
+    {
+      key: "transactions",
+      icon: <HistoryOutlined className="text-lg" />,
+      label: "Lịch sử giao dịch",
+    },
+  ];
 
   if (loading) {
     return (
@@ -347,181 +692,21 @@ const Profile = () => {
     );
   }
 
-  const tabItems = [
-    {
-      key: "1",
-      label: (
-        <span className="flex items-center text-base">
-          <UserOutlined className="mr-2" /> Thông tin cá nhân
-        </span>
-      ),
-      children: (
-        <Row gutter={[24, 24]}>
-          <Col xs={24} md={12}>
-            <Card
-              className="h-full shadow-sm hover:shadow transition-shadow duration-300 border border-gray-100"
-              title={
-                <div className="flex items-center text-lg font-medium">
-                  <UserOutlined className="text-purple-700 text-xl mr-4 mt-1" />
-                  <span>Thông tin đăng ký</span>
-                </div>
-              }
-            >
-              <div className="space-y-8">
-                <div className="flex items-start">
-                  <UserOutlined className="text-purple-700 text-xl mr-4 mt-1" />
-                  <div className="flex-1">
-                    <Text type="secondary" className="block mb-1">
-                      Họ và tên
-                    </Text>
-                    <div>
-                      <Text strong className="text-lg">
-                        {profile.fullName || "Chưa cập nhật"}
-                      </Text>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-start">
-                  <MailOutlined className="text-purple-700 text-xl mr-4 mt-1" />
-                  <div className="flex-1">
-                    <Text type="secondary" className="block mb-1">
-                      Email
-                    </Text>
-                    <div>
-                      <Text strong className="text-lg">
-                        {profile.email || "Chưa cập nhật"}
-                      </Text>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-start">
-                  <LockOutlined className="text-purple-700 text-xl mr-4 mt-1" />
-                  <div className="flex-1">
-                    <Text type="secondary" className="block mb-1">
-                      Tên đăng nhập
-                    </Text>
-                    <div>
-                      <Text strong className="text-lg">
-                        {profile.username}
-                      </Text>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          </Col>
-          <Col xs={24} md={12}>
-            <Card
-              className="h-full shadow-sm hover:shadow transition-shadow duration-300 border border-gray-100"
-              title={
-                <div className="flex items-center text-lg font-medium">
-                  <UserOutlined className="text-purple-700 mr-2" />
-                  <span>Thông tin bổ sung</span>
-                </div>
-              }
-            >
-              <div className="space-y-8">
-                <div>
-                  <Text type="secondary" className="block mb-1">
-                    Số điện thoại
-                  </Text>
-                  <div>
-                    <Text strong className="text-lg">
-                      {profile.phoneNumber || "Chưa cập nhật"}
-                    </Text>
-                  </div>
-                </div>
-
-                <div>
-                  <Text type="secondary" className="block mb-1">
-                    Giới tính
-                  </Text>
-                  <div>
-                    <Text strong className="text-lg">
-                      {profile.gender || "Chưa cập nhật"}
-                    </Text>
-                  </div>
-                </div>
-
-                <div>
-                  <Text type="secondary" className="block mb-1">
-                    Địa chỉ
-                  </Text>
-                  <div>
-                    <Text strong className="text-lg">
-                      {profile.address || "Chưa cập nhật"}
-                    </Text>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          </Col>
-        </Row>
-      ),
-    },
-    {
-      key: "2",
-      label: (
-        <span className="flex items-center text-base">
-          <FormOutlined className="mr-2" /> Đăng ký học
-        </span>
-      ),
-      children: <MyRegistrations />,
-    },
-    {
-      key: "3",
-      label: (
-        <span className="flex items-center text-base">
-          <CalendarOutlined className="mr-2" /> Lịch học
-        </span>
-      ),
-      children: <MySchedule />,
-    },
-    {
-      key: "4",
-      label: (
-        <span className="flex items-center text-base">
-          <BookOutlined className="mr-2" /> Khoá học của tôi
-        </span>
-      ),
-      children: <EnrolledCourses courses={enrolledCourses} />,
-    },
-    {
-      key: "5",
-      label: (
-        <span className="flex items-center text-base">
-          <TrophyOutlined className="mr-2" /> Thành tích
-        </span>
-      ),
-      children: <Achievements achievements={achievements} />,
-    },
-    {
-      key: "6",
-      label: (
-        <span className="flex items-center text-base">
-          <WalletOutlined className="mr-2" /> Ví của tôi
-        </span>
-      ),
-      children: <WalletComponent />,
-    },
-  ];
-
   return (
-    <div className="max-w-5xl mx-auto my-12 px-4">
+    <div className="max-w-6xl mx-auto my-8 px-4">
       <Card className="shadow-lg rounded-xl overflow-hidden">
-        <div className="bg-gradient-to-r from-purple-700 to-indigo-800 text-white p-8 -mt-5 -mx-5 mb-8">
+        {/* Profile Header */}
+        <div className="bg-gradient-to-r from-purple-700 to-indigo-800 text-white p-6 -mt-5 -mx-5 mb-6">
           <Row gutter={24} align="middle">
             <Col
               xs={24}
               md={6}
-              className="text-center md:text-left mb-6 md:mb-0"
+              className="text-center md:text-left mb-4 md:mb-0"
             >
               <div className="relative inline-block">
                 <div className="relative">
                   <Avatar
-                    size={150}
+                    size={120}
                     src={profile?.avatar}
                     icon={!profile?.avatar && <UserOutlined />}
                     className="bg-white text-purple-700 border-4 border-white shadow-lg"
@@ -537,64 +722,106 @@ const Profile = () => {
               </div>
             </Col>
             <Col xs={24} md={18} className="text-center md:text-left">
-              <Title level={1} className="text-white mb-1 text-3xl md:text-4xl">
-                {profile.fullName}
+              <Title level={2} className="text-white mb-1">
+                {profile?.fullName || "Chưa cập nhật"}
               </Title>
-              <Text className="text-purple-200 text-xl block mb-4">
-                @{profile.username}
+              <Text className="text-purple-200 text-lg block mb-2">
+                @{profile?.username || ""}
               </Text>
               <div className="flex flex-wrap gap-2 justify-center md:justify-start">
-                <Tag className="bg-purple-800 text-white border-purple-600 px-3 py-1 text-base">
+                <Tag className="bg-purple-800 text-white border-purple-600 px-3 py-1">
                   <BookOutlined className="mr-1" />{" "}
-                  {convertRoleToVietnamese(profile.role)}
+                  {profile?.role ? convertRoleToVietnamese(profile.role) : ""}
                 </Tag>
               </div>
             </Col>
           </Row>
         </div>
 
-        <Tabs
-          defaultActiveKey="1"
-          activeKey={activeTab}
-          onChange={handleTabChange}
-          size="large"
-          className="profile-tabs"
-          items={tabItems}
-        />
+        {/* Mobile Menu Button */}
+        <div className="md:hidden mb-4">
+          <Button
+            type="primary"
+            onClick={() => setVisible(true)}
+            icon={<MenuOutlined />}
+            className="w-full bg-purple-600 hover:bg-purple-700"
+          >
+            Menu
+          </Button>
+        </div>
 
+        {/* Desktop and Mobile Layout */}
+        <Row gutter={24}>
+          {/* Desktop Menu - Left Sidebar */}
+          <Col xs={0} md={6} lg={5} className="hidden md:block">
+            <Card className="sticky top-4 shadow-sm">
+              <Menu
+                mode="vertical"
+                selectedKeys={[selectedMenu]}
+                style={{ borderRight: 0 }}
+                onClick={({ key }) => setSelectedMenu(key)}
+                items={menuItems}
+                className="profile-menu"
+              />
+            </Card>
+          </Col>
+
+          {/* Content Area */}
+          <Col xs={24} md={18} lg={19}>
+            <div className="bg-white rounded-lg">
+              <div className="flex items-center mb-4 border-b pb-3">
+                <div className="flex-1">
+                  <Title level={4} className="mb-0">
+                    {menuItems.find((item) => item.key === selectedMenu)
+                      ?.label || "Thông tin cá nhân"}
+                  </Title>
+                </div>
+                <Button
+                  type="link"
+                  icon={<HomeOutlined />}
+                  onClick={() => setSelectedMenu("profile")}
+                  className="hidden xs:inline-block"
+                >
+                  Trang chủ
+                </Button>
+              </div>
+
+              {renderMenuContent()}
+            </div>
+          </Col>
+        </Row>
+
+        {/* Mobile Drawer */}
+        <Drawer
+          title="Menu"
+          placement="left"
+          onClose={() => setVisible(false)}
+          visible={visible}
+          width={280}
+          bodyStyle={{ padding: 0 }}
+        >
+          <Menu
+            mode="vertical"
+            selectedKeys={[selectedMenu]}
+            onClick={({ key }) => {
+              setSelectedMenu(key);
+              setVisible(false);
+            }}
+            items={menuItems}
+            style={{ borderRight: 0 }}
+            className="profile-menu-mobile"
+          />
+        </Drawer>
+
+        {/* Edit Profile Modal */}
         <Modal
-          title="Cập nhật thông tin cá nhân"
+          title="Cập nhật ảnh đại diện"
           open={isEditModalVisible}
           onCancel={() => setIsEditModalVisible(false)}
           footer={null}
           width={600}
         >
           <Form form={form} layout="vertical" onFinish={handleUpdateProfile}>
-            <Form.Item
-              name="phoneNumber"
-              label="Số điện thoại"
-              rules={[
-                {
-                  pattern: /^[0-9]{10}$/,
-                  message: "Số điện thoại không hợp lệ!",
-                },
-              ]}
-            >
-              <Input prefix={<PhoneOutlined />} />
-            </Form.Item>
-
-            <Form.Item name="gender" label="Giới tính">
-              <Select>
-                <Option value="Nam">Nam</Option>
-                <Option value="Nữ">Nữ</Option>
-                <Option value="Khác">Khác</Option>
-              </Select>
-            </Form.Item>
-
-            <Form.Item name="address" label="Địa chỉ">
-              <Input.TextArea rows={3} />
-            </Form.Item>
-
             <Form.Item name="avatar" label="URL Ảnh đại diện" hidden={true}>
               <Input disabled />
             </Form.Item>
@@ -655,6 +882,51 @@ const Profile = () => {
                 htmlType="submit"
                 disabled={!form.getFieldValue("avatar")}
               >
+                Cập nhật
+              </Button>
+            </div>
+          </Form>
+        </Modal>
+
+        {/* Edit Info Modal */}
+        <Modal
+          title="Cập nhật thông tin bổ sung"
+          open={isEditInfoModalVisible}
+          onCancel={() => setIsEditInfoModalVisible(false)}
+          footer={null}
+          width={600}
+        >
+          <Form form={form} layout="vertical" onFinish={handleUpdateInfo}>
+            <Form.Item
+              name="phoneNumber"
+              label="Số điện thoại"
+              rules={[
+                {
+                  pattern: /^[0-9]{10}$/,
+                  message: "Số điện thoại không hợp lệ!",
+                },
+              ]}
+            >
+              <Input prefix={<PhoneOutlined />} />
+            </Form.Item>
+
+            <Form.Item name="gender" label="Giới tính">
+              <Select>
+                <Option value="Nam">Nam</Option>
+                <Option value="Nữ">Nữ</Option>
+                <Option value="Khác">Khác</Option>
+              </Select>
+            </Form.Item>
+
+            <Form.Item name="address" label="Địa chỉ">
+              <Input.TextArea rows={3} />
+            </Form.Item>
+
+            <div className="flex justify-end space-x-2">
+              <Button onClick={() => setIsEditInfoModalVisible(false)}>
+                Hủy
+              </Button>
+              <Button type="primary" htmlType="submit">
                 Cập nhật
               </Button>
             </div>

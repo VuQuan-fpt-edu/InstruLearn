@@ -13,7 +13,6 @@ import {
   Space,
   message,
   Spin,
-  Breadcrumb,
   Divider,
   Row,
   Col,
@@ -26,8 +25,6 @@ import {
   BookOutlined,
   ClockCircleOutlined,
   TeamOutlined,
-  HomeOutlined,
-  EnvironmentOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import StaffSidebar from "../../components/staff/StaffSidebar";
@@ -38,189 +35,183 @@ import locale from "antd/es/date-picker/locale/vi_VN";
 const { Content } = Layout;
 const { Title } = Typography;
 const { Option } = Select;
-const { RangePicker } = DatePicker;
-const { TextArea } = Input;
 
-// Dữ liệu giả
-const fakeTeachers = [
-  { id: 1, name: "Nguyễn Văn An" },
-  { id: 2, name: "Trần Thị Bình" },
-  { id: 3, name: "Lê Văn Cường" },
-  { id: 4, name: "Phạm Văn Dương" },
-  { id: 5, name: "Nguyễn Thị Ngọc" },
-  { id: 6, name: "Lê Thị Hương" },
-  { id: 7, name: "Trần Văn Khánh" },
-  { id: 8, name: "Phạm Thị Lan" },
-];
-
-const fakeCourses = [
-  { id: 1, name: "Guitar cơ bản" },
-  { id: 2, name: "Piano nâng cao" },
-  { id: 3, name: "Violin cơ bản" },
-  { id: 4, name: "Trống Jazz" },
-  { id: 5, name: "Sáo trúc Việt Nam" },
-  { id: 6, name: "Ukulele cơ bản" },
-  { id: 7, name: "Thanh nhạc hiện đại" },
-  { id: 8, name: "Saxophone nâng cao" },
-  { id: 9, name: "Đàn tranh truyền thống" },
-  { id: 10, name: "Guitar đệm hát" },
-];
-
-const fakeRooms = [
-  { id: 1, name: "Phòng 101" },
-  { id: 2, name: "Phòng 102" },
-  { id: 3, name: "Phòng 103" },
-  { id: 4, name: "Phòng 201" },
-  { id: 5, name: "Phòng 202" },
-  { id: 6, name: "Phòng 203" },
-  { id: 7, name: "Phòng 301" },
-  { id: 8, name: "Phòng 302" },
-];
-
-const weekdays = [
-  { value: "Thứ 2", label: "Thứ 2" },
-  { value: "Thứ 3", label: "Thứ 3" },
-  { value: "Thứ 4", label: "Thứ 4" },
-  { value: "Thứ 5", label: "Thứ 5" },
-  { value: "Thứ 6", label: "Thứ 6" },
-  { value: "Thứ 7", label: "Thứ 7" },
-  { value: "CN", label: "Chủ nhật" },
+const weekDays = [
+  { value: 0, label: "Chủ nhật" },
+  { value: 1, label: "Thứ 2" },
+  { value: 2, label: "Thứ 3" },
+  { value: 3, label: "Thứ 4" },
+  { value: 4, label: "Thứ 5" },
+  { value: 5, label: "Thứ 6" },
+  { value: 6, label: "Thứ 7" },
 ];
 
 const AddClass = () => {
   const [form] = Form.useForm();
   const [collapsed, setCollapsed] = useState(false);
   const [selectedMenu, setSelectedMenu] = useState("classes");
-  const [loading, setLoading] = useState(false);
+  const [loadingData, setLoadingData] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [teachers, setTeachers] = useState([]);
   const [courses, setCourses] = useState([]);
-  const [rooms, setRooms] = useState([]);
+  const [teachers, setTeachers] = useState([]);
+  const [syllabuses, setSyllabuses] = useState([]);
+  const [selectedDays, setSelectedDays] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Giả lập việc tải dữ liệu
-    const loadFakeData = setTimeout(() => {
-      setTeachers(fakeTeachers);
-      setCourses(fakeCourses);
-      setRooms(fakeRooms);
-      setLoading(false);
-    }, 800);
-
-    return () => clearTimeout(loadFakeData);
+    Promise.all([fetchCourses(), fetchTeachers(), fetchSyllabuses()]);
   }, []);
 
-  const handleSubmit = (values) => {
-    setSubmitting(true);
+  const fetchTeachers = async () => {
+    try {
+      const response = await fetch(
+        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Teacher/get-all"
+      );
+      const data = await response.json();
+      const activeTeachers = data.filter(
+        (teacher) => teacher.data.isActive === 1
+      );
+      setTeachers(activeTeachers);
+    } catch (error) {
+      console.error("Error fetching teachers:", error);
+      message.error("Không thể tải danh sách giáo viên");
+    }
+  };
 
-    // Xử lý dữ liệu từ form
-    const formData = {
-      ...values,
-      startDate: values.dateRange[0].format("YYYY-MM-DD"),
-      endDate: values.dateRange[1].format("YYYY-MM-DD"),
-      schedule: `${values.weekdays.join(", ")} - ${values.timeRange[0].format(
-        "HH:mm"
-      )}-${values.timeRange[1].format("HH:mm")}`,
-      status: "Sắp khai giảng", // Trạng thái mặc định cho lớp mới
-      studentCount: 0, // Số học viên ban đầu
-    };
+  const fetchSyllabuses = async () => {
+    try {
+      const response = await fetch(
+        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Syllabus/get-all"
+      );
+      const data = await response.json();
+      setSyllabuses(data);
+    } catch (error) {
+      console.error("Error fetching syllabuses:", error);
+      message.error("Không thể tải danh sách giáo trình");
+    }
+  };
 
-    // Giả lập việc gửi dữ liệu lên server
-    setTimeout(() => {
-      console.log("Submitted data:", formData);
-      message.success("Thêm lớp học mới thành công!");
+  const fetchCourses = async () => {
+    try {
+      setLoadingData(true);
+      const response = await fetch(
+        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Course/get-all"
+      );
+      const data = await response.json();
+      // Lọc chỉ hiển thị khóa học có coursePackageType là 1
+      const filteredData = data.filter(
+        (course) => course.coursePackageType === 1
+      );
+      setCourses(filteredData);
+    } catch (error) {
+      console.error("Error fetching courses:", error);
+      message.error("Không thể tải danh sách khóa học");
+    } finally {
+      setLoadingData(false);
+    }
+  };
+
+  const handleSubmit = async (values) => {
+    try {
+      setSubmitting(true);
+      // Chuyển đổi selectedDays thành mảng số và sắp xếp
+      const classDays = selectedDays.map(Number).sort((a, b) => a - b);
+
+      const response = await fetch(
+        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Class/create",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            teacherId: values.teacherId,
+            coursePackageId: values.coursePackageId,
+            syllabusId: values.syllabusId,
+            className: values.className,
+            startDate: values.startDate.format("YYYY-MM-DD"),
+            classTime: values.classTime.format("HH:mm"),
+            maxStudents: values.maxStudents,
+            totalDays: values.totalDays,
+            price: values.price,
+            status: 0,
+            classDays: classDays,
+          }),
+        }
+      );
+
+      if (response.ok) {
+        message.success("Tạo lớp học thành công!");
+        navigate("/staff/class-management");
+      } else {
+        message.error("Không thể tạo lớp học");
+      }
+    } catch (error) {
+      console.error("Error creating class:", error);
+      message.error("Có lỗi xảy ra khi tạo lớp học");
+    } finally {
       setSubmitting(false);
-      navigate("/class-management");
-    }, 1500);
+    }
   };
 
   const handleCancel = () => {
-    navigate("/class-management");
+    navigate("/staff/class-management");
   };
 
+  // Thêm hàm kiểm tra thời gian hợp lệ
+  const disabledTime = () => ({
+    disabledHours: () => [
+      ...Array(7).keys(),
+      ...Array(5)
+        .keys()
+        .map((x) => x + 19),
+    ],
+    disabledMinutes: () => [],
+    disabledSeconds: () => [],
+  });
+
   return (
-    <Layout style={{ minHeight: "100vh" }}>
+    <Layout className="min-h-screen">
       <StaffSidebar
         collapsed={collapsed}
+        setCollapsed={setCollapsed}
         selectedMenu={selectedMenu}
-        onMenuSelect={setSelectedMenu}
-        toggleCollapsed={() => setCollapsed(!collapsed)}
       />
-      <Layout>
-        <StaffHeader
-          collapsed={collapsed}
-          toggleCollapsed={() => setCollapsed(!collapsed)}
-          selectedMenu={selectedMenu}
-        />
-        <Content className="p-6 bg-gray-50">
-          <Breadcrumb className="mb-4">
-            <Breadcrumb.Item href="/dashboard">
-              <HomeOutlined /> Trang chủ
-            </Breadcrumb.Item>
-            <Breadcrumb.Item href="/class-management">
-              Quản lý lớp học
-            </Breadcrumb.Item>
-            <Breadcrumb.Item>Thêm lớp học mới</Breadcrumb.Item>
-          </Breadcrumb>
-
-          <Card>
-            <Title level={4}>Thêm lớp học mới</Title>
+      <Layout
+        style={{
+          marginLeft: collapsed ? "80px" : "250px",
+          transition: "all 0.2s",
+        }}
+      >
+        <StaffHeader collapsed={collapsed} setCollapsed={setCollapsed} />
+        <Content
+          className="p-6 bg-gray-50"
+          style={{
+            marginTop: "64px",
+          }}
+        >
+          <Card className="shadow-md">
+            <Title level={2} className="text-center mb-6">
+              Thêm Lớp Học Mới
+            </Title>
             <Divider />
 
-            <Spin spinning={loading || submitting}>
+            <Spin spinning={loadingData}>
               <Form
                 form={form}
                 layout="vertical"
                 onFinish={handleSubmit}
                 initialValues={{
                   maxStudents: 10,
+                  teacherId: undefined,
+                  syllabusId: undefined,
                 }}
               >
                 <Row gutter={24}>
                   {/* Thông tin cơ bản */}
-                  <Col span={24}>
-                    <Title level={5}>
-                      <BookOutlined /> Thông tin cơ bản
-                    </Title>
-                  </Col>
+                  <Col xs={24} lg={16}>
+                    <Title level={4}>Thông tin cơ bản</Title>
 
-                  <Col span={12}>
-                    <Form.Item
-                      name="className"
-                      label="Tên lớp học"
-                      rules={[
-                        {
-                          required: true,
-                          message: "Vui lòng nhập tên lớp học!",
-                        },
-                      ]}
-                    >
-                      <Input placeholder="Nhập tên lớp học" />
-                    </Form.Item>
-                  </Col>
-
-                  <Col span={12}>
-                    <Form.Item
-                      name="courseId"
-                      label="Khóa học"
-                      rules={[
-                        {
-                          required: true,
-                          message: "Vui lòng chọn khóa học!",
-                        },
-                      ]}
-                    >
-                      <Select placeholder="Chọn khóa học">
-                        {courses.map((course) => (
-                          <Option key={course.id} value={course.id}>
-                            {course.name}
-                          </Option>
-                        ))}
-                      </Select>
-                    </Form.Item>
-                  </Col>
-
-                  <Col span={12}>
                     <Form.Item
                       name="teacherId"
                       label="Giáo viên"
@@ -233,15 +224,73 @@ const AddClass = () => {
                     >
                       <Select placeholder="Chọn giáo viên">
                         {teachers.map((teacher) => (
-                          <Option key={teacher.id} value={teacher.id}>
-                            {teacher.name}
+                          <Option
+                            key={teacher.data.teacherId}
+                            value={teacher.data.teacherId}
+                          >
+                            {teacher.data.fullname}
                           </Option>
                         ))}
                       </Select>
                     </Form.Item>
-                  </Col>
 
-                  <Col span={12}>
+                    <Form.Item
+                      name="syllabusId"
+                      label="Giáo trình"
+                      rules={[
+                        {
+                          required: true,
+                          message: "Vui lòng chọn giáo trình!",
+                        },
+                      ]}
+                    >
+                      <Select placeholder="Chọn giáo trình">
+                        {syllabuses.map((syllabus) => (
+                          <Option
+                            key={syllabus.data.syllabusId}
+                            value={syllabus.data.syllabusId}
+                          >
+                            {syllabus.data.syllabusName}
+                          </Option>
+                        ))}
+                      </Select>
+                    </Form.Item>
+
+                    <Form.Item
+                      name="className"
+                      label="Tên lớp học"
+                      rules={[
+                        {
+                          required: true,
+                          message: "Vui lòng nhập tên lớp học!",
+                        },
+                      ]}
+                    >
+                      <Input placeholder="Nhập tên lớp học" />
+                    </Form.Item>
+
+                    <Form.Item
+                      name="coursePackageId"
+                      label="Khóa học"
+                      rules={[
+                        {
+                          required: true,
+                          message: "Vui lòng chọn khóa học!",
+                        },
+                      ]}
+                    >
+                      <Select placeholder="Chọn khóa học">
+                        {courses.map((course) => (
+                          <Option
+                            key={course.coursePackageId}
+                            value={course.coursePackageId}
+                          >
+                            {course.courseName}
+                          </Option>
+                        ))}
+                      </Select>
+                    </Form.Item>
+
                     <Form.Item
                       name="maxStudents"
                       label="Số học viên tối đa"
@@ -254,38 +303,84 @@ const AddClass = () => {
                     >
                       <InputNumber min={1} max={30} style={{ width: "100%" }} />
                     </Form.Item>
-                  </Col>
 
-                  {/* Thời gian và lịch học */}
-                  <Col span={24} className="mt-4">
-                    <Title level={5}>
-                      <CalendarOutlined /> Thời gian và lịch học
-                    </Title>
-                  </Col>
-
-                  <Col span={12}>
                     <Form.Item
-                      name="dateRange"
-                      label="Thời gian (bắt đầu - kết thúc)"
+                      name="price"
+                      label="Giá"
                       rules={[
                         {
                           required: true,
-                          message: "Vui lòng chọn thời gian!",
+                          message: "Vui lòng nhập giá!",
                         },
                       ]}
                     >
-                      <RangePicker
+                      <InputNumber
+                        style={{ width: "100%" }}
+                        min={0}
+                        formatter={(value) =>
+                          `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                        }
+                        parser={(value) => value.replace(/\$\s?|(,*)/g, "")}
+                      />
+                    </Form.Item>
+                  </Col>
+
+                  {/* Thời gian và lịch học */}
+                  <Col xs={24} lg={8}>
+                    <Title level={4}>Thời gian và lịch học</Title>
+
+                    <Form.Item
+                      name="startDate"
+                      label="Ngày bắt đầu"
+                      rules={[
+                        {
+                          required: true,
+                          message: "Vui lòng chọn ngày bắt đầu!",
+                        },
+                      ]}
+                    >
+                      <DatePicker
                         locale={locale}
                         style={{ width: "100%" }}
                         format="DD/MM/YYYY"
                       />
                     </Form.Item>
-                  </Col>
 
-                  <Col span={12}>
                     <Form.Item
-                      name="weekdays"
-                      label="Các ngày học trong tuần"
+                      name="classTime"
+                      label="Thời gian học"
+                      rules={[
+                        {
+                          required: true,
+                          message: "Vui lòng chọn thời gian học!",
+                        },
+                      ]}
+                    >
+                      <TimePicker
+                        format="HH:mm"
+                        style={{ width: "100%" }}
+                        disabledTime={disabledTime}
+                        minuteStep={15}
+                        showNow={false}
+                        placeholder="Chọn thời gian (7:00 - 19:00)"
+                      />
+                    </Form.Item>
+
+                    <Form.Item
+                      name="totalDays"
+                      label="Tổng số buổi học"
+                      rules={[
+                        {
+                          required: true,
+                          message: "Vui lòng nhập tổng số buổi học!",
+                        },
+                      ]}
+                    >
+                      <InputNumber min={1} style={{ width: "100%" }} />
+                    </Form.Item>
+
+                    <Form.Item
+                      label="Ngày học trong tuần"
                       rules={[
                         {
                           required: true,
@@ -296,88 +391,41 @@ const AddClass = () => {
                       <Select
                         mode="multiple"
                         placeholder="Chọn các ngày học trong tuần"
-                        options={weekdays}
-                      />
-                    </Form.Item>
-                  </Col>
-
-                  <Col span={12}>
-                    <Form.Item
-                      name="timeRange"
-                      label="Thời gian học (bắt đầu - kết thúc)"
-                      rules={[
-                        {
-                          required: true,
-                          message: "Vui lòng chọn giờ học!",
-                        },
-                      ]}
-                    >
-                      <TimePicker.RangePicker
-                        format="HH:mm"
+                        value={selectedDays}
+                        onChange={setSelectedDays}
                         style={{ width: "100%" }}
-                      />
-                    </Form.Item>
-                  </Col>
-
-                  <Col span={12}>
-                    <Form.Item
-                      name="roomId"
-                      label="Phòng học"
-                      rules={[
-                        {
-                          required: true,
-                          message: "Vui lòng chọn phòng học!",
-                        },
-                      ]}
-                    >
-                      <Select placeholder="Chọn phòng học">
-                        {rooms.map((room) => (
-                          <Option key={room.id} value={room.id}>
-                            {room.name}
+                      >
+                        {weekDays.map((day) => (
+                          <Option key={day.value} value={day.value}>
+                            {day.label}
                           </Option>
                         ))}
                       </Select>
-                    </Form.Item>
-                  </Col>
-
-                  {/* Thông tin bổ sung */}
-                  <Col span={24} className="mt-4">
-                    <Title level={5}>
-                      <TeamOutlined /> Thông tin bổ sung
-                    </Title>
-                  </Col>
-
-                  <Col span={24}>
-                    <Form.Item name="description" label="Mô tả lớp học">
-                      <TextArea
-                        rows={4}
-                        placeholder="Nhập mô tả và thông tin bổ sung về lớp học"
-                      />
                     </Form.Item>
                   </Col>
                 </Row>
 
                 <Divider />
 
-                <Form.Item>
-                  <Space>
-                    <Button
-                      type="primary"
-                      htmlType="submit"
-                      icon={<SaveOutlined />}
-                      loading={submitting}
-                    >
-                      Tạo lớp học
-                    </Button>
-                    <Button
-                      danger
-                      icon={<CloseOutlined />}
-                      onClick={handleCancel}
-                    >
-                      Hủy
-                    </Button>
-                  </Space>
-                </Form.Item>
+                <div className="flex justify-center mt-4">
+                  <Button
+                    type="default"
+                    className="mr-4"
+                    onClick={handleCancel}
+                    icon={<CloseOutlined />}
+                  >
+                    Hủy
+                  </Button>
+                  <Button
+                    type="primary"
+                    htmlType="submit"
+                    size="large"
+                    loading={submitting}
+                    icon={<SaveOutlined />}
+                  >
+                    Tạo lớp học
+                  </Button>
+                </div>
               </Form>
             </Spin>
           </Card>

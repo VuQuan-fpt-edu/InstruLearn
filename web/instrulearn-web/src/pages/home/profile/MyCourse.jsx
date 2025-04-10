@@ -43,7 +43,7 @@ const EnrolledCourses = () => {
       }
 
       const response = await axios.get(
-        `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Purchase/by-learner/${learnerId}`,
+        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Purchase/by-learner/${learnerId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

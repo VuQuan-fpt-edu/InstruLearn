@@ -23,6 +23,8 @@ import {
   Descriptions,
   Skeleton,
   Alert,
+  Empty,
+  Upload,
 } from "antd";
 import {
   EditOutlined,
@@ -36,17 +38,41 @@ import {
   StarOutlined,
   PictureOutlined,
   HomeOutlined,
+  UploadOutlined,
+  FileImageOutlined,
 } from "@ant-design/icons";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import StaffSidebar from "../../components/staff/StaffSidebar";
 import StaffHeader from "../../components/staff/StaffHeader";
 import CourseContent from "./CourseContent";
+import { initializeApp } from "firebase/app";
+import {
+  getStorage,
+  ref,
+  uploadBytesResumable,
+  getDownloadURL,
+} from "firebase/storage";
 
 const { Content } = Layout;
 const { Option } = Select;
 const { Title, Text, Paragraph } = Typography;
 const { TabPane } = Tabs;
+
+// Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyB4EaRe-CrB3u7lYm2HZmHqIjE6E_PtaFM",
+  authDomain: "sdn-project-aba8a.firebaseapp.com",
+  projectId: "sdn-project-aba8a",
+  storageBucket: "sdn-project-aba8a.appspot.com",
+  messagingSenderId: "953028355031",
+  appId: "1:953028355031:web:7dfc4f2a85c932e507e192",
+  measurementId: "G-63KQ2X3RCL",
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const storage = getStorage(app);
 
 const CourseDetail = () => {
   const { courseId } = useParams();
@@ -60,58 +86,70 @@ const CourseDetail = () => {
   const [instrumentTypes, setInstrumentTypes] = useState([]);
   const [imagePreview, setImagePreview] = useState("");
   const [form] = Form.useForm();
+  const [uploadFile, setUploadFile] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState("");
+  const [previewImage, setPreviewImage] = useState("");
+  const [selectedInstrumentType, setSelectedInstrumentType] = useState(null);
 
-  useEffect(() => {
-    fetchCourseDetail();
-    fetchInstrumentTypes();
-  }, [courseId]);
-
-  const fetchInstrumentTypes = async () => {
+  const fetchData = async () => {
     try {
-      const response = await axios.get(
-        "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/CourseType/get-all"
-      );
+      setLoading(true);
+      const [courseResponse, typesResponse] = await Promise.all([
+        axios.get(
+          `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Course/${courseId}`
+        ),
+        axios.get(
+          "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/CourseType/get-all"
+        ),
+      ]);
 
-      if (response.data && response.data.isSucceed && response.data.data) {
-        setInstrumentTypes(response.data.data);
+      if (courseResponse.data) {
+        setCourse(courseResponse.data);
+        setImagePreview(courseResponse.data.imageUrl);
+        console.log("Course data:", courseResponse.data);
+      }
+
+      if (typesResponse.data?.isSucceed && typesResponse.data.data) {
+        setInstrumentTypes(typesResponse.data.data);
+        // Tìm và set loại nhạc cụ hiện tại
+        const currentType = typesResponse.data.data.find(
+          (type) => type.courseTypeId === courseResponse.data.courseTypeId
+        );
+        setSelectedInstrumentType(currentType);
+        console.log("Current instrument type:", currentType);
       } else {
-        console.error("Unexpected instrument types format:", response.data);
-        setInstrumentTypes([]);
+        console.error("Failed to load instrument types:", typesResponse.data);
+        message.error("Không thể tải danh sách loại nhạc cụ");
+      }
+
+      // Set form values after both APIs have responded
+      if (courseResponse.data) {
+        const formData = {
+          courseName: courseResponse.data.courseName,
+          headline: courseResponse.data.headline,
+          courseDescription: courseResponse.data.courseDescription,
+          price: courseResponse.data.price,
+          discount: courseResponse.data.discount,
+          imageUrl: courseResponse.data.imageUrl,
+          courseTypeId: courseResponse.data.courseTypeId,
+          status: courseResponse.data.status,
+        };
+        console.log("Setting form values:", formData);
+        form.setFieldsValue(formData);
       }
     } catch (error) {
-      console.error("Error fetching instrument types:", error);
-      message.error("Không thể tải danh sách loại nhạc cụ");
-    }
-  };
-
-  const fetchCourseDetail = async () => {
-    setLoading(true);
-    try {
-      const response = await axios.get(
-        `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Course/${courseId}`
-      );
-      if (response.data) {
-        setCourse(response.data);
-        form.setFieldsValue({
-          courseName: response.data.courseName,
-          headline: response.data.headline,
-          courseDescription: response.data.courseDescription,
-          price: response.data.price,
-          discount: response.data.discount,
-          imageUrl: response.data.imageUrl,
-          typeId: response.data.typeId,
-        });
-        setImagePreview(response.data.imageUrl);
-      } else {
-        throw new Error("Invalid API response format");
-      }
-    } catch (error) {
-      console.error("Error fetching course:", error);
-      message.error("Không thể tải thông tin khóa học");
+      console.error("Error fetching data:", error);
+      message.error("Không thể tải thông tin");
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchData();
+  }, [courseId]);
 
   const handleUpdate = async (values) => {
     if (!course) return;
@@ -119,8 +157,7 @@ const CourseDetail = () => {
     setUpdateLoading(true);
     try {
       const updateData = {
-        coursePackageId: course.coursePackageId,
-        typeId: values.typeId,
+        courseTypeId: values.courseTypeId,
         courseName: values.courseName,
         courseDescription: values.courseDescription,
         headline: values.headline,
@@ -128,19 +165,20 @@ const CourseDetail = () => {
         price: values.price,
         discount: values.discount,
         imageUrl: values.imageUrl,
+        status: values.status || 0,
       };
 
       console.log("Sending update with data:", updateData);
 
       const response = await axios.put(
-        `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Course/update/${courseId}`,
+        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Course/update/${courseId}`,
         updateData
       );
 
       if (response.data && response.data.isSucceed) {
         message.success("Cập nhật khóa học thành công");
         setModalVisible(false);
-        fetchCourseDetail();
+        fetchData(); // Gọi lại fetchData thay vì fetchCourseDetail
       } else {
         throw new Error(response.data?.message || "Cập nhật thất bại");
       }
@@ -154,9 +192,32 @@ const CourseDetail = () => {
 
   const openEditModal = () => {
     if (course) {
-      form.setFieldsValue(course);
+      const currentType = instrumentTypes.find(
+        (type) => type.courseTypeId === course.courseTypeId
+      );
+      setSelectedInstrumentType(currentType);
+
+      form.setFieldsValue({
+        courseName: course.courseName,
+        headline: course.headline,
+        courseDescription: course.courseDescription,
+        price: course.price,
+        discount: course.discount,
+        imageUrl: course.imageUrl,
+        courseTypeId: course.courseTypeId,
+        status: course.status,
+      });
+      setPreviewImage(course.imageUrl);
       setModalVisible(true);
     }
+  };
+
+  const handleInstrumentTypeChange = (value) => {
+    const selectedType = instrumentTypes.find(
+      (type) => type.courseTypeId === value
+    );
+    setSelectedInstrumentType(selectedType);
+    form.setFieldsValue({ courseTypeId: value });
   };
 
   const handleImagePreview = (e) => {
@@ -165,6 +226,79 @@ const CourseDetail = () => {
 
   const handleBackToCourses = () => {
     navigate("/staff/course-management");
+  };
+
+  const handleFileSelect = (e) => {
+    if (e.target.files[0]) {
+      const file = e.target.files[0];
+
+      // Validate file is an image
+      if (!file.type.startsWith("image/")) {
+        message.error("Vui lòng chỉ chọn file hình ảnh");
+        return;
+      }
+
+      // Validate file size (maximum 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        message.error("Kích thước file không được vượt quá 5MB");
+        return;
+      }
+
+      setUploadFile(file);
+
+      // Create a preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewImage(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleUploadImage = () => {
+    if (!uploadFile) {
+      message.error("Vui lòng chọn file hình ảnh trước");
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadProgress(0);
+    setUploadStatus("Đang tải ảnh lên...");
+
+    // Create a storage reference with a unique filename
+    const storageRef = ref(
+      storage,
+      `course-images/${Date.now()}-${uploadFile.name}`
+    );
+
+    // Upload the file
+    const uploadTask = uploadBytesResumable(storageRef, uploadFile);
+
+    // Monitor upload progress
+    uploadTask.on(
+      "state_changed",
+      (snapshot) => {
+        const progress = Math.round(
+          (snapshot.bytesTransferred / snapshot.totalBytes) * 100
+        );
+        setUploadProgress(progress);
+      },
+      (error) => {
+        console.error("Upload error:", error);
+        message.error("Tải ảnh lên thất bại");
+        setUploadStatus("Tải ảnh thất bại");
+        setIsUploading(false);
+      },
+      () => {
+        // Upload complete, get download URL
+        getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+          form.setFieldsValue({ imageUrl: downloadURL });
+          setUploadStatus("Tải ảnh thành công!");
+          setIsUploading(false);
+          message.success("Tải ảnh lên thành công");
+        });
+      }
+    );
   };
 
   if (loading) {
@@ -303,77 +437,306 @@ const CourseDetail = () => {
               >
                 <Tabs defaultActiveKey="1">
                   <TabPane tab="Thông tin chung" key="1">
-                    <Descriptions
-                      bordered
-                      column={{ xs: 1, sm: 2 }}
-                      size="small"
-                    >
-                      <Descriptions.Item label="Mã khóa học" span={2}>
-                        {course.coursePackageId}
-                      </Descriptions.Item>
-                      <Descriptions.Item label="Tiêu đề" span={2}>
-                        {course.headline}
-                      </Descriptions.Item>
-                      <Descriptions.Item label="Loại nhạc cụ">
-                        <Tag color="blue">{course.typeName}</Tag>
-                      </Descriptions.Item>
-                      <Descriptions.Item label="Giá">
-                        <Text strong className="text-red-500">
-                          {course.price.toLocaleString()} VND
-                        </Text>
-                      </Descriptions.Item>
-                      <Descriptions.Item label="Giảm giá">
-                        {course.discount > 0 ? (
-                          <Badge
-                            count={`${course.discount}%`}
-                            style={{ backgroundColor: "#52c41a" }}
-                          />
-                        ) : (
-                          <Text type="secondary">Không có</Text>
-                        )}
-                      </Descriptions.Item>
-                      <Descriptions.Item label="Đánh giá">
-                        <Space>
-                          <Rate
-                            disabled
-                            defaultValue={course.rating}
-                            allowHalf
-                          />
-                          <Text>{course.rating}/5</Text>
-                        </Space>
-                      </Descriptions.Item>
-                    </Descriptions>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="md:col-span-2">
+                        <Card
+                          title="Thông tin cơ bản"
+                          bordered={false}
+                          className="shadow-sm"
+                        >
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <Text type="secondary">Mã khóa học</Text>
+                              <div className="font-medium">
+                                {course.coursePackageId}
+                              </div>
+                            </div>
+                            <div>
+                              <Text type="secondary">Loại nhạc cụ</Text>
+                              <div>
+                                <Tag color="blue">{course.courseTypeName}</Tag>
+                              </div>
+                            </div>
+                            <div>
+                              <Text type="secondary">Trạng thái</Text>
+                              <div>
+                                <Badge
+                                  status={
+                                    course.status === 0 ? "error" : "success"
+                                  }
+                                  text={
+                                    course.status === 0
+                                      ? "Đang xử lý"
+                                      : "Đang mở bán"
+                                  }
+                                />
+                              </div>
+                            </div>
+                            <div>
+                              <Text type="secondary">Giá</Text>
+                              <div className="text-red-500 font-medium">
+                                {course.price.toLocaleString()} VND
+                              </div>
+                            </div>
+                            <div>
+                              <Text type="secondary">Giảm giá</Text>
+                              <div>
+                                {course.discount > 0 ? (
+                                  <Badge
+                                    count={`${course.discount}%`}
+                                    style={{ backgroundColor: "#52c41a" }}
+                                  />
+                                ) : (
+                                  <Text type="secondary">Không có</Text>
+                                )}
+                              </div>
+                            </div>
+                            <div>
+                              <Text type="secondary">Đánh giá</Text>
+                              <div className="flex items-center gap-2">
+                                <Rate
+                                  disabled
+                                  defaultValue={course.rating}
+                                  allowHalf
+                                />
+                                <Text>{course.rating}/5</Text>
+                              </div>
+                            </div>
+                          </div>
 
-                    <Divider orientation="left">Mô tả</Divider>
-                    <Paragraph>{course.courseDescription}</Paragraph>
+                          <Divider />
+
+                          <div>
+                            <Text type="secondary">Tiêu đề</Text>
+                            <div className="font-medium mt-1">
+                              {course.headline}
+                            </div>
+                          </div>
+
+                          <div className="mt-4">
+                            <Text type="secondary">Mô tả</Text>
+                            <Paragraph className="mt-1">
+                              {course.courseDescription}
+                            </Paragraph>
+                          </div>
+                        </Card>
+
+                        <Card
+                          title="Thống kê"
+                          bordered={false}
+                          className="shadow-sm mt-6"
+                        >
+                          <div className="grid grid-cols-3 gap-4">
+                            <div className="text-center p-4 bg-blue-50 rounded-lg">
+                              <Title level={3}>
+                                {course.courseContents?.length || 0}
+                              </Title>
+                              <Text>Bài học</Text>
+                            </div>
+                            <div className="text-center p-4 bg-green-50 rounded-lg">
+                              <Title level={3}>
+                                {course.feedBacks?.length || 0}
+                              </Title>
+                              <Text>Đánh giá</Text>
+                            </div>
+                            <div className="text-center p-4 bg-yellow-50 rounded-lg">
+                              <Title level={3}>
+                                {course.qnAs?.length || 0}
+                              </Title>
+                              <Text>Câu hỏi</Text>
+                            </div>
+                          </div>
+                        </Card>
+                      </div>
+
+                      <div className="md:col-span-1">
+                        <Card
+                          title={
+                            <div className="flex justify-between items-center">
+                              <span>Ảnh khóa học</span>
+                              <Button
+                                type="link"
+                                icon={<EyeOutlined />}
+                                onClick={() =>
+                                  window.open(course.imageUrl, "_blank")
+                                }
+                              >
+                                Xem
+                              </Button>
+                            </div>
+                          }
+                          bordered={false}
+                          className="shadow-sm"
+                        >
+                          <Image
+                            width="100%"
+                            src={course.imageUrl}
+                            alt={course.courseName}
+                            fallback="https://placehold.co/600x400?text=No+Image"
+                          />
+                        </Card>
+                      </div>
+                    </div>
                   </TabPane>
 
                   <TabPane tab="Nội dung khóa học" key="2">
                     <CourseContent courseId={courseId} />
                   </TabPane>
+
+                  <TabPane tab="Đánh giá" key="3">
+                    <Card bordered={false} className="shadow-sm">
+                      <div className="mb-6">
+                        <div className="flex items-center justify-between mb-4">
+                          <Title level={4} className="mb-0">
+                            Tổng quan đánh giá
+                          </Title>
+                          <div className="flex items-center gap-2">
+                            <Rate
+                              disabled
+                              defaultValue={course.rating}
+                              allowHalf
+                            />
+                            <Text strong>{course.rating}/5</Text>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          {[5, 4, 3, 2, 1].map((star) => {
+                            const count =
+                              course.feedBacks?.filter(
+                                (f) => Math.floor(f.rating) === star
+                              ).length || 0;
+                            const percentage = course.feedBacks?.length
+                              ? (count / course.feedBacks.length) * 100
+                              : 0;
+                            return (
+                              <div
+                                key={star}
+                                className="flex items-center gap-4"
+                              >
+                                <div className="w-20 text-right">
+                                  <Text>{star} sao</Text>
+                                </div>
+                                <Progress
+                                  percent={percentage}
+                                  strokeColor="#1890ff"
+                                  size="small"
+                                  format={(percent) => `${count} đánh giá`}
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <Divider />
+
+                      <div className="space-y-6">
+                        {course.feedBacks && course.feedBacks.length > 0 ? (
+                          course.feedBacks.map((feedback) => (
+                            <div
+                              key={feedback.feedbackId}
+                              className="border-b last:border-b-0 pb-6 last:pb-0"
+                            >
+                              <div className="flex justify-between items-start mb-2">
+                                <div>
+                                  <Text strong>{feedback.email}</Text>
+                                  <Text
+                                    type="secondary"
+                                    className="block text-sm"
+                                  >
+                                    {feedback.role}
+                                  </Text>
+                                </div>
+                                <Space align="start">
+                                  <Rate
+                                    disabled
+                                    defaultValue={feedback.rating}
+                                  />
+                                  <Text type="secondary" className="text-sm">
+                                    {new Date(
+                                      feedback.createdAt
+                                    ).toLocaleDateString()}
+                                  </Text>
+                                </Space>
+                              </div>
+                              <Paragraph>{feedback.feedbackContent}</Paragraph>
+                            </div>
+                          ))
+                        ) : (
+                          <Empty description="Chưa có đánh giá nào" />
+                        )}
+                      </div>
+                    </Card>
+                  </TabPane>
+
+                  <TabPane tab="Hỏi đáp" key="4">
+                    <Card bordered={false} className="shadow-sm">
+                      <div className="space-y-8">
+                        {course.qnAs && course.qnAs.length > 0 ? (
+                          course.qnAs.map((qna) => (
+                            <div
+                              key={qna.questionId}
+                              className="border-b last:border-b-0 pb-8 last:pb-0"
+                            >
+                              <div className="flex justify-between items-start mb-4">
+                                <div>
+                                  <Text strong>{qna.email}</Text>
+                                  <Text
+                                    type="secondary"
+                                    className="block text-sm"
+                                  >
+                                    {qna.role}
+                                  </Text>
+                                </div>
+                                <Text type="secondary" className="text-sm">
+                                  {new Date(qna.createdAt).toLocaleDateString()}
+                                </Text>
+                              </div>
+                              <Title level={5} className="mb-2">
+                                {qna.title}
+                              </Title>
+                              <Paragraph>{qna.questionContent}</Paragraph>
+
+                              {qna.replies && qna.replies.length > 0 && (
+                                <div className="mt-4 space-y-4">
+                                  <Text strong>Trả lời:</Text>
+                                  {qna.replies.map((reply, index) => (
+                                    <div
+                                      key={index}
+                                      className="bg-gray-50 p-4 rounded-lg"
+                                    >
+                                      <div className="flex justify-between items-start mb-2">
+                                        <Text strong className="text-sm">
+                                          {reply.email}
+                                        </Text>
+                                        <Text
+                                          type="secondary"
+                                          className="text-sm"
+                                        >
+                                          {new Date(
+                                            reply.createdAt
+                                          ).toLocaleDateString()}
+                                        </Text>
+                                      </div>
+                                      <Paragraph className="mb-0">
+                                        {reply.replyContent}
+                                      </Paragraph>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ))
+                        ) : (
+                          <Empty description="Chưa có câu hỏi nào" />
+                        )}
+                      </div>
+                    </Card>
+                  </TabPane>
                 </Tabs>
               </Card>
             </div>
             <div className="w-full md:w-1/3">
-              <Card
-                title={
-                  <span>
-                    <PictureOutlined /> Ảnh khóa học
-                  </span>
-                }
-                bordered={false}
-                className="mb-6 shadow-sm"
-              >
-                <div className="flex justify-center">
-                  <Image
-                    width="100%"
-                    src={course.imageUrl}
-                    alt={course.courseName}
-                    fallback="https://placehold.co/600x400?text=No+Image"
-                  />
-                </div>
-              </Card>
-
               <Card
                 title={
                   <span>
@@ -438,11 +801,23 @@ const CourseDetail = () => {
               </div>
             }
             open={modalVisible}
-            onCancel={() => setModalVisible(false)}
+            onCancel={() => {
+              setModalVisible(false);
+              setPreviewImage("");
+              setUploadFile(null);
+              setUploadProgress(0);
+              setUploadStatus("");
+            }}
             footer={[
               <Button
                 key="cancel"
-                onClick={() => setModalVisible(false)}
+                onClick={() => {
+                  setModalVisible(false);
+                  setPreviewImage("");
+                  setUploadFile(null);
+                  setUploadProgress(0);
+                  setUploadStatus("");
+                }}
                 icon={<RollbackOutlined />}
               >
                 Hủy
@@ -545,7 +920,7 @@ const CourseDetail = () => {
                 </Form.Item>
 
                 <Form.Item
-                  name="typeId"
+                  name="courseTypeId"
                   label={
                     <Space>
                       <TagOutlined /> Loại nhạc cụ
@@ -555,12 +930,31 @@ const CourseDetail = () => {
                     { required: true, message: "Vui lòng chọn loại nhạc cụ" },
                   ]}
                 >
-                  <Select placeholder="Chọn loại nhạc cụ">
+                  <Select
+                    placeholder="Chọn loại nhạc cụ"
+                    onChange={handleInstrumentTypeChange}
+                    loading={instrumentTypes.length === 0}
+                    showSearch
+                    optionFilterProp="children"
+                  >
                     {instrumentTypes.map((type) => (
-                      <Option key={type.typeId} value={type.typeId}>
-                        {type.typeName}
+                      <Option key={type.courseTypeId} value={type.courseTypeId}>
+                        {type.courseTypeName}
                       </Option>
                     ))}
+                  </Select>
+                </Form.Item>
+
+                <Form.Item
+                  name="status"
+                  label="Trạng thái"
+                  rules={[
+                    { required: true, message: "Vui lòng chọn trạng thái" },
+                  ]}
+                >
+                  <Select>
+                    <Option value={0}>Đang xử lý</Option>
+                    <Option value={1}>Đang mở bán</Option>
                   </Select>
                 </Form.Item>
 
@@ -568,38 +962,81 @@ const CourseDetail = () => {
                   name="imageUrl"
                   label={
                     <Space>
-                      <PictureOutlined /> Ảnh URL
+                      <PictureOutlined /> URL Hình ảnh
                     </Space>
                   }
-                  rules={[{ required: true, message: "Vui lòng nhập URL ảnh" }]}
-                  className="md:col-span-2"
+                  rules={[
+                    { required: true, message: "Vui lòng tải lên hình ảnh" },
+                  ]}
+                  hidden={true}
                 >
-                  <Input
-                    placeholder="Nhập đường dẫn hình ảnh"
-                    onChange={handleImagePreview}
-                  />
+                  <Input disabled />
                 </Form.Item>
               </div>
 
-              {imagePreview && (
-                <div className="mb-4 border p-2 rounded-md">
-                  <Text strong className="block mb-2">
-                    Xem trước ảnh:
-                  </Text>
-                  <div className="flex justify-center bg-gray-50 p-2">
-                    <img
-                      src={imagePreview}
-                      alt="Preview"
-                      className="max-w-full h-auto max-h-48 object-contain"
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.src =
-                          "https://placehold.co/600x400?text=Invalid+URL";
-                      }}
-                    />
-                  </div>
+              <div className="mb-4 border rounded-lg p-4 bg-gray-50">
+                <div className="flex items-center mb-3">
+                  <PictureOutlined className="mr-2 text-blue-600" />
+                  <Text strong>Tải ảnh lên</Text>
                 </div>
-              )}
+
+                <div className="mb-3">
+                  <input
+                    type="file"
+                    onChange={handleFileSelect}
+                    accept="image/*"
+                    className="block w-full text-sm border border-gray-300 rounded-md p-2 hover:border-blue-500 transition-colors"
+                  />
+                </div>
+
+                {uploadFile && !isUploading && (
+                  <Button
+                    type="primary"
+                    onClick={handleUploadImage}
+                    icon={<UploadOutlined />}
+                    block
+                    className="rounded-md"
+                  >
+                    Tải ảnh lên
+                  </Button>
+                )}
+
+                {isUploading && (
+                  <div className="mt-2">
+                    <Progress
+                      percent={uploadProgress}
+                      size="small"
+                      status="active"
+                      strokeColor="#1890ff"
+                    />
+                    <Text type="secondary" className="block mt-1 text-center">
+                      {uploadStatus}
+                    </Text>
+                  </div>
+                )}
+
+                {uploadStatus === "Tải ảnh thành công!" && !isUploading && (
+                  <div className="mt-2">
+                    <Text type="success">Ảnh đã được tải lên thành công!</Text>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-4">
+                {(previewImage || form.getFieldValue("imageUrl")) && (
+                  <div className="text-center">
+                    <img
+                      src={previewImage || form.getFieldValue("imageUrl")}
+                      alt="Preview"
+                      className="max-w-full h-auto border rounded-lg shadow-sm"
+                      style={{ maxHeight: "200px" }}
+                    />
+                    <Text type="secondary" className="block mt-2">
+                      Xem trước ảnh khóa học
+                    </Text>
+                  </div>
+                )}
+              </div>
             </Form>
           </Modal>
         </Content>

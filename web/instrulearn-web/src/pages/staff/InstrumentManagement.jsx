@@ -18,7 +18,7 @@ const InstrumentManagement = () => {
   const fetchInstruments = async () => {
     try {
       const response = await axios.get(
-        "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/CourseType/get-all"
+        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/CourseType/get-all"
       );
       if (response.data.isSucceed) {
         setInstruments(response.data.data);
@@ -36,7 +36,7 @@ const InstrumentManagement = () => {
     try {
       if (editingInstrument) {
         await axios.put(
-          `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/CourseType/update/${editingInstrument.courseTypeId}`,
+          `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/CourseType/update/${editingInstrument.courseTypeId}`,
           {
             courseTypeName: values.courseTypeName,
           }
@@ -44,7 +44,7 @@ const InstrumentManagement = () => {
         message.success("Cập nhật nhạc cụ thành công!");
       } else {
         await axios.post(
-          "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/CourseType/create",
+          "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/CourseType/create",
           {
             courseTypeName: values.courseTypeName,
           }
@@ -63,7 +63,7 @@ const InstrumentManagement = () => {
   const handleDelete = async (id) => {
     try {
       await axios.delete(
-        `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/CourseType/delete/${id}`
+        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/CourseType/delete/${id}`
       );
       message.success("Xóa nhạc cụ thành công!");
       fetchInstruments();

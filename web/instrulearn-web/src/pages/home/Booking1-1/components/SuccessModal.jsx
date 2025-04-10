@@ -31,8 +31,8 @@ const SuccessModal = ({ visible, onClose, bookingDetails }) => {
     >
       <div className="space-y-4 mt-4">
         <Paragraph>
-          Yêu cầu đặt lịch học của bạn đã được gửi thành công. Chúng tôi sẽ liên
-          hệ với bạn trong vòng 24 giờ để xác nhận lịch học.
+          Yêu cầu đặt lịch học của bạn đã được gửi thành công. Học viên lưu ý
+          kiểm tra trạng thái đơn học để không bỏ lỡ lịch học.
         </Paragraph>
 
         <div className="bg-blue-50 p-4 rounded-lg">

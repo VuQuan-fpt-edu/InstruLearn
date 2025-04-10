@@ -19,6 +19,9 @@ import {
   ReloadOutlined,
   EditOutlined,
   EyeOutlined,
+  BookOutlined,
+  ShopOutlined,
+  StarOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -44,7 +47,7 @@ const CourseManagement = () => {
     setLoading(true);
     try {
       const response = await axios.get(
-        "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Course/get-all"
+        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Course/get-all"
       );
 
       if (response.data) {
@@ -70,7 +73,7 @@ const CourseManagement = () => {
     e.stopPropagation();
     try {
       await axios.delete(
-        `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Course/delete/${coursePackageId}`
+        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Course/delete/${coursePackageId}`
       );
       message.success("Xóa khóa học thành công");
       fetchCourses();
@@ -98,9 +101,20 @@ const CourseManagement = () => {
       course.courseDescription
         .toLowerCase()
         .includes(searchText.toLowerCase()) ||
-      course.typeName.toLowerCase().includes(searchText.toLowerCase()) ||
+      course.courseTypeName.toLowerCase().includes(searchText.toLowerCase()) ||
       course.headline.toLowerCase().includes(searchText.toLowerCase())
   );
+
+  const getStatusTag = (status) => {
+    switch (status) {
+      case 0:
+        return <Tag color="orange">Đang xử lý</Tag>;
+      case 1:
+        return <Tag color="green">Đang mở bán</Tag>;
+      default:
+        return <Tag color="default">Không xác định</Tag>;
+    }
+  };
 
   const columns = [
     {
@@ -124,34 +138,25 @@ const CourseManagement = () => {
       ),
     },
     {
-      title: "Mô tả",
-      dataIndex: "courseDescription",
-      key: "courseDescription",
-      ellipsis: {
-        showTitle: false,
-      },
-      render: (text) => (
-        <Tooltip placement="topLeft" title={text}>
-          {text}
-        </Tooltip>
-      ),
-    },
-    {
-      title: "Giá",
-      dataIndex: "price",
-      key: "price",
-      render: (price) => `${price.toLocaleString()} VND`,
-      sorter: (a, b) => a.price - b.price,
-    },
-    {
       title: "Loại nhạc cụ",
-      dataIndex: "typeName",
-      key: "typeName",
+      dataIndex: "courseTypeName",
+      key: "courseTypeName",
       render: (type) => <Tag color="blue">{type}</Tag>,
       filters: Array.from(
-        new Set(courses.map((course) => course.typeName))
+        new Set(courses.map((course) => course.courseTypeName))
       ).map((type) => ({ text: type, value: type })),
-      onFilter: (value, record) => record.typeName === value,
+      onFilter: (value, record) => record.courseTypeName === value,
+    },
+    {
+      title: "Trạng thái",
+      dataIndex: "status",
+      key: "status",
+      render: (status) => getStatusTag(status),
+      filters: [
+        { text: "Đang xử lý", value: 0 },
+        { text: "Đang mở bán", value: 1 },
+      ],
+      onFilter: (value, record) => record.status === value,
     },
     {
       title: "Hành động",

@@ -11,6 +11,9 @@ import {
   VideoCameraOutlined,
   HomeOutlined,
   BankOutlined,
+  LineChartOutlined,
+  MessageOutlined,
+  DollarOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 
@@ -49,6 +52,18 @@ const ManagerSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
       case "promotions":
         navigate("/manager/promotions");
         break;
+      case "level-management":
+        navigate("/manager/level-management");
+        break;
+      case "response-management":
+        navigate("/manager/response-management");
+        break;
+      case "response-type-management":
+        navigate("/manager/response-type-management");
+        break;
+      case "payment-management":
+        navigate("/manager/payment-management");
+        break;
       default:
         break;
     }
@@ -70,6 +85,27 @@ const ManagerSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
         { key: "class-revenue", label: "Lớp học trung tâm" },
         { key: "private-revenue", label: "Học 1-1" },
         { key: "history-transaction", label: "Lịch sử giao dịch" },
+      ],
+    },
+    {
+      key: "payment",
+      icon: <DollarOutlined />,
+      label: "Thanh toán",
+      children: [{ key: "payment-management", label: "Quản lý thanh toán" }],
+    },
+    {
+      key: "level",
+      icon: <LineChartOutlined />,
+      label: "Báo cáo cấp độ",
+      children: [{ key: "level-management", label: "Quản lý cấp độ" }],
+    },
+    {
+      key: "response",
+      icon: <MessageOutlined />,
+      label: "Báo cáo phản hồi",
+      children: [
+        { key: "response-management", label: "Quản lý phản hồi" },
+        { key: "response-type-management", label: "Quản lý loại phản hồi" },
       ],
     },
     {

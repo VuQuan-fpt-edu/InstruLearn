@@ -18,6 +18,11 @@ import {
   PlusOutlined,
   FileImageOutlined,
   UploadOutlined,
+  BookOutlined,
+  InfoCircleOutlined,
+  DollarOutlined,
+  StarOutlined,
+  PictureOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
 import StaffSidebar from "../../components/staff/StaffSidebar";
@@ -29,6 +34,7 @@ import {
   uploadBytesResumable,
   getDownloadURL,
 } from "firebase/storage";
+import { useNavigate } from "react-router-dom";
 
 // Firebase configuration
 const firebaseConfig = {
@@ -63,6 +69,8 @@ const AddCourse = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("");
 
+  const navigate = useNavigate();
+
   useEffect(() => {
     fetchInstrumentTypes();
   }, []);
@@ -70,7 +78,7 @@ const AddCourse = () => {
   const fetchInstrumentTypes = async () => {
     try {
       const response = await axios.get(
-        "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/CourseType/get-all"
+        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/CourseType/get-all"
       );
       if (response.data.isSucceed) {
         setInstrumentTypes(response.data.data);
@@ -82,45 +90,34 @@ const AddCourse = () => {
   };
 
   const handleSubmit = async (values) => {
-    setLoading(true);
     try {
-      const payload = {
-        typeId: Number(values.typeId),
+      setLoading(true);
+      const formData = {
+        courseTypeId: values.typeId,
         courseName: values.courseName,
         courseDescription: values.courseDescription,
         headline: values.headline,
-        rating: Number(values.rating),
-        price: Number(values.price),
-        discount: Number(values.discount),
+        rating: 0,
+        price: values.price,
+        discount: values.discount,
         imageUrl: values.imageUrl,
+        status: 0, // Mặc định status là 0
       };
 
-      console.log("Submitting payload:", payload);
-
       const response = await axios.post(
-        "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Course/create",
-        payload
+        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Course/create",
+        formData
       );
 
       if (response.data.isSucceed) {
-        message.success("Khóa học đã được thêm thành công!");
-        form.resetFields();
-        setPreviewImage("");
-        setUploadFile(null);
-        setUploadProgress(0);
-        setUploadStatus("");
+        message.success("Thêm khóa học thành công!");
+        navigate("/staff/course-management");
       } else {
-        message.error(
-          `Thêm khóa học thất bại: ${
-            response.data.message || "Lỗi không xác định"
-          }`
-        );
+        throw new Error(response.data.message || "Không thể thêm khóa học!");
       }
     } catch (error) {
       console.error("Error creating course:", error);
-      const errorMsg =
-        error.response?.data?.message || "Có lỗi xảy ra khi thêm khóa học.";
-      message.error(errorMsg);
+      message.error(error.message || "Không thể thêm khóa học!");
     } finally {
       setLoading(false);
     }
@@ -201,7 +198,7 @@ const AddCourse = () => {
   };
 
   return (
-    <Layout className="min-h-screen">
+    <Layout className="min-h-screen bg-gray-50">
       <StaffSidebar
         collapsed={collapsed}
         setCollapsed={setCollapsed}
@@ -215,256 +212,299 @@ const AddCourse = () => {
       >
         <StaffHeader collapsed={collapsed} setCollapsed={setCollapsed} />
         <Content
-          className="p-6 bg-gray-50"
+          className="p-6"
           style={{
             marginTop: "64px",
           }}
         >
-          <Card className="shadow-md">
-            <Title level={2} className="text-center mb-6">
-              Thêm Gói Khóa Học Mới
-            </Title>
-            <Divider />
+          <div className="max-w-6xl mx-auto">
+            <Card className="shadow-lg rounded-lg overflow-hidden">
+              <div className="bg-blue-600 p-6 text-white">
+                <Title level={2} className="text-center mb-0">
+                  Thêm Khóa Học Mới
+                </Title>
+                <p className="text-center text-blue-100 mt-2">
+                  Điền thông tin chi tiết về khóa học
+                </p>
+              </div>
 
-            <Form
-              layout="vertical"
-              form={form}
-              onFinish={handleSubmit}
-              initialValues={{
-                rating: 5,
-                discount: 0,
-              }}
-            >
-              <Row gutter={24}>
-                <Col xs={24} lg={16}>
-                  <Title level={4}>Thông tin cơ bản</Title>
-
-                  <Form.Item
-                    name="courseName"
-                    label="Tên khóa học"
-                    rules={[
-                      {
-                        required: true,
-                        message: "Vui lòng nhập tên khóa học!",
-                      },
-                      {
-                        max: 100,
-                        message: "Tên khóa học không quá 100 ký tự!",
-                      },
-                    ]}
-                  >
-                    <Input placeholder="Nhập tên khóa học" />
-                  </Form.Item>
-
-                  <Form.Item
-                    name="headline"
-                    label="Tiêu đề ngắn gọn"
-                    rules={[
-                      { max: 120, message: "Tiêu đề không quá 120 ký tự!" },
-                    ]}
-                  >
-                    <Input placeholder="Mô tả ngắn gọn về khóa học" />
-                  </Form.Item>
-
-                  <Form.Item
-                    name="courseDescription"
-                    label="Mô tả chi tiết"
-                    rules={[
-                      {
-                        required: true,
-                        message: "Vui lòng nhập mô tả khóa học!",
-                      },
-                    ]}
-                  >
-                    <Input.TextArea
-                      rows={6}
-                      placeholder="Mô tả chi tiết về nội dung và lợi ích của khóa học"
-                    />
-                  </Form.Item>
-
-                  <Form.Item
-                    name="typeId"
-                    label="Loại nhạc cụ"
-                    rules={[
-                      {
-                        required: true,
-                        message: "Vui lòng chọn loại nhạc cụ!",
-                      },
-                    ]}
-                  >
-                    <Select placeholder="Chọn loại nhạc cụ">
-                      {instrumentTypes.map((instrument) => (
-                        <Option
-                          key={instrument.courseTypeId}
-                          value={instrument.courseTypeId}
-                        >
-                          {instrument.courseTypeName}
-                        </Option>
-                      ))}
-                    </Select>
-                  </Form.Item>
-                </Col>
-
-                <Col xs={24} lg={8}>
-                  <Title level={4}>Thông tin bổ sung</Title>
-
-                  <Form.Item
-                    name="price"
-                    label="Giá khóa học (VND)"
-                    rules={[
-                      {
-                        required: true,
-                        message: "Vui lòng nhập giá khóa học!",
-                      },
-                    ]}
-                  >
-                    <InputNumber
-                      style={{ width: "100%" }}
-                      min={0}
-                      step={10000}
-                      formatter={(value) =>
-                        `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-                      }
-                      parser={(value) => value.replace(/\$\s?|(,*)/g, "")}
-                      placeholder="VD: 1,000,000"
-                    />
-                  </Form.Item>
-
-                  <Form.Item name="discount" label="Giảm giá (%)">
-                    <InputNumber style={{ width: "100%" }} min={0} max={100} />
-                  </Form.Item>
-
-                  <Form.Item name="rating" label="Đánh giá ban đầu (0-5)">
-                    <InputNumber
-                      style={{ width: "100%" }}
-                      min={0}
-                      max={5}
-                      step={0.1}
-                    />
-                  </Form.Item>
-
-                  <Form.Item
-                    name="imageUrl"
-                    label="URL Hình ảnh"
-                    rules={[
-                      {
-                        required: true,
-                        message: "Vui lòng tải lên hình ảnh!",
-                      },
-                    ]}
-                    hidden={true}
-                  >
-                    <Input disabled />
-                  </Form.Item>
-
-                  {/* Image upload section */}
-                  <div className="mb-4 border rounded-md p-4">
-                    <Text strong>Tải ảnh lên</Text>
-
-                    <div className="mt-3 mb-3">
-                      <input
-                        type="file"
-                        onChange={handleFileSelect}
-                        accept="image/*"
-                        className="block w-full text-sm border border-gray-300 rounded p-2"
-                      />
-                    </div>
-
-                    {uploadFile && !isUploading && (
-                      <div className="mt-2 mb-2">
-                        <Button
-                          type="primary"
-                          onClick={handleUploadImage}
-                          icon={<UploadOutlined />}
-                          block
-                        >
-                          Tải ảnh lên
-                        </Button>
-                      </div>
-                    )}
-
-                    {isUploading && (
-                      <div className="mt-2">
-                        <Progress
-                          percent={uploadProgress}
-                          size="small"
-                          status="active"
-                        />
-                        <Text
-                          type="secondary"
-                          className="block mt-1 text-center"
-                        >
-                          {uploadStatus}
-                        </Text>
-                      </div>
-                    )}
-
-                    {uploadStatus === "Tải ảnh thành công!" && !isUploading && (
-                      <div className="mt-2">
-                        <Text type="success">
-                          Ảnh đã được tải lên thành công!
-                        </Text>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="mt-4 mb-4">
-                    {previewImage ? (
-                      <div className="text-center">
-                        <img
-                          src={previewImage}
-                          alt="Preview"
-                          className="max-w-full h-auto border rounded-md"
-                          style={{ maxHeight: "200px" }}
-                        />
-                        <Text type="secondary" className="block mt-2">
-                          Xem trước ảnh khóa học
-                        </Text>
-                      </div>
-                    ) : (
-                      <div
-                        className="border rounded-md flex items-center justify-center"
-                        style={{ height: "200px" }}
-                      >
-                        <div className="text-center text-gray-400">
-                          <FileImageOutlined style={{ fontSize: "32px" }} />
-                          <p>Chưa có ảnh xem trước</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </Col>
-              </Row>
-
-              <Divider />
-
-              <div className="flex justify-center mt-4">
-                <Button
-                  type="default"
-                  className="mr-4"
-                  onClick={() => {
-                    form.resetFields();
-                    setPreviewImage("");
-                    setUploadFile(null);
-                    setUploadProgress(0);
-                    setUploadStatus("");
+              <div className="p-6">
+                <Form
+                  layout="vertical"
+                  form={form}
+                  onFinish={handleSubmit}
+                  initialValues={{
+                    rating: 0,
+                    discount: 0,
                   }}
                 >
-                  Làm mới
-                </Button>
-                <Button
-                  type="primary"
-                  htmlType="submit"
-                  size="large"
-                  loading={loading}
-                  icon={<PlusOutlined />}
-                  disabled={!form.getFieldValue("imageUrl")}
-                >
-                  Thêm khóa học
-                </Button>
+                  <Row gutter={[24, 24]}>
+                    <Col xs={24} lg={16}>
+                      <Card
+                        title={
+                          <span className="flex items-center">
+                            <BookOutlined className="mr-2 text-blue-600" />
+                            Thông tin cơ bản
+                          </span>
+                        }
+                        className="shadow-sm"
+                      >
+                        <Form.Item
+                          name="typeId"
+                          label="Loại nhạc cụ"
+                          rules={[
+                            {
+                              required: true,
+                              message: "Vui lòng chọn loại nhạc cụ!",
+                            },
+                          ]}
+                        >
+                          <Select
+                            placeholder="Chọn loại nhạc cụ"
+                            className="rounded-md"
+                          >
+                            {instrumentTypes.map((instrument) => (
+                              <Option
+                                key={instrument.courseTypeId}
+                                value={instrument.courseTypeId}
+                              >
+                                {instrument.courseTypeName}
+                              </Option>
+                            ))}
+                          </Select>
+                        </Form.Item>
+
+                        <Form.Item
+                          name="courseName"
+                          label="Tên khóa học"
+                          rules={[
+                            {
+                              required: true,
+                              message: "Vui lòng nhập tên khóa học!",
+                            },
+                            {
+                              max: 100,
+                              message: "Tên khóa học không quá 100 ký tự!",
+                            },
+                          ]}
+                        >
+                          <Input
+                            placeholder="Nhập tên khóa học"
+                            className="rounded-md"
+                          />
+                        </Form.Item>
+
+                        <Form.Item
+                          name="headline"
+                          label="Tiêu đề ngắn gọn"
+                          rules={[
+                            {
+                              max: 120,
+                              message: "Tiêu đề không quá 120 ký tự!",
+                            },
+                          ]}
+                        >
+                          <Input
+                            placeholder="Mô tả ngắn gọn về khóa học"
+                            className="rounded-md"
+                          />
+                        </Form.Item>
+
+                        <Form.Item
+                          name="courseDescription"
+                          label="Mô tả chi tiết"
+                          rules={[
+                            {
+                              required: true,
+                              message: "Vui lòng nhập mô tả khóa học!",
+                            },
+                          ]}
+                        >
+                          <Input.TextArea
+                            rows={6}
+                            placeholder="Mô tả chi tiết về nội dung và lợi ích của khóa học"
+                            className="rounded-md"
+                          />
+                        </Form.Item>
+                      </Card>
+                    </Col>
+
+                    <Col xs={24} lg={8}>
+                      <Card
+                        title={
+                          <span className="flex items-center">
+                            <InfoCircleOutlined className="mr-2 text-blue-600" />
+                            Thông tin bổ sung
+                          </span>
+                        }
+                        className="shadow-sm"
+                      >
+                        <Form.Item
+                          name="price"
+                          label={
+                            <span className="flex items-center">
+                              <DollarOutlined className="mr-2" />
+                              Giá khóa học (VND)
+                            </span>
+                          }
+                          rules={[
+                            {
+                              required: true,
+                              message: "Vui lòng nhập giá khóa học!",
+                            },
+                          ]}
+                        >
+                          <InputNumber
+                            style={{ width: "100%" }}
+                            min={0}
+                            step={10000}
+                            formatter={(value) =>
+                              `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                            }
+                            parser={(value) => value.replace(/\$\s?|(,*)/g, "")}
+                            placeholder="VD: 1,000,000"
+                            className="rounded-md"
+                          />
+                        </Form.Item>
+
+                        <Form.Item name="discount" label="Giảm giá (%)">
+                          <InputNumber
+                            style={{ width: "100%" }}
+                            min={0}
+                            max={100}
+                            className="rounded-md"
+                          />
+                        </Form.Item>
+
+                        <Form.Item
+                          name="imageUrl"
+                          label="URL Hình ảnh"
+                          rules={[
+                            {
+                              required: true,
+                              message: "Vui lòng tải lên hình ảnh!",
+                            },
+                          ]}
+                          hidden={true}
+                        >
+                          <Input disabled />
+                        </Form.Item>
+
+                        <div className="mb-4 border rounded-lg p-4 bg-gray-50">
+                          <div className="flex items-center mb-3">
+                            <PictureOutlined className="mr-2 text-blue-600" />
+                            <Text strong>Tải ảnh lên</Text>
+                          </div>
+
+                          <div className="mb-3">
+                            <input
+                              type="file"
+                              onChange={handleFileSelect}
+                              accept="image/*"
+                              className="block w-full text-sm border border-gray-300 rounded-md p-2 hover:border-blue-500 transition-colors"
+                            />
+                          </div>
+
+                          {uploadFile && !isUploading && (
+                            <Button
+                              type="primary"
+                              onClick={handleUploadImage}
+                              icon={<UploadOutlined />}
+                              block
+                              className="rounded-md"
+                            >
+                              Tải ảnh lên
+                            </Button>
+                          )}
+
+                          {isUploading && (
+                            <div className="mt-2">
+                              <Progress
+                                percent={uploadProgress}
+                                size="small"
+                                status="active"
+                                strokeColor="#1890ff"
+                              />
+                              <Text
+                                type="secondary"
+                                className="block mt-1 text-center"
+                              >
+                                {uploadStatus}
+                              </Text>
+                            </div>
+                          )}
+
+                          {uploadStatus === "Tải ảnh thành công!" &&
+                            !isUploading && (
+                              <div className="mt-2">
+                                <Text type="success">
+                                  Ảnh đã được tải lên thành công!
+                                </Text>
+                              </div>
+                            )}
+                        </div>
+
+                        <div className="mt-4">
+                          {previewImage ? (
+                            <div className="text-center">
+                              <img
+                                src={previewImage}
+                                alt="Preview"
+                                className="max-w-full h-auto border rounded-lg shadow-sm"
+                                style={{ maxHeight: "200px" }}
+                              />
+                              <Text type="secondary" className="block mt-2">
+                                Xem trước ảnh khóa học
+                              </Text>
+                            </div>
+                          ) : (
+                            <div
+                              className="border rounded-lg flex items-center justify-center bg-gray-50"
+                              style={{ height: "200px" }}
+                            >
+                              <div className="text-center text-gray-400">
+                                <FileImageOutlined
+                                  style={{ fontSize: "32px" }}
+                                />
+                                <p>Chưa có ảnh xem trước</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </Card>
+                    </Col>
+                  </Row>
+
+                  <div className="flex justify-center mt-6">
+                    <Button
+                      type="default"
+                      className="mr-4 rounded-md"
+                      onClick={() => {
+                        form.resetFields();
+                        setPreviewImage("");
+                        setUploadFile(null);
+                        setUploadProgress(0);
+                        setUploadStatus("");
+                      }}
+                    >
+                      Làm mới
+                    </Button>
+                    <Button
+                      type="primary"
+                      htmlType="submit"
+                      size="large"
+                      loading={loading}
+                      icon={<PlusOutlined />}
+                      disabled={!form.getFieldValue("imageUrl")}
+                      className="rounded-md"
+                    >
+                      Thêm khóa học
+                    </Button>
+                  </div>
+                </Form>
               </div>
-            </Form>
-          </Card>
+            </Card>
+          </div>
         </Content>
       </Layout>
     </Layout>

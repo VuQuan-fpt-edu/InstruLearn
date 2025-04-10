@@ -27,6 +27,7 @@ import {
   UserOutlined,
   MailOutlined,
   UnlockOutlined,
+  PhoneOutlined,
 } from "@ant-design/icons";
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import AdminHeader from "../../components/admin/AdminHeader";
@@ -52,7 +53,7 @@ const StaffManagement = () => {
   const fetchStaffs = async () => {
     try {
       const response = await axios.get(
-        "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Staff/get-all"
+        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Staff/get-all"
       );
       if (response.data.isSucceed) {
         setStaffs(response.data.data);
@@ -79,8 +80,8 @@ const StaffManagement = () => {
     try {
       const endpoint =
         isActive === 0
-          ? `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Staff/unban/${staffId}`
-          : `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Staff/delete/${staffId}`;
+          ? `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Staff/unban/${staffId}`
+          : `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Staff/delete/${staffId}`;
 
       const response = await axios.delete(endpoint);
 
@@ -110,12 +111,13 @@ const StaffManagement = () => {
       } else {
         try {
           const response = await axios.post(
-            "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Staff/create",
+            "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Staff/create",
             {
               email: values.email,
               username: values.username,
               fullname: values.fullname,
               password: values.password,
+              phoneNumber: values.phoneNumber,
             }
           );
           if (response.data.isSucceed) {
@@ -336,6 +338,26 @@ const StaffManagement = () => {
                     ]}
                   >
                     <Input.Password prefix={<LockOutlined />} />
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Row gutter={16}>
+                <Col span={24}>
+                  <Form.Item
+                    name="phoneNumber"
+                    label="Số điện thoại"
+                    rules={[
+                      {
+                        pattern: /^[0-9]{10}$/,
+                        message: "Số điện thoại phải có đúng 10 chữ số!",
+                      },
+                    ]}
+                  >
+                    <Input
+                      prefix={<PhoneOutlined />}
+                      placeholder="Nhập số điện thoại"
+                    />
                   </Form.Item>
                 </Col>
               </Row>

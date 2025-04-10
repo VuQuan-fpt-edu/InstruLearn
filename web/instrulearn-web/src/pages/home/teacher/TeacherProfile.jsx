@@ -47,15 +47,18 @@ const TeacherProfilePage = () => {
     try {
       setLoading(true);
       const response = await axios.get(
-        `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Teacher/${id}`
+        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Teacher/${id}`
       );
 
       if (response.data?.isSucceed) {
         const teacherData = response.data.data;
+        const availableMajors = teacherData.majors.filter(
+          (major) => major.status === 1
+        );
         setTeacher({
           id: teacherData.teacherId,
           name: teacherData.fullname,
-          specialty: teacherData.majors[0]?.majorName,
+          specialty: availableMajors[0]?.majorName,
           experience: teacherData.heading || "Chưa có thông tin",
           description: teacherData.details || "Chưa có mô tả",
           image:
@@ -69,8 +72,10 @@ const TeacherProfilePage = () => {
           },
           gender: teacherData.gender,
           dateOfEmployment: teacherData.dateOfEmployment,
-          isActive: teacherData.isActive,
-          majors: teacherData.majors,
+          majors: availableMajors.map((major) => ({
+            majorId: major.majorId,
+            majorName: major.majorName,
+          })),
           accountId: teacherData.accountId,
         });
       }
@@ -124,17 +129,15 @@ const TeacherProfilePage = () => {
                 {teacher.name}
               </Title>
               <Space size="large" className="mb-4">
-                <Tag color="blue" className="text-base py-1 px-3">
-                  <BookOutlined className="mr-1" /> {teacher.specialty}
-                </Tag>
-                <Tag
-                  color={teacher.isActive === 1 ? "success" : "error"}
-                  className="text-base py-1 px-3"
-                >
-                  {teacher.isActive === 1
-                    ? "Đang hoạt động"
-                    : "Không hoạt động"}
-                </Tag>
+                {teacher.majors.map((major) => (
+                  <Tag
+                    key={major.majorId}
+                    color="blue"
+                    className="text-base py-1 px-3"
+                  >
+                    <BookOutlined className="mr-1" /> {major.majorName}
+                  </Tag>
+                ))}
               </Space>
               <Paragraph className="text-white opacity-90">
                 {teacher.experience}

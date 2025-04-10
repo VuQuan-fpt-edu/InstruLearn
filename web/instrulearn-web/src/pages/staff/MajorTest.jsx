@@ -46,7 +46,7 @@ const MajorTest = () => {
   const fetchInstruments = async () => {
     try {
       const response = await axios.get(
-        "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Major/get-all"
+        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Major/get-all"
       );
       if (response.data?.isSucceed) {
         setInstruments(response.data.data || []);
@@ -62,7 +62,7 @@ const MajorTest = () => {
     try {
       setLoading(true);
       const response = await axios.get(
-        "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/MajorTest/get-all"
+        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/MajorTest/get-all"
       );
 
       // Log response để debug
@@ -123,7 +123,7 @@ const MajorTest = () => {
   const handleDelete = async (id) => {
     try {
       const response = await axios.delete(
-        `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/MajorTest/delete/${id}`
+        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/MajorTest/delete/${id}`
       );
       if (response.data?.isSucceed) {
         message.success("Xóa đề bài thành công");
@@ -141,7 +141,7 @@ const MajorTest = () => {
       if (editingTest) {
         // Update
         const response = await axios.put(
-          `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/MajorTest/update/${editingTest.majorTestId}`,
+          `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/MajorTest/update/${editingTest.majorTestId}`,
           values
         );
         if (response.data?.isSucceed) {
@@ -152,7 +152,7 @@ const MajorTest = () => {
       } else {
         // Create
         const response = await axios.post(
-          "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/MajorTest/create",
+          "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/MajorTest/create",
           values
         );
         if (response.data?.isSucceed) {

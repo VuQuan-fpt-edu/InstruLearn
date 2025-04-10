@@ -48,12 +48,14 @@ const TeacherManagement = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isAddMajorModalOpen, setIsAddMajorModalOpen] = useState(false);
+  const [isUpdateMajorModalOpen, setIsUpdateMajorModalOpen] = useState(false);
   const [editingTeacher, setEditingTeacher] = useState(null);
   const [selectedTeacher, setSelectedTeacher] = useState(null);
   const [collapsed, setCollapsed] = useState(false);
   const [selectedMenu, setSelectedMenu] = useState("teacher");
   const [form] = Form.useForm();
   const [majorForm] = Form.useForm();
+  const [updateMajorForm] = Form.useForm();
   const [avatarUrl, setAvatarUrl] = useState(null);
 
   useEffect(() => {
@@ -64,7 +66,7 @@ const TeacherManagement = () => {
   const fetchTeachers = async () => {
     try {
       const response = await axios.get(
-        "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Teacher/get-all"
+        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Teacher/get-all"
       );
       if (response.data && Array.isArray(response.data)) {
         // Lọc các phản hồi thành công và map dữ liệu
@@ -91,7 +93,7 @@ const TeacherManagement = () => {
   const fetchMajors = async () => {
     try {
       const response = await axios.get(
-        "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Major/get-all"
+        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Major/get-all"
       );
       if (response.data.isSucceed) {
         setMajors(response.data.data);
@@ -140,9 +142,9 @@ const TeacherManagement = () => {
       if (editingTeacher) {
         try {
           const response = await axios.put(
-            `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Teacher/update/${editingTeacher.teacherId}`,
+            `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Teacher/update/${editingTeacher.teacherId}`,
             {
-              majors: [{ majorId: values.majorId }],
+              majors: values.majorIds.map((id) => ({ majorId: id })),
               heading: values.heading,
               details: values.details,
               links: values.links,
@@ -169,9 +171,9 @@ const TeacherManagement = () => {
       } else {
         try {
           const response = await axios.post(
-            "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Teacher/create",
+            "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Teacher/create",
             {
-              majorIds: [values.majorId],
+              majorIds: values.majorIds,
               email: values.email,
               username: values.username,
               fullname: values.fullname,
@@ -226,10 +228,11 @@ const TeacherManagement = () => {
   const handleBanUnban = async (teacherId, isBanned) => {
     try {
       const endpoint = isBanned
-        ? `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Teacher/unban/${teacherId}`
-        : `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Teacher/delete/${teacherId}`;
+        ? `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Teacher/unban/${teacherId}`
+        : `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Teacher/ban/${teacherId}`;
 
-      const response = await axios.post(endpoint);
+      const response = await axios.put(endpoint);
+
       if (response.data.isSucceed) {
         message.success(
           isBanned
@@ -238,11 +241,13 @@ const TeacherManagement = () => {
         );
         fetchTeachers();
       } else {
-        message.error(response.data.message || "Không thể thực hiện thao tác!");
+        throw new Error(
+          response.data.message || "Không thể thực hiện thao tác!"
+        );
       }
     } catch (error) {
       console.error("Error banning/unbanning teacher:", error);
-      message.error("Không thể thực hiện thao tác!");
+      message.error(error.message || "Không thể thực hiện thao tác!");
     }
   };
 
@@ -250,9 +255,10 @@ const TeacherManagement = () => {
     try {
       const values = await majorForm.validateFields();
       const response = await axios.post(
-        "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Major/create",
+        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Major/create",
         {
           majorName: values.majorName,
+          teacherId: selectedTeacher?.teacherId,
         }
       );
       if (response.data.isSucceed) {
@@ -266,6 +272,40 @@ const TeacherManagement = () => {
     } catch (error) {
       console.error("Error creating major:", error);
       message.error("Không thể thêm nhạc cụ!");
+    }
+  };
+
+  const handleUpdateMajor = (record) => {
+    setSelectedTeacher(record);
+    updateMajorForm.setFieldsValue({
+      majorId: record.majorIds || [],
+    });
+    setIsUpdateMajorModalOpen(true);
+  };
+
+  const handleUpdateMajorSubmit = async () => {
+    try {
+      const values = await updateMajorForm.validateFields();
+      const majorIds = Array.isArray(values.majorId)
+        ? values.majorId
+        : [values.majorId];
+      const response = await axios.put(
+        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Teacher/update-major/${selectedTeacher.teacherId}`,
+        {
+          majorIds: majorIds,
+        }
+      );
+
+      if (response.data.isSucceed) {
+        message.success("Cập nhật nhạc cụ thành công!");
+        setIsUpdateMajorModalOpen(false);
+        fetchTeachers();
+      } else {
+        message.error(response.data.message || "Không thể cập nhật nhạc cụ!");
+      }
+    } catch (error) {
+      console.error("Error updating major:", error);
+      message.error("Không thể cập nhật nhạc cụ!");
     }
   };
 
@@ -311,11 +351,19 @@ const TeacherManagement = () => {
             icon={<EditOutlined />}
             size="small"
             onClick={() => handleEdit(record)}
+            title="Chỉnh sửa thông tin"
           />
           <Button
             icon={<EyeOutlined />}
             size="small"
             onClick={() => handleViewDetail(record)}
+            title="Xem chi tiết"
+          />
+          <Button
+            icon={<PlusOutlined />}
+            size="small"
+            onClick={() => handleUpdateMajor(record)}
+            title="Cập nhật nhạc cụ"
           />
           <Popconfirm
             title={
@@ -331,6 +379,7 @@ const TeacherManagement = () => {
               type={record.isBanned ? "primary" : "default"}
               icon={record.isBanned ? <UnlockOutlined /> : <LockOutlined />}
               size="small"
+              title={record.isBanned ? "Mở khóa tài khoản" : "Khóa tài khoản"}
             />
           </Popconfirm>
         </Space>
@@ -472,13 +521,18 @@ const TeacherManagement = () => {
                   </Form.Item>
 
                   <Form.Item
-                    name="majorId"
+                    name="majorIds"
                     label="Nhạc cụ"
                     rules={[
-                      { required: true, message: "Vui lòng chọn nhạc cụ!" },
+                      {
+                        required: true,
+                        message: "Vui lòng chọn ít nhất một nhạc cụ!",
+                      },
                     ]}
                   >
                     <Select
+                      mode="multiple"
+                      placeholder="Chọn một hoặc nhiều nhạc cụ"
                       dropdownRender={(menu) => (
                         <>
                           {menu}
@@ -661,6 +715,50 @@ const TeacherManagement = () => {
                 </Card>
               </>
             )}
+          </Modal>
+
+          {/* Modal cập nhật nhạc cụ */}
+          <Modal
+            title="Cập nhật nhạc cụ"
+            open={isUpdateMajorModalOpen}
+            onOk={handleUpdateMajorSubmit}
+            onCancel={() => {
+              setIsUpdateMajorModalOpen(false);
+              updateMajorForm.resetFields();
+            }}
+            width={500}
+          >
+            <Form form={updateMajorForm} layout="vertical">
+              <Form.Item
+                name="majorId"
+                label="Nhạc cụ"
+                rules={[{ required: true, message: "Vui lòng chọn nhạc cụ!" }]}
+              >
+                <Select
+                  mode="multiple"
+                  dropdownRender={(menu) => (
+                    <>
+                      {menu}
+                      <Divider style={{ margin: "8px 0" }} />
+                      <Button
+                        type="text"
+                        icon={<PlusOutlined />}
+                        onClick={() => setIsAddMajorModalOpen(true)}
+                        style={{ width: "100%", textAlign: "left" }}
+                      >
+                        Thêm nhạc cụ mới
+                      </Button>
+                    </>
+                  )}
+                >
+                  {majors.map((major) => (
+                    <Option key={major.majorId} value={major.majorId}>
+                      {major.majorName}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Form>
           </Modal>
         </Content>
       </Layout>

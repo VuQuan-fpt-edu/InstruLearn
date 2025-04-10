@@ -24,9 +24,11 @@ import {
   TeamOutlined,
   BookOutlined,
   CalendarOutlined,
+  PaperClipOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
 import dayjs from "dayjs";
+import { useNavigate } from "react-router-dom";
 
 const { Title, Text } = Typography;
 
@@ -37,12 +39,27 @@ const MyRegistrations = () => {
   const [selectedRegistration, setSelectedRegistration] = useState(null);
   const [videoModalVisible, setVideoModalVisible] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState(null);
+  const [isConfirmInitialPaymentVisible, setIsConfirmInitialPaymentVisible] =
+    useState(false);
+  const [
+    isConfirmRemainingPaymentVisible,
+    setIsConfirmRemainingPaymentVisible,
+  ] = useState(false);
+  const [
+    isInsufficientBalanceModalVisible,
+    setIsInsufficientBalanceModalVisible,
+  ] = useState(false);
+  const [paymentSuccessVisible, setPaymentSuccessVisible] = useState(false);
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentType, setPaymentType] = useState("initial");
   const [stats, setStats] = useState({
     total: 0,
     pending: 0,
     accepted: 0,
     rejected: 0,
+    completed: 0,
   });
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchRegistrations();
@@ -59,7 +76,7 @@ const MyRegistrations = () => {
       }
 
       const response = await axios.get(
-        `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/LearningRegis/status/${learnerId}`,
+        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/LearningRegis/status/${learnerId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -68,18 +85,27 @@ const MyRegistrations = () => {
       );
 
       if (response.data?.isSucceed) {
-        const vietnameseData = response.data.data.map((reg) => ({
-          ...reg,
-          learningDays: reg.learningDays.map((day) =>
-            convertDayToVietnamese(day)
-          ),
-          calculatedPrice: reg.price
-            ? reg.price * reg.numberOfSession * 0.4
-            : null,
-        }));
+        // Lọc chỉ lấy các đăng ký có regisTypeName là "Đăng ký học theo yêu cầu"
+        const filteredData = response.data.data.filter(
+          (reg) => reg.regisTypeName === "Đăng ký học theo yêu cầu"
+        );
+
+        const vietnameseData = filteredData
+          .map((reg) => ({
+            ...reg,
+            learningDays: reg.learningDays.map((day) =>
+              convertDayToVietnamese(day)
+            ),
+            price: reg.price,
+            levelName: reg.levelName,
+            responseName: reg.responseName,
+            levelPrice: reg.levelPrice,
+          }))
+          .sort((a, b) => new Date(b.requestDate) - new Date(a.requestDate));
+
         setRegistrations(vietnameseData);
 
-        // Tính toán thống kê
+        // Tính toán thống kê chỉ cho các đăng ký đã lọc
         const newStats = {
           total: vietnameseData.length,
           pending: vietnameseData.filter((reg) => reg.status === "Pending")
@@ -87,6 +113,8 @@ const MyRegistrations = () => {
           accepted: vietnameseData.filter((reg) => reg.status === "Accepted")
             .length,
           rejected: vietnameseData.filter((reg) => reg.status === "Rejected")
+            .length,
+          completed: vietnameseData.filter((reg) => reg.status === "Completed")
             .length,
         };
         setStats(newStats);
@@ -148,6 +176,36 @@ const MyRegistrations = () => {
             Từ chối
           </Tag>
         );
+      case "Completed":
+        return (
+          <Tag
+            icon={<CheckCircleOutlined />}
+            color="processing"
+            className="px-3 py-1 text-base"
+          >
+            Đã thanh toán
+          </Tag>
+        );
+      case "Fourty":
+        return (
+          <Tag
+            icon={<CheckCircleOutlined />}
+            color="processing"
+            className="px-3 py-1 text-base"
+          >
+            Đã thanh toán 40%
+          </Tag>
+        );
+      case "Sixty":
+        return (
+          <Tag
+            icon={<CheckCircleOutlined />}
+            color="success"
+            className="px-3 py-1 text-base"
+          >
+            Đã thanh toán đầy đủ
+          </Tag>
+        );
       default:
         return (
           <Tag color="default" className="px-3 py-1 text-base">
@@ -165,6 +223,169 @@ const MyRegistrations = () => {
   const handleViewVideo = (videoUrl) => {
     setSelectedVideo(videoUrl);
     setVideoModalVisible(true);
+  };
+
+  const handleInitialPaymentClick = async () => {
+    try {
+      const token = localStorage.getItem("authToken");
+      const learnerId = localStorage.getItem("learnerId");
+
+      if (!token || !learnerId) {
+        message.error("Vui lòng đăng nhập để thực hiện thanh toán");
+        return;
+      }
+
+      // Kiểm tra số dư ví
+      const walletResponse = await axios.get(
+        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/wallet/${learnerId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!walletResponse.data.isSucceed) {
+        throw new Error("Không thể kiểm tra số dư ví");
+      }
+
+      const currentBalance = walletResponse.data.data.balance;
+      const requiredAmount = selectedRegistration.price * 0.4; // 40% học phí
+
+      if (currentBalance < requiredAmount) {
+        setPaymentType("initial"); // Set payment type trước khi hiển thị modal
+        setIsInsufficientBalanceModalVisible(true);
+      } else {
+        setPaymentType("initial");
+        setIsConfirmInitialPaymentVisible(true);
+      }
+    } catch (error) {
+      console.error("Error checking wallet balance:", error);
+      message.error(error.message || "Không thể kiểm tra số dư ví");
+    }
+  };
+
+  const handleRemainingPaymentClick = async () => {
+    try {
+      const token = localStorage.getItem("authToken");
+      const learnerId = localStorage.getItem("learnerId");
+
+      if (!token || !learnerId) {
+        message.error("Vui lòng đăng nhập để thực hiện thanh toán");
+        return;
+      }
+
+      // Kiểm tra số dư ví
+      const walletResponse = await axios.get(
+        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/wallet/${learnerId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!walletResponse.data.isSucceed) {
+        throw new Error("Không thể kiểm tra số dư ví");
+      }
+
+      const currentBalance = walletResponse.data.data.balance;
+      const requiredAmount = selectedRegistration.price * 0.6; // 60% học phí
+
+      if (currentBalance < requiredAmount) {
+        setPaymentType("remaining"); // Set payment type trước khi hiển thị modal
+        setIsInsufficientBalanceModalVisible(true);
+      } else {
+        setPaymentType("remaining");
+        setIsConfirmRemainingPaymentVisible(true);
+      }
+    } catch (error) {
+      console.error("Error checking wallet balance:", error);
+      message.error(error.message || "Không thể kiểm tra số dư ví");
+    }
+  };
+
+  const handleConfirmInitialPayment = async () => {
+    try {
+      setPaymentLoading(true);
+      const token = localStorage.getItem("authToken");
+      const regisId = selectedRegistration.learningRegisId;
+
+      const data = {
+        learningRegisId: regisId,
+        paymentMethod: 0,
+      };
+
+      const response = await axios({
+        method: "post",
+        url: "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Payment/process-learning-payment",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        data: data,
+      });
+
+      if (response.data?.isSucceed) {
+        setIsConfirmInitialPaymentVisible(false);
+        setViewModalVisible(false);
+        await fetchRegistrations();
+        setPaymentSuccessVisible(true);
+        message.success("Thanh toán 40% học phí thành công!");
+      } else {
+        throw new Error(response.data?.message || "Thanh toán thất bại");
+      }
+    } catch (error) {
+      console.error("Error processing initial payment:", error);
+      message.error(
+        error.response?.data?.message ||
+          error.message ||
+          "Thanh toán thất bại. Vui lòng thử lại sau."
+      );
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
+  const handleConfirmRemainingPayment = async () => {
+    try {
+      setPaymentLoading(true);
+      const token = localStorage.getItem("authToken");
+      const regisId = selectedRegistration.learningRegisId;
+
+      const response = await axios({
+        method: "post",
+        url: `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Payment/process-remaining-payment/${regisId}`,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.data?.isSucceed) {
+        setIsConfirmRemainingPaymentVisible(false);
+        setViewModalVisible(false);
+        await fetchRegistrations();
+        setPaymentSuccessVisible(true);
+        message.success("Thanh toán phần còn lại thành công!");
+      } else {
+        throw new Error(response.data?.message || "Thanh toán thất bại");
+      }
+    } catch (error) {
+      console.error("Error processing remaining payment:", error);
+      message.error(
+        error.response?.data?.message ||
+          error.message ||
+          "Thanh toán thất bại. Vui lòng thử lại sau."
+      );
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
+  const handleNavigateToWallet = () => {
+    setIsInsufficientBalanceModalVisible(false);
+    navigate("/profile/topup");
   };
 
   const columns = [
@@ -278,6 +499,16 @@ const MyRegistrations = () => {
             />
           </Card>
         </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card className="hover:shadow-lg transition-all duration-300 border-l-4 border-l-purple-500">
+            <Statistic
+              title={<span className="text-gray-600">Đã thanh toán</span>}
+              value={stats.completed}
+              prefix={<CheckCircleOutlined className="text-purple-500" />}
+              className="text-purple-500"
+            />
+          </Card>
+        </Col>
       </Row>
 
       {/* Bảng danh sách */}
@@ -317,6 +548,26 @@ const MyRegistrations = () => {
         onCancel={() => setViewModalVisible(false)}
         width={700}
         footer={[
+          selectedRegistration?.status === "Accepted" && (
+            <Button
+              key="initialPayment"
+              type="primary"
+              onClick={handleInitialPaymentClick}
+              className="bg-green-600 hover:bg-green-700 border-none mr-2"
+            >
+              Thanh toán 40% học phí
+            </Button>
+          ),
+          selectedRegistration?.status === "Fourty" && (
+            <Button
+              key="remainingPayment"
+              type="primary"
+              onClick={handleRemainingPaymentClick}
+              className="bg-blue-600 hover:bg-blue-700 border-none mr-2"
+            >
+              Thanh toán phần còn lại
+            </Button>
+          ),
           <Button
             key="close"
             onClick={() => setViewModalVisible(false)}
@@ -455,7 +706,7 @@ const MyRegistrations = () => {
               </Row>
             </div>
 
-            {selectedRegistration.status === "Accepted" && (
+            {selectedRegistration.status !== "Pending" && (
               <>
                 <Divider className="my-6" />
                 <div className="bg-green-50 p-4 rounded-lg">
@@ -465,52 +716,86 @@ const MyRegistrations = () => {
                   </Title>
 
                   <Row gutter={[24, 24]}>
-                    {selectedRegistration.levelAssigned && (
+                    {selectedRegistration.levelName && (
                       <Col xs={24} sm={12}>
                         <div className="space-y-1">
                           <Text type="secondary">Cấp độ được xếp</Text>
                           <div className="text-lg font-medium">
-                            {selectedRegistration.levelAssigned}
+                            {selectedRegistration.levelName}
                           </div>
                         </div>
                       </Col>
                     )}
 
-                    {selectedRegistration.score !== null && (
+                    {selectedRegistration.responseTypeName && (
                       <Col xs={24} sm={12}>
                         <div className="space-y-1">
-                          <Text type="secondary">Điểm đánh giá</Text>
+                          <Text type="secondary">Loại phản hồi</Text>
                           <div className="text-lg font-medium">
-                            {selectedRegistration.score}
+                            {selectedRegistration.responseTypeName}
                           </div>
                         </div>
                       </Col>
                     )}
 
-                    {selectedRegistration.calculatedPrice && (
+                    {selectedRegistration.responseDescription && (
                       <Col xs={24}>
                         <div className="space-y-1">
-                          <Text type="secondary">
-                            Học phí (40% tổng học phí)
-                          </Text>
+                          <Text type="secondary">Nội dung phản hồi</Text>
+                          <div className="text-lg font-medium">
+                            {selectedRegistration.responseDescription}
+                          </div>
+                        </div>
+                      </Col>
+                    )}
+
+                    {selectedRegistration?.price && (
+                      <Col xs={24}>
+                        <div className="space-y-1">
+                          <Text type="secondary">Học phí</Text>
                           <div className="text-lg font-medium text-red-600">
-                            {selectedRegistration.calculatedPrice.toLocaleString()}{" "}
+                            {selectedRegistration.price.toLocaleString("vi-VN")}{" "}
                             VNĐ
-                            <Text type="secondary" className="text-sm ml-2">
-                              ({selectedRegistration.price.toLocaleString()}{" "}
-                              VNĐ/buổi )
-                            </Text>
+                            {selectedRegistration.numberOfSession && (
+                              <Text type="secondary" className="text-sm ml-2">
+                                (
+                                {(
+                                  selectedRegistration.price /
+                                  selectedRegistration.numberOfSession
+                                ).toLocaleString("vi-VN")}{" "}
+                                VNĐ/buổi)
+                              </Text>
+                            )}
                           </div>
+                          {selectedRegistration.status === "Fourty" && (
+                            <div className="text-base text-blue-600 mt-2">
+                              Số tiền còn phải thanh toán (60% tổng học phí):{" "}
+                              {(
+                                selectedRegistration.price * 0.6
+                              ).toLocaleString("vi-VN")}{" "}
+                              VNĐ
+                            </div>
+                          )}
                         </div>
                       </Col>
                     )}
 
-                    {selectedRegistration.feedback && (
+                    {selectedRegistration.learningPath && (
                       <Col xs={24}>
                         <div className="space-y-1">
-                          <Text type="secondary">Phản hồi</Text>
-                          <div className="text-lg font-medium">
-                            {selectedRegistration.feedback}
+                          <Text type="secondary">Lộ trình học</Text>
+                          <div className="mt-2">
+                            <a
+                              href={selectedRegistration.learningPath}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center text-blue-600 hover:text-blue-800"
+                            >
+                              <PaperClipOutlined className="mr-2" />
+                              <span className="text-lg font-medium">
+                                Xem lộ trình học
+                              </span>
+                            </a>
                           </div>
                         </div>
                       </Col>
@@ -563,6 +848,161 @@ const MyRegistrations = () => {
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* Modal xác nhận thanh toán 40% */}
+      <Modal
+        title={
+          <div className="text-center">
+            <div className="text-2xl font-bold text-green-600 mb-2">
+              Xác nhận thanh toán 40% học phí
+            </div>
+            <div className="text-gray-500">
+              Vui lòng kiểm tra thông tin trước khi xác nhận thanh toán
+            </div>
+          </div>
+        }
+        open={isConfirmInitialPaymentVisible}
+        onOk={handleConfirmInitialPayment}
+        onCancel={() => setIsConfirmInitialPaymentVisible(false)}
+        okText="Xác nhận thanh toán"
+        cancelText="Hủy"
+        okButtonProps={{
+          className: "bg-green-600 hover:bg-green-700",
+          loading: paymentLoading,
+        }}
+      >
+        <div className="py-4">
+          <div className="bg-green-50 rounded-lg p-6 mb-4">
+            <div className="text-center">
+              <div className="text-xl font-bold text-green-600 mb-2">
+                Số tiền cần thanh toán (40% học phí)
+              </div>
+              <div className="text-3xl font-bold text-green-700 mb-2">
+                {selectedRegistration?.price
+                  ? (selectedRegistration.price * 0.4).toLocaleString("vi-VN")
+                  : 0}{" "}
+                VNĐ
+              </div>
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal xác nhận thanh toán phần còn lại */}
+      <Modal
+        title={
+          <div className="text-center">
+            <div className="text-2xl font-bold text-blue-600 mb-2">
+              Xác nhận thanh toán phần còn lại
+            </div>
+            <div className="text-gray-500">
+              Vui lòng kiểm tra thông tin trước khi xác nhận thanh toán
+            </div>
+          </div>
+        }
+        open={isConfirmRemainingPaymentVisible}
+        onOk={handleConfirmRemainingPayment}
+        onCancel={() => setIsConfirmRemainingPaymentVisible(false)}
+        okText="Xác nhận thanh toán"
+        cancelText="Hủy"
+        okButtonProps={{
+          className: "bg-blue-600 hover:bg-blue-700",
+          loading: paymentLoading,
+        }}
+      >
+        <div className="py-4">
+          <div className="bg-blue-50 rounded-lg p-6 mb-4">
+            <div className="text-center">
+              <div className="text-xl font-bold text-blue-600 mb-2">
+                Số tiền cần thanh toán (60% học phí còn lại)
+              </div>
+              <div className="text-3xl font-bold text-blue-700 mb-2">
+                {selectedRegistration?.price
+                  ? (selectedRegistration.price * 0.6).toLocaleString("vi-VN")
+                  : 0}{" "}
+                VNĐ
+              </div>
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal số dư không đủ */}
+      <Modal
+        title={
+          <div className="text-center">
+            <div className="text-2xl font-bold text-red-600 mb-2">
+              Số dư không đủ
+            </div>
+            <div className="text-gray-500">
+              Vui lòng nạp thêm tiền để thực hiện thanh toán
+            </div>
+          </div>
+        }
+        open={isInsufficientBalanceModalVisible}
+        onOk={handleNavigateToWallet}
+        onCancel={() => setIsInsufficientBalanceModalVisible(false)}
+        okText="Nạp tiền ngay"
+        cancelText="Hủy"
+        okButtonProps={{ className: "bg-purple-600 hover:bg-purple-700" }}
+      >
+        <div className="py-4">
+          <div className="bg-red-50 rounded-lg p-6 mb-4">
+            <div className="text-center">
+              <div className="text-xl font-bold text-red-600 mb-2">
+                {paymentType === "initial"
+                  ? "Thanh toán 40% học phí"
+                  : "Thanh toán 60% học phí còn lại"}
+              </div>
+              <div className="text-3xl font-bold text-red-700 mb-2">
+                {selectedRegistration?.price
+                  ? (
+                      selectedRegistration.price *
+                      (paymentType === "initial" ? 0.4 : 0.6)
+                    ).toLocaleString("vi-VN")
+                  : 0}{" "}
+                VNĐ
+              </div>
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal thông báo thanh toán thành công */}
+      <Modal
+        title={
+          <div className="text-center">
+            <div className="text-2xl font-bold text-green-600 mb-2">
+              Thanh toán thành công
+            </div>
+          </div>
+        }
+        open={paymentSuccessVisible}
+        onOk={() => setPaymentSuccessVisible(false)}
+        onCancel={() => setPaymentSuccessVisible(false)}
+        okText="Đồng ý"
+        cancelButtonProps={{ style: { display: "none" } }}
+        okButtonProps={{ className: "bg-green-600 hover:bg-green-700" }}
+      >
+        <div className="py-4 text-center">
+          <div className="mb-4">
+            <CheckCircleOutlined className="text-6xl text-green-500" />
+          </div>
+          <div className="text-lg mb-4">
+            Bạn đã thanh toán thành công{" "}
+            {paymentType === "initial" ? "40% học phí" : "phần học phí còn lại"}
+          </div>
+          <div className="text-2xl font-bold text-green-700">
+            {selectedRegistration?.price
+              ? (
+                  selectedRegistration.price *
+                  (paymentType === "initial" ? 0.4 : 0.6)
+                ).toLocaleString("vi-VN")
+              : 0}{" "}
+            VNĐ
+          </div>
+        </div>
       </Modal>
 
       <style jsx global>{`
