@@ -429,7 +429,7 @@ const ClassManagement = () => {
               onClick={(e) => handleEditClass(record.classId, e)}
             />
           </Tooltip>
-          <Tooltip title="Xóa">
+          {/* <Tooltip title="Xóa">
             <Button
               icon={<DeleteOutlined />}
               size="small"
@@ -437,7 +437,7 @@ const ClassManagement = () => {
               onClick={(e) => handleDelete(record.classId, e)}
               disabled={record.status === 1}
             />
-          </Tooltip>
+          </Tooltip> */}
         </Space>
       ),
     },
