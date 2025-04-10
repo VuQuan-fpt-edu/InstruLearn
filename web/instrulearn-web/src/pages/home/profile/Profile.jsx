@@ -631,12 +631,12 @@ const Profile = () => {
     {
       key: "library",
       icon: <ReadOutlined className="text-lg" />,
-      label: "Thư viện khóa học",
+      label: "Thư viện gói học online",
     },
     {
       key: "courses",
       icon: <BookOutlined className="text-lg" />,
-      label: "Khoá học của tôi",
+      label: "Gói học online của tôi",
     },
     {
       key: "achievements",

@@ -181,10 +181,10 @@ export default function Courses() {
       <div className="bg-gray-900 text-white p-6 md:p-10">
         <div className="max-w-6xl mx-auto">
           <h1 className="text-3xl md:text-4xl font-bold mb-4">
-            Tất cả khóa học
+            Tất cả gói học online
           </h1>
           <p className="text-lg mb-6">
-            Khám phá tất cả các khóa học nhạc cụ chất lượng cao từ các giáo viên
+            Khám phá tất cả các gói học online chất lượng cao từ các giáo viên
             chuyên nghiệp
           </p>
         </div>
@@ -195,7 +195,7 @@ export default function Courses() {
           <div className="bg-white shadow-md rounded-lg p-4 mb-6">
             <div className="flex flex-col md:flex-row justify-between gap-4 mb-4">
               <Search
-                placeholder="Tìm kiếm khóa học hoặc giáo viên"
+                placeholder="Tìm kiếm gói học online hoặc giáo viên"
                 allowClear
                 enterButton={<SearchOutlined />}
                 size="large"
@@ -296,13 +296,13 @@ export default function Courses() {
           {loading ? (
             <div className="text-center py-20">
               <Spin size="large" />
-              <div className="mt-4">Đang tải khóa học...</div>
+              <div className="mt-4">Đang tải gói học online...</div>
             </div>
           ) : (
             <>
               <div className="mb-4">
                 <h2 className="text-xl font-bold">
-                  {filteredCourses.length} khóa học{" "}
+                  {filteredCourses.length} gói học online{" "}
                   {filters.type !== "all" ? filters.type : ""}
                 </h2>
               </div>
@@ -310,7 +310,7 @@ export default function Courses() {
               {filteredCourses.length === 0 ? (
                 <div className="text-center py-12 bg-gray-50 rounded-lg">
                   <div className="text-gray-500 mb-2">
-                    Không tìm thấy khóa học phù hợp
+                    Không tìm thấy gói học online phù hợp
                   </div>
                   <Button type="primary" onClick={resetFilters}>
                     Đặt lại bộ lọc
@@ -326,68 +326,84 @@ export default function Courses() {
                     >
                       <Card
                         hoverable
-                        className="overflow-hidden shadow-md border border-gray-200 rounded-md hover:shadow-lg transition-shadow h-full flex flex-col"
+                        className="overflow-hidden h-full flex flex-col transition-all duration-300 hover:shadow-xl border-0 bg-white rounded-xl"
+                        bodyStyle={{ padding: "16px" }}
                         cover={
-                          <div className="relative">
+                          <div className="relative group">
                             <img
                               alt={course.courseName}
                               src={course.imageUrl}
-                              className="w-full aspect-video object-cover"
+                              className="w-full aspect-[4/3] object-cover transition-transform duration-300 group-hover:scale-105"
                               onError={(e) => {
                                 e.target.onerror = null;
                                 e.target.src =
                                   "https://placehold.co/600x400?text=No+Image";
                               }}
                             />
-                            <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-10 transition-opacity flex items-center justify-center">
-                              <div className="opacity-0 hover:opacity-100 transition-opacity">
-                                <PlayCircleFilled className="text-4xl text-white" />
-                              </div>
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <PlayCircleFilled className="text-5xl text-white transform -translate-y-4 group-hover:translate-y-0 transition-transform duration-300" />
                             </div>
                           </div>
                         }
                       >
-                        <div className="py-1 flex flex-col flex-grow">
-                          <h4 className="font-bold text-base mb-1 line-clamp-2">
+                        <div className="flex flex-col h-full">
+                          <Tag
+                            color="blue"
+                            className="self-start mb-2 rounded-full px-3 py-1"
+                          >
+                            {course.typeName}
+                          </Tag>
+
+                          <h3 className="text-lg font-bold mb-2 line-clamp-2 hover:text-blue-600 transition-colors">
                             {course.courseName}
-                          </h4>
-                          <p className="text-sm text-gray-600 mb-2 line-clamp-2">
+                          </h3>
+
+                          <p className="text-gray-600 text-sm mb-3 line-clamp-2">
                             {course.headline}
                           </p>
 
-                          <div className="flex items-center mb-1">
-                            <span className="font-bold text-amber-700 mr-1">
-                              {course.rating ? course.rating.toFixed(1) : "Mới"}
-                            </span>
+                          <div className="flex items-center gap-2 mb-3">
                             {course.rating > 0 ? (
                               <>
-                                <Rate
-                                  disabled
-                                  defaultValue={course.rating}
-                                  className="text-xs text-amber-500"
-                                />
+                                <span className="inline-flex items-center bg-amber-50 text-amber-700 px-2 py-1 rounded-lg text-sm font-semibold">
+                                  {course.rating.toFixed(1)}
+                                  <Rate
+                                    disabled
+                                    defaultValue={1}
+                                    count={1}
+                                    className="text-amber-500 ml-1"
+                                  />
+                                </span>
                               </>
                             ) : (
-                              <span className="text-xs text-gray-600 ml-1">
-                                (Chưa có đánh giá)
-                              </span>
+                              <Tag color="purple" className="rounded-lg">
+                                Mới
+                              </Tag>
+                            )}
+                            {course.status === 1 && (
+                              <Tag color="success" className="rounded-lg">
+                                Đang mở bán
+                              </Tag>
                             )}
                           </div>
 
-                          <div className="mt-auto">
-                            <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-                              <span className="font-bold text-base">
-                                {formatPrice(course.price)}
-                              </span>
-
-                              <Space>
-                                {course.status === 1 && (
-                                  <Tag color="success">Đang mở bán</Tag>
-                                )}
-                                <Tag color="blue" className="m-0">
-                                  {course.typeName}
-                                </Tag>
-                              </Space>
+                          <div className="mt-auto pt-3 border-t border-gray-100">
+                            <div className="flex items-center justify-between">
+                              <div className="flex flex-col">
+                                <span className="text-xs text-gray-500">
+                                  Học phí
+                                </span>
+                                <span className="font-bold text-lg text-blue-600">
+                                  {formatPrice(course.price)}
+                                </span>
+                              </div>
+                              <Button
+                                type="primary"
+                                shape="round"
+                                className="bg-blue-600"
+                              >
+                                Xem chi tiết
+                              </Button>
                             </div>
                           </div>
                         </div>

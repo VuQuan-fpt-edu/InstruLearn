@@ -300,13 +300,13 @@ const TeacherProfile = () => {
                     icon={!profile?.avatar && <UserOutlined />}
                     className="bg-white text-blue-700 border-4 border-white shadow-lg"
                   />
-                  <Button
+                  {/* <Button
                     type="primary"
                     shape="circle"
                     icon={<EditOutlined />}
                     onClick={showEditModal}
                     className="absolute bottom-0 right-0 bg-blue-700 hover:bg-blue-800"
-                  />
+                  /> */}
                 </div>
               </div>
             </Col>

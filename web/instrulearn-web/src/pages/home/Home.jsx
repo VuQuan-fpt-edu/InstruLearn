@@ -519,6 +519,9 @@ export default function Home() {
                 .slice(0, 3)
                 .map((classItem) => (
                   <Card
+                    onClick={() =>
+                      navigate(`/class-detail/${classItem.classId}`)
+                    }
                     key={classItem.classId}
                     hoverable
                     className="overflow-hidden shadow-md border border-gray-200 rounded-md hover:shadow-lg transition-shadow"
@@ -606,8 +609,8 @@ export default function Home() {
             <div className="text-center py-12">Đang tải khóa học...</div>
           ) : (
             <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {courses.map((course) => (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {courses.slice(0, 3).map((course) => (
                   <Link
                     to={`/package/${course.courseId}`}
                     key={course.courseId}

@@ -150,7 +150,7 @@ export default function AppLayout({ children }) {
               <Link to="/">Trang chủ</Link>
             </Menu.Item>
             <Menu.Item key="/home-allcourse" icon={<BookOutlined />}>
-              <Link to="/home-allcourse">Khóa học</Link>
+              <Link to="/home-allcourse">Gói học online</Link>
             </Menu.Item>
             <Menu.Item key="/teacher-list" icon={<TeamOutlined />}>
               <Link to="/teacher-list">Giảng viên</Link>
