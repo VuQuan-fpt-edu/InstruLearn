@@ -64,16 +64,51 @@ class _ApplicationScreenState extends State<ApplicationScreen> {
         return Colors.pink;
       case 'declined':
         return Colors.red;
+      case 'fourty':
+        return Colors.blue;
+      case 'sixty':
+        return Colors.green;
       default:
         return Colors.grey;
     }
+  }
+
+  String _getStatusText(String status) {
+    switch (status.toLowerCase()) {
+      case 'accepted':
+        return 'Chờ thanh toán';
+      case 'pending':
+        return 'Đang chờ';
+      case 'declined':
+        return 'Từ chối';
+      case 'fourty':
+        return 'Đã thanh toán 40% học phí';
+      case 'sixty':
+        return 'Đã hoàn tất thanh toán học phí';
+      default:
+        return status;
+    }
+  }
+
+  String _formatCurrency(num? amount) {
+    if (amount == null) return '0';
+    final formatted = amount.toStringAsFixed(0);
+    final chars = formatted.split('').reversed.toList();
+    final withCommas = <String>[];
+    for (var i = 0; i < chars.length; i++) {
+      if (i > 0 && i % 3 == 0) {
+        withCommas.add(',');
+      }
+      withCommas.add(chars[i]);
+    }
+    return withCommas.reversed.join('');
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Application'),
+        title: const Text('Đơn học'),
         backgroundColor: const Color(0xFF8C9EFF),
       ),
       body: Container(
@@ -106,24 +141,53 @@ class _ApplicationScreenState extends State<ApplicationScreen> {
                         ],
                       ),
                     )
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: _registrations.length,
-                      itemBuilder: (context, index) {
-                        final registration = _registrations[index];
-                        final statusColor =
-                            _getStatusColor(registration.status);
-
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: _buildApplicationCard(
-                            registration: registration,
-                            backgroundColor: statusColor.withOpacity(0.1),
-                            headerColor: statusColor,
+                  : _registrations.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.description_outlined,
+                                size: 64,
+                                color: Colors.grey,
+                              ),
+                              const SizedBox(height: 16),
+                              const Text(
+                                'Chưa có đơn đăng ký nào',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Bạn có thể đăng ký học kèm 1:1 để tạo đơn',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
                           ),
-                        );
-                      },
-                    ),
+                        )
+                      : ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: _registrations.length,
+                          itemBuilder: (context, index) {
+                            final registration = _registrations[index];
+                            final statusColor =
+                                _getStatusColor(registration.status);
+
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: _buildApplicationCard(
+                                registration: registration,
+                                backgroundColor: statusColor.withOpacity(0.1),
+                                headerColor: statusColor,
+                              ),
+                            );
+                          },
+                        ),
         ),
       ),
     );
@@ -135,8 +199,8 @@ class _ApplicationScreenState extends State<ApplicationScreen> {
     required Color headerColor,
   }) {
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
+      onTap: () async {
+        final result = await Navigator.push<bool>(
           context,
           MaterialPageRoute(
             builder: (context) => ApplicationDetailsScreen(
@@ -146,6 +210,10 @@ class _ApplicationScreenState extends State<ApplicationScreen> {
             ),
           ),
         );
+
+        if (result == true) {
+          _loadRegistrations();
+        }
       },
       child: Container(
         decoration: BoxDecoration(
@@ -174,7 +242,7 @@ class _ApplicationScreenState extends State<ApplicationScreen> {
                 ),
               ),
               child: Text(
-                registration.status,
+                _getStatusText(registration.status),
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -188,7 +256,7 @@ class _ApplicationScreenState extends State<ApplicationScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Type: ${registration.regisTypeName}',
+                    'Loại đơn: ${registration.regisTypeName}',
                     style: const TextStyle(
                       color: Colors.blue,
                       fontWeight: FontWeight.w500,
@@ -196,7 +264,7 @@ class _ApplicationScreenState extends State<ApplicationScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Create date: ${registration.requestDate.split('T')[0]}',
+                    'Ngày bắt đầu: ${registration.startDay}',
                     style: const TextStyle(
                       color: Colors.black87,
                       fontWeight: FontWeight.w500,
@@ -204,22 +272,22 @@ class _ApplicationScreenState extends State<ApplicationScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Teacher: ${registration.teacherName}',
+                    'Giáo viên: ${registration.teacherName}',
                     style: const TextStyle(color: Colors.black87),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Major: ${registration.majorName}',
+                    'Nhạc cụ: ${registration.majorName}',
                     style: const TextStyle(color: Colors.black87),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Time: ${registration.timeStart} - ${registration.timeEnd}',
+                    'Thời gian bắt đầu: ${registration.timeStart}',
                     style: const TextStyle(color: Colors.black87),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Learning Days: ${registration.learningDays.join(", ")}',
+                    'Học vào thứ: ${registration.learningDays.join(", ")}',
                     style: const TextStyle(color: Colors.black87),
                   ),
                 ],

@@ -129,7 +129,7 @@ class _CourseQnAWidgetState extends State<CourseQnAWidget> {
 
       final response = await http.get(
         Uri.parse(
-          'https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Auth/Profile',
+          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Auth/Profile',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
@@ -173,7 +173,7 @@ class _CourseQnAWidgetState extends State<CourseQnAWidget> {
 
       final response = await http.get(
         Uri.parse(
-          'https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/QnA/get-all',
+          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/QnA/get-all',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
@@ -262,7 +262,7 @@ class _CourseQnAWidgetState extends State<CourseQnAWidget> {
 
       final response = await http.post(
         Uri.parse(
-          'https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/QnA/create',
+          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/QnA/create',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
@@ -336,7 +336,7 @@ class _CourseQnAWidgetState extends State<CourseQnAWidget> {
 
       final response = await http.post(
         Uri.parse(
-          'https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/QnAReplies/create',
+          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/QnAReplies/create',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',

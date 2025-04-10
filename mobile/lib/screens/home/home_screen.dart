@@ -12,6 +12,7 @@ import '../service/application_screen.dart';
 import '../service/notification_screen.dart';
 import '../service/library_screen.dart';
 import '../service/class_registration.dart';
+import '../service/learner_schedule_center_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -46,6 +47,13 @@ class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
   int learnerId = 0;
 
+  String _formatCurrency(double amount) {
+    return '${amount.toStringAsFixed(0).replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (Match m) => '${m[1]},',
+        )} VNĐ';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -64,7 +72,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
       final response = await http.get(
         Uri.parse(
-          'https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Auth/Profile',
+          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Auth/Profile',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
@@ -118,6 +126,144 @@ class _HomeScreenState extends State<HomeScreen> {
         username = 'Không thể tải thông tin';
         isLoading = false;
       });
+      _showErrorMessage('Lỗi: ${e.toString()}');
+    }
+  }
+
+  Future<void> _checkBalanceAndNavigate() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      if (token == null) {
+        _showErrorMessage('Vui lòng đăng nhập lại');
+        return;
+      }
+
+      final response = await http.get(
+        Uri.parse(
+          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/wallet/$learnerId',
+        ),
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['isSucceed'] == true) {
+          final balance = data['data']['balance'].toDouble();
+          final requiredAmount = 50000.0;
+          final remainingBalance = balance - requiredAmount;
+
+          if (balance < requiredAmount) {
+            showDialog(
+              context: context,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  title: const Text('Số dư không đủ'),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Số dư hiện có: ${_formatCurrency(balance)}'),
+                      const SizedBox(height: 8),
+                      Text('Phí đăng ký: ${_formatCurrency(requiredAmount)}'),
+                      const SizedBox(height: 8),
+                      const Text('Bạn cần nạp thêm tiền để tiếp tục.'),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Lưu ý: Sau khi học viên gửi đơn thành công số tiền mới bị trừ',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontStyle: FontStyle.italic,
+                          color: Colors.red,
+                        ),
+                      ),
+                    ],
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Hủy'),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                WalletScreen(learnerId: learnerId),
+                          ),
+                        );
+                      },
+                      child: const Text('Nạp tiền'),
+                    ),
+                  ],
+                );
+              },
+            );
+          } else {
+            showDialog(
+              context: context,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  title: const Text('Xác nhận đăng ký'),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Số dư hiện có: ${_formatCurrency(balance)}'),
+                      const SizedBox(height: 8),
+                      Text('Phí đăng ký: ${_formatCurrency(requiredAmount)}'),
+                      const SizedBox(height: 8),
+                      Text(
+                          'Số dư còn lại: ${_formatCurrency(remainingBalance)}'),
+                      const SizedBox(height: 8),
+                      const Text('Bạn có chắc chắn muốn tiếp tục?'),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Lưu ý: Sau khi học viên gửi đơn thành công số tiền mới bị trừ',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontStyle: FontStyle.italic,
+                          color: Colors.red,
+                        ),
+                      ),
+                    ],
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Hủy'),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                const TutoringRegistrationForm(),
+                          ),
+                        );
+                      },
+                      child: const Text('Xác nhận'),
+                    ),
+                  ],
+                );
+              },
+            );
+          }
+        } else {
+          _showErrorMessage(data['message'] ?? 'Không thể kiểm tra số dư');
+        }
+      } else {
+        _showErrorMessage('Lỗi kết nối: ${response.statusCode}');
+      }
+    } catch (e) {
       _showErrorMessage('Lỗi: ${e.toString()}');
     }
   }
@@ -239,7 +385,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       Expanded(
                         child: TextField(
                           decoration: InputDecoration(
-                            hintText: 'Search For your Course........',
+                            hintText: 'Tím Kiếm gói học mà bạn muốn....',
                             border: InputBorder.none,
                           ),
                         ),
@@ -259,15 +405,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: _buildFeatureButton(
                     title: 'Đăng ký học theo yêu cầu',
                     icon: Icons.class_,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              const TutoringRegistrationForm(),
-                        ),
-                      );
-                    },
+                    onTap: _checkBalanceAndNavigate,
                     color: Colors.red[700]!,
                   ),
                 ),
@@ -299,7 +437,7 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 _buildMenuItem(
                   context: context,
-                  title: 'Schedule',
+                  title: 'Lịch học theo yêu cầu',
                   icon: Icons.calendar_today,
                   onTap: () {
                     Navigator.push(
@@ -312,7 +450,21 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 _buildMenuItem(
                   context: context,
-                  title: 'Library',
+                  title: 'Lịch học tại trung tâm',
+                  icon: Icons.school,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            const LearnerScheduleCenterScreen(),
+                      ),
+                    );
+                  },
+                ),
+                _buildMenuItem(
+                  context: context,
+                  title: 'Thư viện',
                   icon: Icons.book,
                   onTap: () {
                     Navigator.push(
@@ -325,7 +477,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 _buildMenuItem(
                   context: context,
-                  title: 'Application',
+                  title: 'Đơn học',
                   icon: Icons.app_registration,
                   onTap: () {
                     Navigator.push(
@@ -338,7 +490,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 _buildMenuItem(
                   context: context,
-                  title: 'Notification',
+                  title: 'Thông báo',
                   icon: Icons.notifications,
                   onTap: () {
                     Navigator.push(
@@ -351,7 +503,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 _buildMenuItem(
                   context: context,
-                  title: 'Mark Report',
+                  title: 'Báo cáo điểm',
                   icon: Icons.assessment,
                 ),
                 _buildMenuItem(
@@ -381,7 +533,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 _buildMenuItem(
                   context: context,
-                  title: 'Logout',
+                  title: 'Đăng xuất',
                   icon: Icons.logout,
                   onTap: () => _logout(),
                 ),
@@ -412,13 +564,13 @@ class _HomeScreenState extends State<HomeScreen> {
           }
         },
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Trang chủ'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Hồ sơ'),
           BottomNavigationBarItem(
             icon: Icon(Icons.support_agent),
-            label: 'Support',
+            label: 'CSKH',
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Setting'),
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Cài đặt'),
         ],
       ),
     );

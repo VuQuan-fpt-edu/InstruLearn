@@ -18,13 +18,70 @@ class _WalletScreenState extends State<WalletScreen> {
   double balance = 0;
   bool isLoading = true;
   List<Transaction> transactions = [];
+  List<Transaction> filteredTransactions = [];
+  int? selectedMonth;
+  int currentYear = DateTime.now().year;
   final TextEditingController _depositController = TextEditingController();
   final TextEditingController _withdrawController = TextEditingController();
+
+  String _formatCurrency(num amount) {
+    final formatted = amount.toStringAsFixed(0);
+    final chars = formatted.split('').reversed.toList();
+    final withCommas = <String>[];
+    for (var i = 0; i < chars.length; i++) {
+      if (i > 0 && i % 3 == 0) {
+        withCommas.add(',');
+      }
+      withCommas.add(chars[i]);
+    }
+    return withCommas.reversed.join('');
+  }
+
+  String _formatInputCurrency(String text) {
+    // Loại bỏ tất cả các ký tự không phải số
+    final numbers = text.replaceAll(RegExp(r'[^\d]'), '');
+    if (numbers.isEmpty) return '';
+
+    // Chuyển đổi thành số và format
+    final amount = int.parse(numbers);
+    return _formatCurrency(amount);
+  }
+
+  void _onDepositTextChanged(String value) {
+    final formatted = _formatInputCurrency(value);
+    if (formatted != value) {
+      _depositController.value = TextEditingValue(
+        text: formatted,
+        selection: TextSelection.collapsed(offset: formatted.length),
+      );
+    }
+  }
+
+  void _onWithdrawTextChanged(String value) {
+    final formatted = _formatInputCurrency(value);
+    if (formatted != value) {
+      _withdrawController.value = TextEditingValue(
+        text: formatted,
+        selection: TextSelection.collapsed(offset: formatted.length),
+      );
+    }
+  }
 
   @override
   void initState() {
     super.initState();
     _fetchWalletDetails();
+    _depositController
+        .addListener(() => _onDepositTextChanged(_depositController.text));
+    _withdrawController
+        .addListener(() => _onWithdrawTextChanged(_withdrawController.text));
+  }
+
+  @override
+  void dispose() {
+    _depositController.dispose();
+    _withdrawController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchWalletDetails() async {
@@ -36,7 +93,7 @@ class _WalletScreenState extends State<WalletScreen> {
 
       final response = await http.get(
         Uri.parse(
-          'https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/wallet/${widget.learnerId}',
+          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/wallet/${widget.learnerId}',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
@@ -72,7 +129,7 @@ class _WalletScreenState extends State<WalletScreen> {
 
       final response = await http.get(
         Uri.parse(
-          'https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/wallet/transactions/${widget.learnerId}',
+          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/WalletTransactions/wallet/${widget.learnerId}',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
@@ -81,27 +138,111 @@ class _WalletScreenState extends State<WalletScreen> {
       );
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['isSucceed'] == true) {
-          setState(() {
-            transactions =
-                (data['data'] as List)
-                    .map(
-                      (transactionData) => Transaction(
-                        id: transactionData['id'],
-                        type: transactionData['type'],
-                        amount: transactionData['amount'].toDouble(),
-                        date: DateTime.parse(transactionData['date']),
-                        status: transactionData['status'],
-                      ),
-                    )
-                    .toList();
-          });
-        }
+        final data = json.decode(response.body) as List;
+        setState(() {
+          transactions = data
+              .map(
+                (transactionData) => Transaction(
+                  id: transactionData['transactionId'],
+                  type: transactionData['transactionType'],
+                  amount: transactionData['amount'].toDouble(),
+                  date: DateTime.parse(transactionData['transactionDate']),
+                  status: transactionData['status'],
+                  signedAmount: transactionData['signedAmount'].toDouble(),
+                ),
+              )
+              .toList();
+          _filterTransactions();
+        });
       }
     } catch (e) {
       _showErrorMessage('Lỗi tải lịch sử giao dịch: ${e.toString()}');
     }
+  }
+
+  void _filterTransactions() {
+    setState(() {
+      if (selectedMonth == null) {
+        filteredTransactions = List.from(transactions);
+      } else {
+        filteredTransactions = transactions
+            .where((transaction) =>
+                transaction.date.month == selectedMonth &&
+                transaction.date.year == currentYear)
+            .toList();
+      }
+    });
+  }
+
+  String _getMonthName(int month) {
+    switch (month) {
+      case 1:
+        return 'Tháng 1';
+      case 2:
+        return 'Tháng 2';
+      case 3:
+        return 'Tháng 3';
+      case 4:
+        return 'Tháng 4';
+      case 5:
+        return 'Tháng 5';
+      case 6:
+        return 'Tháng 6';
+      case 7:
+        return 'Tháng 7';
+      case 8:
+        return 'Tháng 8';
+      case 9:
+        return 'Tháng 9';
+      case 10:
+        return 'Tháng 10';
+      case 11:
+        return 'Tháng 11';
+      case 12:
+        return 'Tháng 12';
+      default:
+        return 'Tất cả';
+    }
+  }
+
+  Widget _buildMonthFilter() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text(
+            'Lọc theo tháng:',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(width: 10),
+          DropdownButton<int?>(
+            value: selectedMonth,
+            hint: const Text('Tất cả'),
+            onChanged: (newValue) {
+              setState(() {
+                selectedMonth = newValue;
+                _filterTransactions();
+              });
+            },
+            items: [
+              const DropdownMenuItem<int?>(
+                value: null,
+                child: Text('Tất cả'),
+              ),
+              ...List.generate(12, (index) => index + 1).map((month) {
+                return DropdownMenuItem<int?>(
+                  value: month,
+                  child: Text(_getMonthName(month)),
+                );
+              }).toList(),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _createDepositTransaction() async {
@@ -114,7 +255,7 @@ class _WalletScreenState extends State<WalletScreen> {
         return;
       }
 
-      final amount = int.tryParse(_depositController.text.trim());
+      final amount = int.tryParse(_depositController.text.replaceAll(',', ''));
       if (amount == null || amount <= 0) {
         _showErrorMessage('Số tiền không hợp lệ');
         return;
@@ -122,17 +263,55 @@ class _WalletScreenState extends State<WalletScreen> {
 
       Navigator.of(context).pop();
 
+      // Hiển thị dialog chọn phương thức thanh toán
       showDialog(
         context: context,
-        barrierDismissible: false,
         builder: (BuildContext context) {
-          return const Center(child: CircularProgressIndicator());
+          return AlertDialog(
+            title: const Text('Chọn phương thức thanh toán'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.payment, color: Colors.blue),
+                  title: const Text('VNPay'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _processVNPayPayment(amount, token);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.payment, color: Colors.green),
+                  title: const Text('PayOS'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _processPayOSPayment(amount, token);
+                  },
+                ),
+              ],
+            ),
+          );
         },
       );
+    } catch (e) {
+      Navigator.of(context).pop();
+      _showErrorMessage('Lỗi: ${e.toString()}');
+    }
+  }
 
+  Future<void> _processPayOSPayment(int amount, String token) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return const Center(child: CircularProgressIndicator());
+      },
+    );
+
+    try {
       final response = await http.post(
         Uri.parse(
-          'https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/wallet/add-funds',
+          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/wallet/add-funds',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
@@ -147,16 +326,85 @@ class _WalletScreenState extends State<WalletScreen> {
       if (data['isSucceed'] == true) {
         final paymentUrl = data['data']['paymentUrl'];
 
-        Navigator.of(context).push(
+        final result = await Navigator.of(context).push(
           MaterialPageRoute(
             builder: (context) => PaymentScreen(paymentUrl: paymentUrl),
           ),
         );
+
+        if (result == true) {
+          await _fetchWalletDetails();
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Nạp tiền thành công! Số dư đã được cập nhật.'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        }
       } else {
         _showErrorMessage(data['message'] ?? 'Lỗi tạo giao dịch');
       }
     } catch (e) {
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+      _showErrorMessage('Lỗi: ${e.toString()}');
+    }
+  }
+
+  Future<void> _processVNPayPayment(int amount, String token) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return const Center(child: CircularProgressIndicator());
+      },
+    );
+
+    try {
+      final response = await http.post(
+        Uri.parse(
+          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/wallet/add-funds-vnpay',
+        ),
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode({'learnerId': widget.learnerId, 'amount': amount}),
+      );
+
       Navigator.of(context).pop();
+
+      final data = json.decode(response.body);
+      if (data['isSucceed'] == true) {
+        final paymentUrl = data['data']['paymentUrl'];
+
+        final result = await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => PaymentScreen(paymentUrl: paymentUrl),
+          ),
+        );
+
+        if (result == true) {
+          await _fetchWalletDetails();
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Nạp tiền thành công! Số dư đã được cập nhật.'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        }
+      } else {
+        _showErrorMessage(data['message'] ?? 'Lỗi tạo giao dịch');
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
       _showErrorMessage('Lỗi: ${e.toString()}');
     }
   }
@@ -194,7 +442,7 @@ class _WalletScreenState extends State<WalletScreen> {
 
       final response = await http.post(
         Uri.parse(
-          'https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/wallet/withdraw',
+          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/wallet/withdraw',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
@@ -238,7 +486,7 @@ class _WalletScreenState extends State<WalletScreen> {
                 controller: _depositController,
                 decoration: const InputDecoration(
                   hintText: 'Nhập số tiền',
-                  suffixText: 'VND',
+                  suffixText: 'VNĐ',
                 ),
                 keyboardType: TextInputType.number,
               ),
@@ -268,7 +516,7 @@ class _WalletScreenState extends State<WalletScreen> {
                 controller: _withdrawController,
                 decoration: const InputDecoration(
                   hintText: 'Nhập số tiền',
-                  suffixText: 'VND',
+                  suffixText: 'VNĐ',
                 ),
                 keyboardType: TextInputType.number,
               ),
@@ -284,6 +532,10 @@ class _WalletScreenState extends State<WalletScreen> {
     );
   }
 
+  Future<void> _refreshData() async {
+    await _fetchWalletDetails();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -291,10 +543,11 @@ class _WalletScreenState extends State<WalletScreen> {
         title: const Text('Ví của tôi'),
         backgroundColor: const Color(0xFF8C9EFF),
       ),
-      body:
-          isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : SingleChildScrollView(
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _refreshData,
+              child: SingleChildScrollView(
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
@@ -319,7 +572,7 @@ class _WalletScreenState extends State<WalletScreen> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              '${balance.toStringAsFixed(0)} VND',
+                              '${_formatCurrency(balance)}',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 24,
@@ -370,61 +623,119 @@ class _WalletScreenState extends State<WalletScreen> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      transactions.isEmpty
-                          ? const Center(child: Text('Chưa có giao dịch nào'))
+                      _buildMonthFilter(),
+                      filteredTransactions.isEmpty
+                          ? const Center(
+                              child: Text(
+                                  'Không có giao dịch nào trong khoảng thời gian này'))
                           : ListView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: transactions.length,
-                            itemBuilder: (context, index) {
-                              final transaction = transactions[index];
-                              return Card(
-                                child: ListTile(
-                                  title: Text(transaction.type),
-                                  subtitle: Text(
-                                    '${transaction.date.day}/${transaction.date.month}/${transaction.date.year}',
-                                  ),
-                                  trailing: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Text(
-                                        '${transaction.amount.toStringAsFixed(0)} VND',
-                                        style: TextStyle(
-                                          color:
-                                              transaction.type == 'Nạp tiền'
-                                                  ? Colors.green
-                                                  : Colors.red,
-                                          fontWeight: FontWeight.bold,
-                                        ),
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: filteredTransactions.length,
+                              itemBuilder: (context, index) {
+                                final transaction = filteredTransactions[index];
+                                final bool isPositive =
+                                    transaction.signedAmount >= 0;
+                                final bool isComplete =
+                                    transaction.status == 'Complete';
+
+                                String formattedDate =
+                                    '${transaction.date.day}/${transaction.date.month}/${transaction.date.year}';
+                                String formattedTime =
+                                    '${transaction.date.hour}:${transaction.date.minute.toString().padLeft(2, '0')}';
+
+                                String transactionTypeText =
+                                    transaction.type == 'AddFuns'
+                                        ? 'Nạp tiền'
+                                        : transaction.type == 'Payment'
+                                            ? 'Thanh toán'
+                                            : transaction.type;
+
+                                // Xác định màu sắc dựa trên trạng thái và loại giao dịch
+                                Color iconColor;
+                                Color backgroundColor;
+
+                                if (!isComplete) {
+                                  // Nếu đang pending thì hiển thị màu cam
+                                  iconColor = Colors.orange;
+                                  backgroundColor = Colors.orange[100]!;
+                                } else {
+                                  // Nếu complete thì dựa vào dấu cộng/trừ
+                                  iconColor =
+                                      isPositive ? Colors.green : Colors.red;
+                                  backgroundColor = isPositive
+                                      ? Colors.green[100]!
+                                      : Colors.red[100]!;
+                                }
+
+                                return Card(
+                                  elevation: 2,
+                                  margin: const EdgeInsets.symmetric(
+                                      vertical: 8, horizontal: 4),
+                                  child: ListTile(
+                                    leading: CircleAvatar(
+                                      backgroundColor: backgroundColor,
+                                      child: Icon(
+                                        isPositive ? Icons.add : Icons.remove,
+                                        color: iconColor,
                                       ),
-                                      Text(
-                                        transaction.status,
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey,
-                                        ),
+                                    ),
+                                    title: Text(
+                                      transactionTypeText,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
                                       ),
-                                    ],
+                                    ),
+                                    subtitle: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text('$formattedDate $formattedTime'),
+                                        Text(
+                                          transaction.status,
+                                          style: TextStyle(
+                                            color: isComplete
+                                                ? (isPositive
+                                                    ? Colors.green
+                                                    : Colors.red)
+                                                : Colors.orange,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    trailing: Text(
+                                      '${isPositive ? '+' : ''}${_formatCurrency(transaction.signedAmount)}',
+                                      style: TextStyle(
+                                        color: isComplete
+                                            ? (isPositive
+                                                ? Colors.green
+                                                : Colors.red)
+                                            : Colors.orange,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              );
-                            },
-                          ),
+                                );
+                              },
+                            ),
                     ],
                   ),
                 ),
               ),
+            ),
     );
   }
 }
 
 class Transaction {
-  final int id;
+  final String id;
   final String type;
   final double amount;
   final DateTime date;
   final String status;
+  final double signedAmount;
 
   Transaction({
     required this.id,
@@ -432,5 +743,6 @@ class Transaction {
     required this.amount,
     required this.date,
     required this.status,
+    required this.signedAmount,
   });
 }

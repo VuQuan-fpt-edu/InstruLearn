@@ -41,7 +41,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       try {
         final response = await http.post(
           Uri.parse(
-            'https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Auth/Register',
+            'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Auth/Register',
           ),
           headers: <String, String>{
             'Content-Type': 'application/json; charset=UTF-8',
@@ -124,25 +124,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Image.asset(
-                    'assets/images/logo.png',
-                    height: 100,
+                    'images/logo.png',
+                    height: 120,
                     errorBuilder: (context, error, stackTrace) {
                       return const Icon(
-                        Icons.app_registration,
-                        size: 80,
+                        Icons.lock,
+                        size: 100,
                         color: Colors.blue,
                       );
                     },
                   ),
                   const SizedBox(height: 30),
-
                   const Text(
                     'Đăng Ký Tài Khoản',
                     style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 30),
-
                   TextFormField(
                     controller: _usernameController,
                     keyboardType: TextInputType.text,
@@ -169,7 +167,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     },
                   ),
                   const SizedBox(height: 16),
-
                   TextFormField(
                     controller: _nameController,
                     keyboardType: TextInputType.name,
@@ -197,7 +194,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     },
                   ),
                   const SizedBox(height: 16),
-
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
@@ -224,7 +220,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     },
                   ),
                   const SizedBox(height: 16),
-
                   TextFormField(
                     controller: _phoneController,
                     keyboardType: TextInputType.phone,
@@ -248,7 +243,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     },
                   ),
                   const SizedBox(height: 16),
-
                   TextFormField(
                     controller: _passwordController,
                     obscureText: !_isPasswordVisible,
@@ -287,7 +281,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     },
                   ),
                   const SizedBox(height: 16),
-
                   TextFormField(
                     controller: _confirmPasswordController,
                     obscureText: !_isConfirmPasswordVisible,
@@ -327,7 +320,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     },
                   ),
                   const SizedBox(height: 24),
-
                   ElevatedButton(
                     onPressed: _isLoading ? null : _register,
                     style: ElevatedButton.styleFrom(
@@ -339,23 +331,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                       elevation: 2,
                     ),
-                    child:
-                        _isLoading
-                            ? const Center(
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                              ),
-                            )
-                            : const Text(
-                              'ĐĂNG KÝ',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
+                    child: _isLoading
+                        ? const Center(
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
                             ),
+                          )
+                        : const Text(
+                            'ĐĂNG KÝ',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                   ),
                   const SizedBox(height: 24),
-
                   const Row(
                     children: [
                       Expanded(child: Divider(thickness: 1)),
@@ -370,7 +360,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ],
                   ),
                   const SizedBox(height: 24),
-
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -389,7 +378,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                       ),
                       const SizedBox(width: 16),
-
                       Expanded(
                         child: OutlinedButton.icon(
                           onPressed: _registerWithFacebook,
@@ -407,7 +395,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ],
                   ),
                   const SizedBox(height: 32),
-
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [

@@ -41,12 +41,14 @@ class CourseContentItem {
   final int itemTypeId;
   final int contentId;
   final String itemDes;
+  final int status;
 
   CourseContentItem({
     required this.itemId,
     required this.itemTypeId,
     required this.contentId,
     required this.itemDes,
+    required this.status,
   });
 
   factory CourseContentItem.fromJson(Map<String, dynamic> json) {
@@ -55,6 +57,7 @@ class CourseContentItem {
       itemTypeId: (json['itemTypeId'] as num?)?.toInt() ?? 0,
       contentId: (json['contentId'] as num?)?.toInt() ?? 0,
       itemDes: (json['itemDes'] as String?) ?? '',
+      status: (json['status'] as num?)?.toInt() ?? 0,
     );
   }
 }
@@ -100,7 +103,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
 
       final response = await http.get(
         Uri.parse(
-          'https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Course/${widget.course.coursePackageId}',
+          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Course/${widget.course.coursePackageId}',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
@@ -789,8 +792,12 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                           child: Stack(
                             alignment: Alignment.center,
                             children: [
-                              const Icon(
-                                Icons.play_circle_outline,
+                              Icon(
+                                item.itemTypeId == 1
+                                    ? Icons.image
+                                    : item.itemTypeId == 2
+                                        ? Icons.play_circle_outline
+                                        : Icons.description,
                                 size: 32,
                                 color: Colors.white,
                               ),
@@ -806,9 +813,13 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                                     color: Colors.black.withOpacity(0.7),
                                     borderRadius: BorderRadius.circular(4),
                                   ),
-                                  child: const Text(
-                                    'Video',
-                                    style: TextStyle(
+                                  child: Text(
+                                    item.itemTypeId == 1
+                                        ? 'Hình ảnh'
+                                        : item.itemTypeId == 2
+                                            ? 'Video'
+                                            : 'Tài liệu',
+                                    style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 10,
                                     ),
@@ -818,31 +829,103 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                             ],
                           ),
                         ),
-                        title: Text(
-                          'Bài ${index + 1}',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
+                        title: Row(
+                          children: [
+                            Text(
+                              'Bài ${index + 1}',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            if (item.status == 1) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.green[100],
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: Colors.green[300]!,
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.lock_open,
+                                      size: 12,
+                                      color: Colors.green[700],
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Miễn phí',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: Colors.green[700],
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                         subtitle: Text(
-                          'Bài học video',
+                          item.itemTypeId == 1
+                              ? 'Bài học hình ảnh'
+                              : item.itemTypeId == 2
+                                  ? 'Bài học video'
+                                  : 'Tài liệu học tập',
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey[600],
                           ),
                         ),
                         onTap: () {
-                          if (isPurchased) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => VideoPlayerScreen(
-                                  title: 'Bài ${index + 1}',
-                                  videoUrl: item.itemDes,
+                          if (isPurchased || item.status == 1) {
+                            if (item.itemTypeId == 2) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => VideoPlayerScreen(
+                                    title: 'Bài ${index + 1}',
+                                    videoUrl: item.itemDes,
+                                  ),
                                 ),
-                              ),
-                            );
+                              );
+                            } else if (item.itemTypeId == 1) {
+                              showDialog(
+                                context: context,
+                                builder: (context) => Dialog(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Image.network(
+                                        item.itemDes,
+                                        fit: BoxFit.contain,
+                                      ),
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context),
+                                        child: const Text('Đóng'),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                      'Tính năng xem tài liệu đang được phát triển'),
+                                ),
+                              );
+                            }
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
