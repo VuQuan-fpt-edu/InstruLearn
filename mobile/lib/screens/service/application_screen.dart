@@ -64,8 +64,29 @@ class _ApplicationScreenState extends State<ApplicationScreen> {
         return Colors.pink;
       case 'declined':
         return Colors.red;
+      case 'fourty':
+        return Colors.blue;
+      case 'sixty':
+        return Colors.green;
       default:
         return Colors.grey;
+    }
+  }
+
+  String _getStatusText(String status) {
+    switch (status.toLowerCase()) {
+      case 'accepted':
+        return 'Chờ thanh toán';
+      case 'pending':
+        return 'Đang chờ';
+      case 'declined':
+        return 'Từ chối';
+      case 'fourty':
+        return 'Đã thanh toán 40% học phí';
+      case 'sixty':
+        return 'Đã hoàn tất thanh toán học phí';
+      default:
+        return status;
     }
   }
 
@@ -87,7 +108,7 @@ class _ApplicationScreenState extends State<ApplicationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Application'),
+        title: const Text('Đơn học'),
         backgroundColor: const Color(0xFF8C9EFF),
       ),
       body: Container(
@@ -221,7 +242,7 @@ class _ApplicationScreenState extends State<ApplicationScreen> {
                 ),
               ),
               child: Text(
-                registration.status,
+                _getStatusText(registration.status),
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -235,7 +256,7 @@ class _ApplicationScreenState extends State<ApplicationScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Type: ${registration.regisTypeName}',
+                    'Loại đơn: ${registration.regisTypeName}',
                     style: const TextStyle(
                       color: Colors.blue,
                       fontWeight: FontWeight.w500,
@@ -243,7 +264,7 @@ class _ApplicationScreenState extends State<ApplicationScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Start day: ${registration.startDay}',
+                    'Ngày bắt đầu: ${registration.startDay}',
                     style: const TextStyle(
                       color: Colors.black87,
                       fontWeight: FontWeight.w500,
@@ -251,22 +272,22 @@ class _ApplicationScreenState extends State<ApplicationScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Teacher: ${registration.teacherName}',
+                    'Giáo viên: ${registration.teacherName}',
                     style: const TextStyle(color: Colors.black87),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Major: ${registration.majorName}',
+                    'Nhạc cụ: ${registration.majorName}',
                     style: const TextStyle(color: Colors.black87),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Time: ${registration.timeStart}',
+                    'Thời gian bắt đầu: ${registration.timeStart}',
                     style: const TextStyle(color: Colors.black87),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Learning Days: ${registration.learningDays.join(", ")}',
+                    'Học vào thứ: ${registration.learningDays.join(", ")}',
                     style: const TextStyle(color: Colors.black87),
                   ),
                 ],

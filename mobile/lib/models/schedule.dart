@@ -4,6 +4,9 @@ class Schedule {
   final String teacherName;
   final int learnerId;
   final String learnerName;
+  final String? learnerAddress;
+  final int? classId;
+  final String? className;
   final String timeStart;
   final String timeEnd;
   final String dayOfWeek;
@@ -11,7 +14,9 @@ class Schedule {
   final String mode;
   final String registrationStartDay;
   final int learningRegisId;
-  final List<ScheduleDay> scheduleDays;
+  final int attendanceStatus;
+  final List<ScheduleDay>? scheduleDays;
+  final List<ClassDay>? classDayDTOs;
 
   Schedule({
     required this.scheduleId,
@@ -19,6 +24,9 @@ class Schedule {
     required this.teacherName,
     required this.learnerId,
     required this.learnerName,
+    this.learnerAddress,
+    this.classId,
+    this.className,
     required this.timeStart,
     required this.timeEnd,
     required this.dayOfWeek,
@@ -26,28 +34,39 @@ class Schedule {
     required this.mode,
     required this.registrationStartDay,
     required this.learningRegisId,
-    required this.scheduleDays,
+    required this.attendanceStatus,
+    this.scheduleDays,
+    this.classDayDTOs,
   });
 
   factory Schedule.fromJson(Map<String, dynamic> json) {
     return Schedule(
-      scheduleId: json['scheduleId'] ?? 0,
-      teacherId: json['teacherId'] ?? 0,
-      teacherName: json['teacherName'] ?? '',
-      learnerId: json['learnerId'] ?? 0,
-      learnerName: json['learnerName'] ?? '',
-      timeStart: json['timeStart'] ?? '',
-      timeEnd: json['timeEnd'] ?? '',
-      dayOfWeek: json['dayOfWeek'] ?? '',
-      startDate: json['startDay'] ?? '',
-      mode: json['mode']?.toString() ?? '',
-      registrationStartDay: json['registrationStartDay'] ?? '',
-      learningRegisId: json['learningRegisId'] ?? 0,
+      scheduleId: json['scheduleId'],
+      teacherId: json['teacherId'],
+      teacherName: json['teacherName'],
+      learnerId: json['learnerId'],
+      learnerName: json['learnerName'],
+      learnerAddress: json['learnerAddress'],
+      classId: json['classId'],
+      className: json['className'],
+      timeStart: json['timeStart'],
+      timeEnd: json['timeEnd'],
+      dayOfWeek: json['dayOfWeek'],
+      startDate: json['startDay'],
+      mode: json['mode'],
+      registrationStartDay: json['registrationStartDay'],
+      learningRegisId: json['learningRegisId'],
+      attendanceStatus: json['attendanceStatus'] ?? 0,
       scheduleDays: json['scheduleDays'] != null
           ? (json['scheduleDays'] as List)
               .map((day) => ScheduleDay.fromJson(day))
               .toList()
-          : [],
+          : null,
+      classDayDTOs: json['classDayDTOs'] != null
+          ? (json['classDayDTOs'] as List)
+              .map((day) => ClassDay.fromJson(day))
+              .toList()
+          : null,
     );
   }
 }
@@ -59,7 +78,19 @@ class ScheduleDay {
 
   factory ScheduleDay.fromJson(Map<String, dynamic> json) {
     return ScheduleDay(
-      dayOfWeeks: json['dayOfWeeks'] ?? '',
+      dayOfWeeks: json['dayOfWeeks'],
+    );
+  }
+}
+
+class ClassDay {
+  final String dayOfWeeks;
+
+  ClassDay({required this.dayOfWeeks});
+
+  factory ClassDay.fromJson(Map<String, dynamic> json) {
+    return ClassDay(
+      dayOfWeeks: json['dayOfWeeks'],
     );
   }
 }

@@ -41,7 +41,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       try {
         final response = await http.post(
           Uri.parse(
-            'https://instrulearnapplication2025-h7hfdte3etdth7av.southeastasia-01.azurewebsites.net/api/Auth/Register',
+            'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Auth/Register',
           ),
           headers: <String, String>{
             'Content-Type': 'application/json; charset=UTF-8',

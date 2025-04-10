@@ -106,6 +106,19 @@ class _ClassRegistrationScreenState extends State<ClassRegistrationScreen> {
   bool isLoading = true;
   String error = '';
 
+  String _formatCurrency(num amount) {
+    final formatted = amount.toStringAsFixed(0);
+    final chars = formatted.split('').reversed.toList();
+    final withCommas = <String>[];
+    for (var i = 0; i < chars.length; i++) {
+      if (i > 0 && i % 3 == 0) {
+        withCommas.add(',');
+      }
+      withCommas.add(chars[i]);
+    }
+    return withCommas.reversed.join('') + ' VNĐ';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -117,7 +130,7 @@ class _ClassRegistrationScreenState extends State<ClassRegistrationScreen> {
     try {
       final response = await http.get(
         Uri.parse(
-            'https://instrulearnapplication2025-h7hfdte3etdth7av.southeastasia-01.azurewebsites.net/api/Major/get-all'),
+            'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Major/get-all'),
       );
 
       if (response.statusCode == 200) {
@@ -146,7 +159,7 @@ class _ClassRegistrationScreenState extends State<ClassRegistrationScreen> {
 
       final response = await http.get(
         Uri.parse(
-            'https://instrulearnapplication2025-h7hfdte3etdth7av.southeastasia-01.azurewebsites.net/api/Class/get-all'),
+            'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Class/get-all'),
       );
 
       if (response.statusCode == 200) {
@@ -320,7 +333,7 @@ class _ClassRegistrationScreenState extends State<ClassRegistrationScreen> {
                                               Text(
                                                   'Số lượng học viên tối đa: ${classInfo.maxStudents}'),
                                               Text(
-                                                  'Học phí: ${classInfo.price.toStringAsFixed(0)} đ'),
+                                                  'Học phí: ${_formatCurrency(classInfo.price)}'),
                                               Text(
                                                   'Các ngày học: ${classInfo.classDays.map((d) => d.day).join(", ")}'),
                                             ],

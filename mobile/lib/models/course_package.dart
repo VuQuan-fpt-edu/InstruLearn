@@ -92,12 +92,14 @@ class CourseContentItem {
   final int itemTypeId;
   final int contentId;
   final String itemDes;
+  final int status;
 
   CourseContentItem({
     required this.itemId,
     required this.itemTypeId,
     required this.contentId,
     required this.itemDes,
+    this.status = 0,
   });
 
   factory CourseContentItem.fromJson(Map<String, dynamic> json) {
@@ -106,6 +108,7 @@ class CourseContentItem {
       itemTypeId: json['itemTypeId'] ?? 0,
       contentId: json['contentId'] ?? 0,
       itemDes: json['itemDes'] ?? '',
+      status: json['status'] ?? 0,
     );
   }
 }

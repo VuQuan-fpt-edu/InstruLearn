@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'register_screen.dart';
 import '../home/home_screen.dart';
 import '../teacher/teacher_home_screen.dart';
+import '../profile/update_profile_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -36,7 +37,7 @@ class _LoginScreenState extends State<LoginScreen> {
       try {
         final response = await http.post(
           Uri.parse(
-            'https://instrulearnapplication2025-h7hfdte3etdth7av.southeastasia-01.azurewebsites.net/api/Auth/Login',
+            'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Auth/Login',
           ),
           headers: <String, String>{
             'Content-Type': 'application/json; charset=UTF-8',
@@ -64,7 +65,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
             final profileResponse = await http.get(
               Uri.parse(
-                'https://instrulearnapplication2025-h7hfdte3etdth7av.southeastasia-01.azurewebsites.net/api/Auth/Profile',
+                'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Auth/Profile',
               ),
               headers: {
                 'Content-Type': 'application/json; charset=UTF-8',
@@ -87,6 +88,22 @@ class _LoginScreenState extends State<LoginScreen> {
                       'teacherId', profileData['data']['teacherId']);
                 }
 
+                if (role == 'Learner') {
+                  if (profileData['data']['address'] == null) {
+                    _navigateToUpdateProfile(profileData['data']);
+                  } else {
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(
+                          builder: (context) => const HomeScreen()),
+                    );
+                  }
+                } else if (role == 'Teacher') {
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(
+                        builder: (context) => const TeacherHomeScreen()),
+                  );
+                }
+
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
@@ -94,17 +111,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 );
-
-                if (role == 'Teacher') {
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(
-                        builder: (context) => const TeacherHomeScreen()),
-                  );
-                } else {
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (context) => const HomeScreen()),
-                  );
-                }
               }
             }
           } else {
@@ -142,6 +148,14 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
     }
+  }
+
+  void _navigateToUpdateProfile(Map<String, dynamic> userData) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => UpdateProfileScreen(userData: userData),
+      ),
+    );
   }
 
   void _forgotPassword() {

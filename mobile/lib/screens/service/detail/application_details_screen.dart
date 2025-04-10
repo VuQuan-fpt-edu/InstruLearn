@@ -29,6 +29,23 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
   ChewieController? _chewieController;
   bool _isVideoInitialized = false;
 
+  String _getStatusText(String status) {
+    switch (status.toLowerCase()) {
+      case 'accepted':
+        return 'Chờ thanh toán';
+      case 'pending':
+        return 'Đang chờ';
+      case 'declined':
+        return 'Từ chối';
+      case 'fourty':
+        return 'Đã thanh toán 40% học phí';
+      case 'sixty':
+        return 'Đã hoàn tất thanh toán học phí';
+      default:
+        return status;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -194,7 +211,7 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
                 ),
                 color: widget.statusColor,
                 child: Text(
-                  widget.status,
+                  _getStatusText(widget.status),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 18,
@@ -208,9 +225,9 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildInfoSection(
-                        'Type: ${widget.registration.regisTypeName}'),
+                        'Loại đơn: ${widget.registration.regisTypeName}'),
                     _buildInfoSection(
-                        'Create date: ${widget.registration.requestDate.split('T')[0]}'),
+                        'Ngày bắt đầu: ${widget.registration.requestDate.split('T')[0]}'),
                     const SizedBox(height: 16),
                     _buildTeacherInfo(),
                     const SizedBox(height: 16),
@@ -238,14 +255,95 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
                       const SizedBox(height: 8),
                       Text(
                           'Tổng học phí: ${_formatCurrency(widget.registration.price)} VNĐ'),
-                      Text(
-                        'Học phí cần thanh toán trước (40%): ${_formatCurrency((widget.registration.price ?? 0) ~/ 100 * 40)} VNĐ',
-                        style: const TextStyle(
-                          color: Colors.red,
-                          fontWeight: FontWeight.bold,
+                      if (widget.registration.regisTypeId == 1) ...[
+                        if (widget.status == 'Accepted') ...[
+                          Text(
+                            'Học phí cần thanh toán trước (40%): ${_formatCurrency((widget.registration.price ?? 0) ~/ 100 * 40)} VNĐ',
+                            style: const TextStyle(
+                              color: Colors.red,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                        if (widget.status == 'Fourty') ...[
+                          Text(
+                            'Học phí cần thanh toán (60% còn lại): ${_formatCurrency((widget.registration.price ?? 0) ~/ 100 * 60)} VNĐ',
+                            style: const TextStyle(
+                              color: Colors.red,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                        if (widget.status == 'Sixty') ...[
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.green[50],
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.green),
+                            ),
+                            child: const Row(
+                              children: [
+                                Icon(Icons.check_circle, color: Colors.green),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Bạn đã thanh toán toàn bộ học phí',
+                                  style: TextStyle(
+                                    color: Colors.green,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
+                      if (widget.registration.regisTypeId == 3 &&
+                          widget.status == 'Accepted') ...[
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.blue[50],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.blue),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(Icons.payment, color: Colors.blue[700]),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Phí đã thanh toán (10%): ${_formatCurrency((widget.registration.price ?? 0) ~/ 100 * 10)} VNĐ',
+                                    style: TextStyle(
+                                      color: Colors.blue[700],
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Icon(Icons.pending_actions,
+                                      color: Colors.red[700]),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Phí cần thanh toán còn lại (90%): ${_formatCurrency((widget.registration.price ?? 0) ~/ 100 * 90)} VNĐ',
+                                    style: TextStyle(
+                                      color: Colors.red[700],
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      if (widget.status == 'Accepted') ...[
+                      ],
+                      if (widget.registration.regisTypeId == 1 &&
+                          widget.status == 'Accepted') ...[
                         const SizedBox(height: 16),
                         SizedBox(
                           width: double.infinity,
@@ -255,6 +353,22 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
                             label: const Text('Thanh toán học phí'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.green,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                          ),
+                        ),
+                      ],
+                      if (widget.registration.regisTypeId == 1 &&
+                          widget.status == 'Fourty') ...[
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: _showRemainingPaymentConfirmationDialog,
+                            icon: const Icon(Icons.payment),
+                            label: const Text('Thanh toán 60% còn lại'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue,
                               padding: const EdgeInsets.symmetric(vertical: 12),
                             ),
                           ),
@@ -628,7 +742,7 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
       // Gọi API lấy số dư
       final walletResponse = await http.get(
         Uri.parse(
-          'https://instrulearnapplication2025-h7hfdte3etdth7av.southeastasia-01.azurewebsites.net/api/wallet/$learnerId',
+          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/wallet/$learnerId',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
@@ -738,7 +852,7 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
       // Gọi API thanh toán
       final paymentResponse = await http.post(
         Uri.parse(
-          'https://instrulearnapplication2025-h7hfdte3etdth7av.southeastasia-01.azurewebsites.net/api/Payment/process-learning-payment',
+          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Payment/process-learning-payment',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
@@ -798,5 +912,162 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
     );
+  }
+
+  // Hiển thị dialog xác nhận thanh toán 60% còn lại
+  void _showRemainingPaymentConfirmationDialog() async {
+    try {
+      // Lấy thông tin số dư ví
+      final prefs = await SharedPreferences.getInstance();
+      final learnerId = prefs.getInt('learnerId');
+      final token = prefs.getString('token');
+
+      if (learnerId == null || token == null) {
+        _showErrorMessage('Vui lòng đăng nhập lại');
+        return;
+      }
+
+      // Hiển thị dialog loading
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      // Gọi API lấy số dư
+      final walletResponse = await http.get(
+        Uri.parse(
+          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/wallet/$learnerId',
+        ),
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      // Đóng dialog loading
+      Navigator.pop(context);
+
+      if (walletResponse.statusCode != 200) {
+        _showErrorMessage('Không thể tải thông tin ví');
+        return;
+      }
+
+      final walletData = json.decode(walletResponse.body);
+      if (walletData['isSucceed'] != true) {
+        _showErrorMessage(
+            walletData['message'] ?? 'Không thể tải thông tin ví');
+        return;
+      }
+
+      final double balance = walletData['data']['balance'].toDouble();
+      final int totalFee = widget.registration.price ?? 0;
+      final int amountToPay = (totalFee * 60) ~/ 100; // Tính 60% học phí
+      final double remainingBalance = balance - amountToPay;
+
+      // Hiển thị dialog xác nhận thanh toán
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Xác nhận thanh toán 60% còn lại'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Số dư hiện tại: ${_formatCurrency(balance)} VNĐ'),
+              const SizedBox(height: 8),
+              Text('Tổng học phí: ${_formatCurrency(totalFee)} VNĐ'),
+              const SizedBox(height: 8),
+              Text(
+                  'Số tiền cần thanh toán (60%): ${_formatCurrency(amountToPay)} VNĐ',
+                  style: const TextStyle(
+                      color: Colors.red, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Text(
+                  'Số dư sau khi thanh toán: ${_formatCurrency(remainingBalance)} VNĐ'),
+              const SizedBox(height: 16),
+              if (remainingBalance < 0)
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.red[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.red),
+                  ),
+                  child: const Text(
+                    'Số dư không đủ để thanh toán. Vui lòng nạp thêm tiền vào ví.',
+                    style: TextStyle(color: Colors.red),
+                  ),
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Hủy'),
+            ),
+            ElevatedButton(
+              onPressed: remainingBalance < 0
+                  ? null // Disable nếu không đủ tiền
+                  : () {
+                      Navigator.pop(context);
+                      _processRemainingPayment();
+                    },
+              child: const Text('Xác nhận thanh toán'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      _showErrorMessage('Lỗi: ${e.toString()}');
+    }
+  }
+
+  // Xử lý thanh toán 60% còn lại
+  Future<void> _processRemainingPayment() async {
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      if (token == null) {
+        Navigator.pop(context);
+        _showErrorMessage('Vui lòng đăng nhập lại');
+        return;
+      }
+
+      // Gọi API thanh toán 60% còn lại
+      final paymentResponse = await http.post(
+        Uri.parse(
+          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Payment/process-remaining-payment/${widget.registration.learningRegisId}',
+        ),
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      Navigator.pop(context);
+
+      if (paymentResponse.statusCode == 200) {
+        final paymentData = json.decode(paymentResponse.body);
+        if (paymentData['isSucceed'] == true) {
+          _showSuccessDialog();
+        } else {
+          _showErrorMessage(
+              paymentData['message'] ?? 'Thanh toán không thành công');
+        }
+      } else {
+        _showErrorMessage('Lỗi kết nối: ${paymentResponse.statusCode}');
+      }
+    } catch (e) {
+      Navigator.pop(context);
+      _showErrorMessage('Lỗi: ${e.toString()}');
+    }
   }
 }

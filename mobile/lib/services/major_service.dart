@@ -5,7 +5,7 @@ import '../models/teacher.dart';
 
 class MajorService {
   static const String baseUrl =
-      'https://instrulearnapplication2025-h7hfdte3etdth7av.southeastasia-01.azurewebsites.net/api';
+      'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api';
 
   Future<List<Major>> getAllMajors() async {
     try {

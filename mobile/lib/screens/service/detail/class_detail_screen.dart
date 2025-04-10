@@ -161,7 +161,7 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
     try {
       final response = await http.post(
         Uri.parse(
-          'https://instrulearnapplication2025-h7hfdte3etdth7av.southeastasia-01.azurewebsites.net/api/LearningRegis/join-class',
+          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/LearningRegis/join-class',
         ),
         headers: {
           'Content-Type': 'application/json',
@@ -220,7 +220,8 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
   void _showJoinConfirmationDialog() {
     if (classDetail == null) return;
 
-    final depositAmount = (classDetail!.price * 0.1).round(); // 10% học phí
+    final depositAmount = (classDetail!.price * classDetail!.totalDays * 0.1)
+        .round(); // 10% tổng học phí
 
     showDialog(
       context: context,
@@ -257,7 +258,7 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
 
       final response = await http.get(
         Uri.parse(
-            'https://instrulearnapplication2025-h7hfdte3etdth7av.southeastasia-01.azurewebsites.net/api/Class/${widget.classId}'),
+            'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Class/${widget.classId}'),
       );
 
       if (response.statusCode == 200) {
@@ -298,6 +299,19 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
         .any((student) => student.learnerId == learnerId);
   }
 
+  String _formatCurrency(num amount) {
+    final formatted = amount.toStringAsFixed(0);
+    final chars = formatted.split('').reversed.toList();
+    final withCommas = <String>[];
+    for (var i = 0; i < chars.length; i++) {
+      if (i > 0 && i % 3 == 0) {
+        withCommas.add(',');
+      }
+      withCommas.add(chars[i]);
+    }
+    return withCommas.reversed.join('') + ' VNĐ';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -336,7 +350,7 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
                             'Thời gian học: ${classDetail!.classTime.substring(0, 5)}',
                             'Ngày bắt đầu: ${classDetail!.startDate}',
                             'Số buổi học: ${classDetail!.totalDays} buổi',
-                            'Học phí: ${classDetail!.price.toStringAsFixed(0)}đ',
+                            'Học phí một buổi: ${_formatCurrency(classDetail!.price)}',
                             'Số học viên hiện tại: ${classDetail!.studentCount}/${classDetail!.maxStudents}',
                             'Các ngày học trong tuần: ${classDetail!.classDays.map((d) => d.day).join(", ")}',
                             'Trạng thái lớp: ${classDetail!.status == 0 ? 'Đang mở đăng ký' : 'Đã đóng đăng ký'}',

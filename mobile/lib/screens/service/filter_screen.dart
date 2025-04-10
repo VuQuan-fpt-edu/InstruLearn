@@ -51,7 +51,7 @@ class _FilterScreenState extends State<FilterScreen> {
     try {
       final response = await http.get(
         Uri.parse(
-          'https://instrulearnapplication2025-h7hfdte3etdth7av.southeastasia-01.azurewebsites.net/api/CourseType/get-all',
+          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/CourseType/get-all',
         ),
       );
 

@@ -41,12 +41,14 @@ class CourseContentItem {
   final int itemTypeId;
   final int contentId;
   final String itemDes;
+  final int status;
 
   CourseContentItem({
     required this.itemId,
     required this.itemTypeId,
     required this.contentId,
     required this.itemDes,
+    required this.status,
   });
 
   factory CourseContentItem.fromJson(Map<String, dynamic> json) {
@@ -55,6 +57,7 @@ class CourseContentItem {
       itemTypeId: (json['itemTypeId'] as num?)?.toInt() ?? 0,
       contentId: (json['contentId'] as num?)?.toInt() ?? 0,
       itemDes: (json['itemDes'] as String?) ?? '',
+      status: (json['status'] as num?)?.toInt() ?? 0,
     );
   }
 }
@@ -100,7 +103,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
 
       final response = await http.get(
         Uri.parse(
-          'https://instrulearnapplication2025-h7hfdte3etdth7av.southeastasia-01.azurewebsites.net/api/Course/${widget.course.coursePackageId}',
+          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Course/${widget.course.coursePackageId}',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
@@ -826,12 +829,52 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                             ],
                           ),
                         ),
-                        title: Text(
-                          'Bài ${index + 1}',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
+                        title: Row(
+                          children: [
+                            Text(
+                              'Bài ${index + 1}',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            if (item.status == 1) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.green[100],
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: Colors.green[300]!,
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.lock_open,
+                                      size: 12,
+                                      color: Colors.green[700],
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Miễn phí',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: Colors.green[700],
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                         subtitle: Text(
                           item.itemTypeId == 1
@@ -845,7 +888,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                           ),
                         ),
                         onTap: () {
-                          if (isPurchased) {
+                          if (isPurchased || item.status == 1) {
                             if (item.itemTypeId == 2) {
                               Navigator.push(
                                 context,

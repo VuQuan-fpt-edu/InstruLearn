@@ -18,7 +18,7 @@ class CartService {
 
       final response = await http.get(
         Uri.parse(
-          'https://instrulearnapplication2025-h7hfdte3etdth7av.southeastasia-01.azurewebsites.net/api/Purchase/get-all',
+          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Purchase/get-all',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',

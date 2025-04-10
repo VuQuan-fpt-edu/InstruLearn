@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import '../auth/login_screen.dart';
+import '../profile/update_profile_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -33,7 +34,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       final response = await http.get(
         Uri.parse(
-          'https://instrulearnapplication2025-h7hfdte3etdth7av.southeastasia-01.azurewebsites.net/api/Auth/Profile',
+          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Auth/Profile',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
@@ -263,6 +264,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             icon: Icons.badge,
             title: 'ID học viên',
             value: userProfile['learnerId']?.toString() ?? 'Không có thông tin',
+          ),
+          _buildInfoItem(
+            icon: Icons.location_on,
+            title: 'Địa chỉ',
+            value: userProfile['address'] ?? 'Không có thông tin',
             isLast: true,
           ),
         ],
@@ -315,7 +321,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
             icon: Icons.edit,
             title: 'Chỉnh sửa thông tin',
             onTap: () {
-              _showErrorMessage('Chức năng đang được phát triển');
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      UpdateProfileScreen(userData: userProfile),
+                ),
+              ).then((_) => _fetchUserProfile());
             },
           ),
           const SizedBox(height: 10),

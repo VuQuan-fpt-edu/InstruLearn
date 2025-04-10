@@ -120,7 +120,7 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
 
       final response = await http.get(
         Uri.parse(
-          'https://instrulearnapplication2025-h7hfdte3etdth7av.southeastasia-01.azurewebsites.net/api/Auth/Profile',
+          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Auth/Profile',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
@@ -195,7 +195,7 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
 
       final response = await http.get(
         Uri.parse(
-          'https://instrulearnapplication2025-h7hfdte3etdth7av.southeastasia-01.azurewebsites.net/api/MajorTest/by-major/$selectedMajorId',
+          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/MajorTest/by-major/$selectedMajorId',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
@@ -623,7 +623,7 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
 
       final response = await http.post(
         Uri.parse(
-          'https://instrulearnapplication2025-h7hfdte3etdth7av.southeastasia-01.azurewebsites.net/api/LearningRegis/create',
+          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/LearningRegis/create',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
@@ -695,7 +695,7 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
 
       // Sử dụng Uri để đảm bảo các tham số được mã hóa đúng
       final uri = Uri.https(
-        'instrulearnapplication2025-h7hfdte3etdth7av.southeastasia-01.azurewebsites.net',
+        'instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net',
         '/api/Schedules/available-teachers',
         {
           'majorId': selectedMajorId.toString(),
@@ -786,7 +786,7 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
             _buildSectionTitle('Thời gian học mỗi buổi'),
             _buildTimeLearningSelector(),
             const SizedBox(height: 24),
-            _buildSectionTitle('Số buổi học'),
+            _buildSectionTitle('Số tuần học'),
             _buildSessionCountSelector(),
             const SizedBox(height: 24),
             _buildSectionTitle('Chọn thời gian bắt đầu'),
