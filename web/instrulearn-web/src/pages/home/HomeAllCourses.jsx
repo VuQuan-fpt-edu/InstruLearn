@@ -41,13 +41,33 @@ export default function Courses() {
     const fetchCourses = async () => {
       try {
         const response = await fetch(
-          "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Course/get-all"
+          "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Course/get-all"
         );
         const data = await response.json();
-        setCourses(data);
 
-        // Extract unique course types
-        const types = [...new Set(data.map((course) => course.typeName))];
+        // Xử lý dữ liệu từ API mới và lọc status = 1
+        const processedData = data
+          .filter((course) => course.status === 1) // Chỉ lấy các khóa học có status = 1
+          .map((course) => ({
+            coursePackageId: course.coursePackageId,
+            courseName: course.courseName,
+            courseDescription: course.courseDescription,
+            headline: course.headline,
+            rating: course.rating,
+            price: course.price,
+            discount: course.discount,
+            imageUrl:
+              course.imageUrl || "https://placehold.co/600x400?text=No+Image",
+            typeName: course.courseTypeName,
+            status: course.status,
+          }));
+
+        setCourses(processedData);
+
+        // Lấy danh sách loại nhạc cụ duy nhất từ các khóa học có status = 1
+        const types = [
+          ...new Set(processedData.map((course) => course.typeName)),
+        ];
         setCourseTypes(types);
 
         setLoading(false);
@@ -74,8 +94,7 @@ export default function Courses() {
       result = result.filter(
         (course) =>
           course.courseName.toLowerCase().includes(searchLower) ||
-          (course.instructorName &&
-            course.instructorName.toLowerCase().includes(searchLower))
+          course.courseDescription.toLowerCase().includes(searchLower)
       );
     }
 
@@ -109,8 +128,7 @@ export default function Courses() {
         break;
       case "newest":
       default:
-        // Assuming newer courses have higher IDs
-        result.sort((a, b) => b.courseId - a.courseId);
+        result.sort((a, b) => b.coursePackageId - a.coursePackageId);
         break;
     }
 
@@ -302,8 +320,8 @@ export default function Courses() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {filteredCourses.map((course) => (
                     <Link
-                      to={`/course/${course.courseId}`}
-                      key={course.courseId}
+                      to={`/package/${course.coursePackageId}`}
+                      key={course.coursePackageId}
                       className="no-underline text-inherit"
                     >
                       <Card
@@ -315,6 +333,11 @@ export default function Courses() {
                               alt={course.courseName}
                               src={course.imageUrl}
                               className="w-full aspect-video object-cover"
+                              onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.src =
+                                  "https://placehold.co/600x400?text=No+Image";
+                              }}
                             />
                             <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-10 transition-opacity flex items-center justify-center">
                               <div className="opacity-0 hover:opacity-100 transition-opacity">
@@ -328,9 +351,8 @@ export default function Courses() {
                           <h4 className="font-bold text-base mb-1 line-clamp-2">
                             {course.courseName}
                           </h4>
-                          <p className="text-xs text-gray-600 mb-1 flex items-center">
-                            <UserOutlined className="mr-1" />
-                            {course.instructorName || "Giáo viên chuyên nghiệp"}
+                          <p className="text-sm text-gray-600 mb-2 line-clamp-2">
+                            {course.headline}
                           </p>
 
                           <div className="flex items-center mb-1">
@@ -344,23 +366,12 @@ export default function Courses() {
                                   defaultValue={course.rating}
                                   className="text-xs text-amber-500"
                                 />
-                                <span className="text-xs text-gray-600 ml-1">
-                                  ({Math.floor(Math.random() * 1000) + 100})
-                                </span>
                               </>
                             ) : (
                               <span className="text-xs text-gray-600 ml-1">
                                 (Chưa có đánh giá)
                               </span>
                             )}
-                          </div>
-
-                          <div className="flex items-center text-xs mb-2">
-                            <ClockCircleOutlined className="mr-1" />
-                            <span>
-                              {Math.floor(Math.random() * 10) + 5} giờ tổng thời
-                              lượng
-                            </span>
                           </div>
 
                           <div className="mt-auto">
@@ -370,10 +381,8 @@ export default function Courses() {
                               </span>
 
                               <Space>
-                                {Math.random() > 0.5 && (
-                                  <Tag color="orange" className="m-0">
-                                    Bestseller
-                                  </Tag>
+                                {course.status === 1 && (
+                                  <Tag color="success">Đang mở bán</Tag>
                                 )}
                                 <Tag color="blue" className="m-0">
                                   {course.typeName}

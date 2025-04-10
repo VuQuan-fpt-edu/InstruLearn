@@ -8,6 +8,10 @@ const { Paragraph } = Typography;
 const SuccessModal = ({ visible, onClose, bookingDetails }) => {
   if (!bookingDetails) return null;
 
+  const getTimeLearningText = (minutes) => {
+    return `${minutes} phút`;
+  };
+
   return (
     <Modal
       title={
@@ -27,8 +31,8 @@ const SuccessModal = ({ visible, onClose, bookingDetails }) => {
     >
       <div className="space-y-4 mt-4">
         <Paragraph>
-          Yêu cầu đặt lịch học của bạn đã được gửi thành công. Chúng tôi sẽ liên
-          hệ với bạn trong vòng 24 giờ để xác nhận lịch học.
+          Yêu cầu đặt lịch học của bạn đã được gửi thành công. Học viên lưu ý
+          kiểm tra trạng thái đơn học để không bỏ lỡ lịch học.
         </Paragraph>
 
         <div className="bg-blue-50 p-4 rounded-lg">
@@ -41,6 +45,10 @@ const SuccessModal = ({ visible, onClose, bookingDetails }) => {
               <strong>Giáo viên:</strong> {bookingDetails.teacherName}
             </li>
             <li>
+              <strong>Ngày bắt đầu:</strong>{" "}
+              {dayjs(bookingDetails.startDay).format("DD/MM/YYYY")}
+            </li>
+            <li>
               <strong>Lịch học:</strong> {bookingDetails.bookingDays}
             </li>
             <li>
@@ -48,7 +56,14 @@ const SuccessModal = ({ visible, onClose, bookingDetails }) => {
               {dayjs(bookingDetails.bookingSlot).format("HH:mm")} giờ
             </li>
             <li>
+              <strong>Thời lượng mỗi buổi:</strong>{" "}
+              {getTimeLearningText(bookingDetails.timeLearning)}
+            </li>
+            <li>
               <strong>Số buổi:</strong> {bookingDetails.numberOfSlots} buổi
+            </li>
+            <li>
+              <strong>Yêu cầu học:</strong> {bookingDetails.learningRequest}
             </li>
           </ul>
         </div>

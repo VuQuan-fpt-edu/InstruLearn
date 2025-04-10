@@ -14,6 +14,7 @@ import {
   Form,
   Space,
   message,
+  Result,
 } from "antd";
 import {
   PlayCircleFilled,
@@ -23,6 +24,8 @@ import {
   MessageOutlined,
   QuestionCircleOutlined,
   FileImageOutlined,
+  FileTextOutlined,
+  VideoCameraOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
 
@@ -84,7 +87,7 @@ export default function PackageDetail() {
     try {
       setLoading(true);
       const response = await fetch(
-        `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Course/${id}`
+        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Course/${id}`
       );
       const data = await response.json();
       setCourse(data);
@@ -128,7 +131,7 @@ export default function PackageDetail() {
     try {
       const token = localStorage.getItem("authToken");
       const response = await axios.get(
-        `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Purchase/by-learner/${learnerId}`,
+        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Purchase/by-learner/${learnerId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -160,7 +163,7 @@ export default function PackageDetail() {
       }
 
       const response = await axios.get(
-        `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/wallet/${learnerId}`,
+        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/wallet/${learnerId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -194,14 +197,9 @@ export default function PackageDetail() {
       return;
     }
 
-    if (!hasPurchased) {
-      message.error("Bạn cần mua khóa học để đánh giá");
-      return;
-    }
-
     try {
       const response = await axios.post(
-        "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Feedback/create",
+        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Feedback/create",
         {
           coursePackageId: parseInt(id),
           accountId: userInfo.accountId,
@@ -242,7 +240,7 @@ export default function PackageDetail() {
 
     try {
       const response = await axios.post(
-        "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/FeedbackReplies/create",
+        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/FeedbackReplies/create",
         {
           feedbackId: feedbackId,
           accountId: userInfo.accountId,
@@ -275,14 +273,9 @@ export default function PackageDetail() {
       return;
     }
 
-    if (!hasPurchased) {
-      message.error("Bạn cần mua khóa học để đặt câu hỏi");
-      return;
-    }
-
     try {
       const response = await axios.post(
-        "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/QnA/create",
+        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/QnA/create",
         {
           coursePackageId: parseInt(id),
           accountId: userInfo.accountId,
@@ -323,7 +316,7 @@ export default function PackageDetail() {
 
     try {
       const response = await axios.post(
-        "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/QnAReplies/create",
+        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/QnAReplies/create",
         {
           questionId: questionId,
           accountId: userInfo.accountId,
@@ -367,7 +360,7 @@ export default function PackageDetail() {
 
       setIsEnrolling(true);
       const response = await axios.post(
-        "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/PurchaseItem/create",
+        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/PurchaseItem/create",
         {
           purchaseItemId: 0,
           learnerId: parseInt(learnerId),
@@ -458,11 +451,10 @@ export default function PackageDetail() {
   };
 
   const handleVideoClick = (item) => {
-    if (!hasPurchased) {
-      message.warning("Vui lòng đăng ký khóa học để xem nội dung");
+    if (item.status === 0) {
+      message.warning("Nội dung này hiện đang bị khóa");
       return;
     }
-    console.log("Item data:", item);
     setSelectedVideo(item);
     setIsVideoModalVisible(true);
   };
@@ -504,7 +496,7 @@ export default function PackageDetail() {
                 {course.courseName}
               </h1>
               <div className="flex items-center space-x-4 mb-4">
-                <Tag color="blue">{course.typeName}</Tag>
+                <Tag color="blue">{course.courseTypeName}</Tag>
                 <div className="flex items-center">
                   <Rate disabled defaultValue={course.rating} />
                   <span className="ml-2 text-gray-600">
@@ -522,14 +514,24 @@ export default function PackageDetail() {
                   <Tag color="red">-{course.discount}%</Tag>
                 )}
                 {hasPurchased ? (
-                  <Button
-                    type="primary"
-                    size="large"
-                    className="bg-green-600 hover:bg-green-700"
-                    disabled
-                  >
-                    Đã mua khóa học
-                  </Button>
+                  <div className="flex gap-4">
+                    <Button
+                      type="primary"
+                      size="large"
+                      className="bg-green-600 hover:bg-green-700"
+                      disabled
+                    >
+                      Đã mua khóa học
+                    </Button>
+                    <Button
+                      type="primary"
+                      size="large"
+                      className="bg-purple-600 hover:bg-purple-700"
+                      onClick={() => navigate("/profile")}
+                    >
+                      Đi đến thư viện khóa học
+                    </Button>
+                  </div>
                 ) : (
                   <Button
                     type="primary"
@@ -538,7 +540,7 @@ export default function PackageDetail() {
                     onClick={handleEnrollClick}
                     loading={isEnrolling}
                   >
-                    Đăng ký học
+                    Mua gói học
                   </Button>
                 )}
               </div>
@@ -566,23 +568,21 @@ export default function PackageDetail() {
             key="1"
           >
             <div className="bg-white rounded-lg shadow-sm p-6">
-              {!hasPurchased ? (
+              {hasPurchased ? (
                 <div className="text-center py-8">
-                  <div className="bg-yellow-50 rounded-lg p-6 mb-4">
-                    <div className="text-xl font-bold text-yellow-600 mb-2">
-                      Nội dung khóa học đã bị khóa
-                    </div>
-                    <p className="text-gray-600 mb-4">
-                      Vui lòng đăng ký khóa học để xem nội dung chi tiết
-                    </p>
-                    <Button
-                      type="primary"
-                      onClick={handleEnrollClick}
-                      className="bg-purple-600 hover:bg-purple-700"
-                    >
-                      Đăng ký học ngay
-                    </Button>
-                  </div>
+                  <h3 className="text-xl font-semibold mb-4">
+                    Bạn đã mua khóa học này!
+                  </h3>
+                  <p className="text-gray-600 mb-4">
+                    Vui lòng truy cập thư viện khóa học của bạn để xem nội dung
+                  </p>
+                  <Button
+                    type="primary"
+                    onClick={() => navigate("/profile")}
+                    className="bg-purple-600 hover:bg-purple-700"
+                  >
+                    Đi đến thư viện khóa học
+                  </Button>
                 </div>
               ) : (
                 course.courseContents?.map((content) => (
@@ -593,19 +593,57 @@ export default function PackageDetail() {
                     {content.courseContentItems?.map((item) => (
                       <div
                         key={item.itemId}
-                        className="flex items-center p-4 bg-gray-50 rounded-lg mb-2 hover:bg-gray-100 cursor-pointer"
-                        onClick={() => handleVideoClick(item)}
+                        className={`flex items-center p-4 ${
+                          item.status === 0
+                            ? "bg-gray-100 cursor-not-allowed"
+                            : "bg-gray-50 hover:bg-gray-100 cursor-pointer"
+                        } rounded-lg mb-2`}
+                        onClick={() =>
+                          item.status === 1 && handleVideoClick(item)
+                        }
                       >
                         {item.itemTypeId === 1 ? (
-                          <PlayCircleFilled className="text-2xl text-purple-600 mr-3" />
+                          <FileImageOutlined
+                            className={`text-2xl mr-3 ${
+                              item.status === 0
+                                ? "text-gray-400"
+                                : "text-purple-600"
+                            }`}
+                          />
+                        ) : item.itemTypeId === 2 ? (
+                          <VideoCameraOutlined
+                            className={`text-2xl mr-3 ${
+                              item.status === 0
+                                ? "text-gray-400"
+                                : "text-purple-600"
+                            }`}
+                          />
                         ) : (
-                          <FileImageOutlined className="text-2xl text-purple-600 mr-3" />
+                          <FileTextOutlined
+                            className={`text-2xl mr-3 ${
+                              item.status === 0
+                                ? "text-gray-400"
+                                : "text-purple-600"
+                            }`}
+                          />
                         )}
-                        <span>
-                          {item.itemTypeId === 1
-                            ? "Video bài học"
-                            : "Tài liệu bài học"}
-                        </span>
+                        <div className="flex-1">
+                          <span
+                            className={item.status === 0 ? "text-gray-400" : ""}
+                          >
+                            {item.itemTypeId === 1
+                              ? "Hình ảnh bài học"
+                              : item.itemTypeId === 2
+                              ? "Video bài học"
+                              : "Tài liệu bài học"}
+                          </span>
+                        </div>
+                        {item.status === 0 && (
+                          <Badge
+                            count="Khóa"
+                            style={{ backgroundColor: "#d9d9d9" }}
+                          />
+                        )}
                       </div>
                     ))}
                   </div>
@@ -636,19 +674,6 @@ export default function PackageDetail() {
                     className="bg-purple-600 hover:bg-purple-700"
                   >
                     Đăng nhập
-                  </Button>
-                </div>
-              ) : !hasPurchased ? (
-                <div className="text-center py-6 bg-yellow-50 rounded-lg mb-8">
-                  <p className="text-gray-600 mb-4">
-                    Bạn cần mua khóa học để đánh giá
-                  </p>
-                  <Button
-                    type="primary"
-                    onClick={handleEnrollClick}
-                    className="bg-purple-600 hover:bg-purple-700"
-                  >
-                    Đăng ký học ngay
                   </Button>
                 </div>
               ) : (
@@ -823,19 +848,6 @@ export default function PackageDetail() {
                     className="bg-purple-600 hover:bg-purple-700"
                   >
                     Đăng nhập
-                  </Button>
-                </div>
-              ) : !hasPurchased ? (
-                <div className="text-center py-6 bg-yellow-50 rounded-lg mb-8">
-                  <p className="text-gray-600 mb-4">
-                    Bạn cần mua khóa học để đặt câu hỏi
-                  </p>
-                  <Button
-                    type="primary"
-                    onClick={handleEnrollClick}
-                    className="bg-purple-600 hover:bg-purple-700"
-                  >
-                    Đăng ký học ngay
                   </Button>
                 </div>
               ) : (
@@ -1141,7 +1153,7 @@ export default function PackageDetail() {
             type="primary"
             onClick={() => {
               setShowSuccessModal(false);
-              navigate("/profile/courses");
+              navigate("/profile");
             }}
             style={{ width: "100%" }}
             className="bg-purple-600 hover:bg-purple-700 h-10 text-base font-medium"
@@ -1224,6 +1236,21 @@ export default function PackageDetail() {
         {selectedVideo && (
           <div className="space-y-4">
             {selectedVideo.itemTypeId === 1 ? (
+              <div className="mt-4">
+                <h3 className="text-lg font-semibold mb-2">Hình ảnh bài học</h3>
+                <img
+                  src={selectedVideo.itemDes}
+                  alt="Hình ảnh bài học"
+                  className="w-full rounded-lg shadow-md"
+                  onError={(e) => {
+                    console.error("Image error:", e);
+                    message.error(
+                      "Không thể tải hình ảnh. Vui lòng thử lại sau."
+                    );
+                  }}
+                />
+              </div>
+            ) : selectedVideo.itemTypeId === 2 ? (
               <div className="aspect-w-16 aspect-h-9">
                 <video
                   controls
@@ -1243,17 +1270,17 @@ export default function PackageDetail() {
             ) : (
               <div className="mt-4">
                 <h3 className="text-lg font-semibold mb-2">Tài liệu bài học</h3>
-                <img
-                  src={selectedVideo.itemDes}
-                  alt="Tài liệu bài học"
-                  className="w-full rounded-lg shadow-md"
-                  onError={(e) => {
-                    console.error("Image error:", e);
-                    message.error(
-                      "Không thể tải hình ảnh. Vui lòng thử lại sau."
-                    );
-                  }}
-                />
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <a
+                    href={selectedVideo.itemDes}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-purple-600 hover:text-purple-800 flex items-center"
+                  >
+                    <FileTextOutlined className="mr-2" />
+                    Xem tài liệu
+                  </a>
+                </div>
               </div>
             )}
           </div>

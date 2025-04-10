@@ -9,8 +9,14 @@ import {
   Button,
   List,
   Popconfirm,
+  Tag,
 } from "antd";
-import { BookOutlined, FileTextOutlined } from "@ant-design/icons";
+import {
+  BookOutlined,
+  FileTextOutlined,
+  LockOutlined,
+  UnlockOutlined,
+} from "@ant-design/icons";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
@@ -32,33 +38,15 @@ const CourseContent = ({ courseId }) => {
   const fetchCourseContents = async () => {
     setContentLoading(true);
     try {
-      const courseResponse = await axios.get(
-        `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Course/${courseId}`
+      const contentResponse = await axios.get(
+        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/CourseContent/get-all"
       );
 
-      if (courseResponse.data && courseResponse.data.courseContents) {
-        setCourseContents(courseResponse.data.courseContents);
-      } else if (
-        courseResponse.data &&
-        courseResponse.data.data &&
-        courseResponse.data.data.courseContents
-      ) {
-        setCourseContents(courseResponse.data.data.courseContents);
-      } else {
-        const contentResponse = await axios.get(
-          "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/CourseContent/get-all"
+      if (contentResponse.data?.isSucceed && contentResponse.data.data) {
+        const filteredContents = contentResponse.data.data.filter(
+          (content) => content.coursePackageId === parseInt(courseId)
         );
-
-        if (
-          contentResponse.data &&
-          contentResponse.data.isSucceed &&
-          contentResponse.data.data
-        ) {
-          const filteredContents = contentResponse.data.data.filter(
-            (content) => content.courseId === parseInt(courseId)
-          );
-          setCourseContents(filteredContents);
-        }
+        setCourseContents(filteredContents);
       }
     } catch (error) {
       console.error("Error fetching course contents:", error);
@@ -76,7 +64,7 @@ const CourseContent = ({ courseId }) => {
       };
 
       const response = await axios.post(
-        "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/CourseContent/create",
+        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/CourseContent/create",
         contentData
       );
 
@@ -106,7 +94,7 @@ const CourseContent = ({ courseId }) => {
       };
 
       const response = await axios.put(
-        `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/CourseContent/update/${selectedContent.contentId}`,
+        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/CourseContent/update/${selectedContent.contentId}`,
         updateData
       );
 
@@ -131,7 +119,7 @@ const CourseContent = ({ courseId }) => {
   const handleDeleteContent = async (contentId) => {
     try {
       const response = await axios.delete(
-        `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/CourseContent/delete/${contentId}`
+        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/CourseContent/delete/${contentId}`
       );
 
       if (
@@ -167,6 +155,26 @@ const CourseContent = ({ courseId }) => {
     navigate(`/staff/course-content-detail/${contentId}`);
   };
 
+  const getContentStatus = (content) => {
+    if (
+      !content.courseContentItems ||
+      content.courseContentItems.length === 0
+    ) {
+      return { status: 0, count: 0, total: 0 };
+    }
+
+    const total = content.courseContentItems.length;
+    const lockedCount = content.courseContentItems.filter(
+      (item) => item.status === 0
+    ).length;
+
+    return {
+      status: lockedCount === total ? 0 : 1,
+      count: lockedCount,
+      total: total,
+    };
+  };
+
   return (
     <>
       <Card
@@ -192,46 +200,67 @@ const CourseContent = ({ courseId }) => {
           <List
             itemLayout="horizontal"
             dataSource={courseContents}
-            renderItem={(item) => (
-              <List.Item
-                className="cursor-pointer hover:bg-gray-50 transition duration-300"
-                onClick={() => navigateToContentDetail(item.contentId)}
-                actions={[
-                  <Button
-                    key="edit"
-                    type="link"
-                    onClick={(e) => openEditContentModal(item, e)}
-                  >
-                    Sửa
-                  </Button>,
-                  <Popconfirm
-                    title="Bạn có chắc chắn muốn xóa nội dung này?"
-                    onConfirm={(e) => {
-                      e.stopPropagation();
-                      handleDeleteContent(item.contentId);
-                    }}
-                    onCancel={(e) => e.stopPropagation()}
-                    okText="Có"
-                    cancelText="Không"
-                  >
+            renderItem={(item) => {
+              const contentStatus = getContentStatus(item);
+              return (
+                <List.Item
+                  className="cursor-pointer hover:bg-gray-50 transition duration-300"
+                  onClick={() => navigateToContentDetail(item.contentId)}
+                  actions={[
                     <Button
-                      key="delete"
+                      key="edit"
                       type="link"
-                      danger
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={(e) => openEditContentModal(item, e)}
                     >
-                      Xóa
-                    </Button>
-                  </Popconfirm>,
-                ]}
-              >
-                <List.Item.Meta
-                  avatar={<FileTextOutlined style={{ fontSize: "24px" }} />}
-                  title={item.heading}
-                  description={`Content ID: ${item.contentId}`}
-                />
-              </List.Item>
-            )}
+                      Sửa
+                    </Button>,
+                    <Popconfirm
+                      title="Bạn có chắc chắn muốn xóa nội dung này?"
+                      onConfirm={(e) => {
+                        e.stopPropagation();
+                        handleDeleteContent(item.contentId);
+                      }}
+                      onCancel={(e) => e.stopPropagation()}
+                      okText="Có"
+                      cancelText="Không"
+                    >
+                      <Button
+                        key="delete"
+                        type="link"
+                        danger
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        Xóa
+                      </Button>
+                    </Popconfirm>,
+                  ]}
+                >
+                  <List.Item.Meta
+                    avatar={<FileTextOutlined style={{ fontSize: "24px" }} />}
+                    title={
+                      <div className="flex items-center gap-3">
+                        <span>{item.heading}</span>
+                        <Tag
+                          icon={
+                            contentStatus.status === 0 ? (
+                              <LockOutlined />
+                            ) : (
+                              <UnlockOutlined />
+                            )
+                          }
+                          color={
+                            contentStatus.status === 0 ? "error" : "success"
+                          }
+                        >
+                          Đã khóa ({contentStatus.count}/{contentStatus.total})
+                        </Tag>
+                      </div>
+                    }
+                    description={`Content ID: ${item.contentId}`}
+                  />
+                </List.Item>
+              );
+            }}
           />
         ) : (
           <div className="py-8 text-center text-gray-500">

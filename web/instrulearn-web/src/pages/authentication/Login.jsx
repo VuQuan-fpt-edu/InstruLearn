@@ -61,6 +61,12 @@ export default function Login() {
         if (userProfile.role === "Learner") {
           navigate("/");
         }
+        if (userProfile.role === "Teacher") {
+          navigate("/teacher");
+        }
+        if (userProfile.role === "Manager") {
+          navigate("/manager");
+        }
       } else {
         setErrorMessage("Không nhận được token xác thực từ máy chủ");
         message.error("Đăng nhập thất bại. Vui lòng thử lại sau.");

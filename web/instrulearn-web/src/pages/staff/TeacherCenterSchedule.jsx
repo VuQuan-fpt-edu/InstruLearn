@@ -1,210 +1,272 @@
 import React, { useState, useEffect } from "react";
 import {
   Layout,
-  Table,
-  Button,
-  message,
-  Input,
-  Space,
-  Typography,
   Card,
+  Typography,
+  Space,
+  Button,
+  Select,
+  message,
+  Calendar,
+  Radio,
+  Popover,
+  Avatar,
   Tag,
+  Spin,
+  Input,
   Tooltip,
   Modal,
   Form,
-  Select,
   DatePicker,
   TimePicker,
+  Table,
 } from "antd";
 import {
+  UserOutlined,
+  CalendarOutlined,
+  ClockCircleOutlined,
+  EnvironmentOutlined,
+  SearchOutlined,
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
   ReloadOutlined,
-  SearchOutlined,
+  TeamOutlined,
 } from "@ant-design/icons";
+import axios from "axios";
 import dayjs from "dayjs";
 import StaffSidebar from "../../components/staff/StaffSidebar";
 import StaffHeader from "../../components/staff/StaffHeader";
 
 const { Content } = Layout;
-const { Title } = Typography;
+const { Title, Text } = Typography;
 const { Option } = Select;
-
-// Helper function to generate fake data
-const generateFakeScheduleData = () => {
-  const teachers = [
-    "Nguyễn Văn A",
-    "Trần Thị B",
-    "Lê Văn C",
-    "Phạm Thị D",
-    "Hoàng Văn E",
-  ];
-  const courses = [
-    "Guitar Cơ Bản",
-    "Piano Nâng Cao",
-    "Trống Jazz",
-    "Violin Cho Trẻ",
-    "Saxophone Chuyên Nghiệp",
-  ];
-  const rooms = [
-    "Phòng 101",
-    "Phòng 102",
-    "Phòng 103",
-    "Phòng 201",
-    "Phòng 202",
-  ];
-  //   const days = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
-
-  return Array.from({ length: 50 }, (_, index) => {
-    const randomDate = new Date();
-    randomDate.setDate(randomDate.getDate() + Math.floor(Math.random() * 30));
-
-    const startHour = Math.floor(Math.random() * 8 + 8);
-    const endHour = startHour + 2;
-
-    return {
-      id: index + 1,
-      teacher: teachers[Math.floor(Math.random() * teachers.length)],
-      course: courses[Math.floor(Math.random() * courses.length)],
-      room: rooms[Math.floor(Math.random() * rooms.length)],
-      //   day: days[Math.floor(Math.random() * days.length)],
-      startTime: `${startHour.toString().padStart(2, "0")}:00`,
-      endTime: `${endHour.toString().padStart(2, "0")}:00`,
-      slot: `Slot ${Math.floor(Math.random() * 5 + 1)}`,
-      date: randomDate.toISOString().split("T")[0],
-      status: ["Đã xác nhận", "Chờ duyệt", "Hủy"][
-        Math.floor(Math.random() * 3)
-      ],
-    };
-  });
-};
 
 const TeacherCenterSchedule = () => {
   const [collapsed, setCollapsed] = useState(false);
-  const [selectedMenu, setSelectedMenu] = useState("teacher-schedule");
+  const [selectedTeacher, setSelectedTeacher] = useState(null);
+  const [teachers, setTeachers] = useState([]);
   const [schedules, setSchedules] = useState([]);
   const [filteredSchedules, setFilteredSchedules] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [viewMode, setViewMode] = useState("month");
+  const [searchText, setSearchText] = useState("");
+  const [calendarView, setCalendarView] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState(null);
-  const [searchText, setSearchText] = useState("");
   const [form] = Form.useForm();
 
-  // Simulate data loading
+  // Lấy danh sách giáo viên khi trang được tải
   useEffect(() => {
-    const fakeData = generateFakeScheduleData();
-    setSchedules(fakeData);
-    setFilteredSchedules(fakeData);
-    setLoading(false);
+    fetchTeachers();
   }, []);
 
-  // Search and filter logic
+  // Lọc dữ liệu lịch học khi searchText hoặc schedules thay đổi
   useEffect(() => {
-    const filtered = schedules.filter(
-      (schedule) =>
-        schedule.teacher.toLowerCase().includes(searchText.toLowerCase()) ||
-        schedule.course.toLowerCase().includes(searchText.toLowerCase()) ||
-        schedule.room.toLowerCase().includes(searchText.toLowerCase())
-    );
-    setFilteredSchedules(filtered);
+    if (schedules.length > 0) {
+      const filtered = schedules.filter(
+        (schedule) =>
+          schedule.teacherName
+            .toLowerCase()
+            .includes(searchText.toLowerCase()) ||
+          schedule.className.toLowerCase().includes(searchText.toLowerCase()) ||
+          schedule.dayOfWeek.toLowerCase().includes(searchText.toLowerCase())
+      );
+      setFilteredSchedules(filtered);
+    }
   }, [searchText, schedules]);
 
-  const handleAddSchedule = (values) => {
-    const newSchedule = {
-      id: schedules.length + 1,
-      ...values,
-      startTime: values.time[0].format("HH:mm"),
-      endTime: values.time[1].format("HH:mm"),
-      date: values.date.format("YYYY-MM-DD"),
-      status: "Chờ duyệt",
-    };
-
-    setSchedules([...schedules, newSchedule]);
-    setFilteredSchedules([...schedules, newSchedule]);
-    setModalVisible(false);
-    form.resetFields();
-    message.success("Thêm lịch dạy thành công");
+  // Lấy danh sách giáo viên từ API
+  const fetchTeachers = async () => {
+    try {
+      setLoading(true);
+      const teacherResponse = await fetch(
+        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Teacher/get-all"
+      );
+      const responseData = await teacherResponse.json();
+      if (responseData) {
+        const activeTeachers = responseData
+          .filter((item) => item.isSucceed && item.data.isActive === 1)
+          .map((item) => ({
+            ...item.data,
+            majors: item.data.majors.filter((major) => major.status === 1),
+          }));
+        setTeachers(activeTeachers);
+      }
+    } catch (error) {
+      console.error("Error fetching teachers:", error);
+      message.error("Không thể tải danh sách giáo viên");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleEditSchedule = (values) => {
-    const updatedSchedules = schedules.map((schedule) =>
-      schedule.id === editingSchedule.id
-        ? {
-            ...schedule,
-            ...values,
-            startTime: values.time[0].format("HH:mm"),
-            endTime: values.time[1].format("HH:mm"),
-            date: values.date.format("YYYY-MM-DD"),
-          }
-        : schedule
-    );
+  // Lấy lịch học của giáo viên từ API
+  const fetchTeacherSchedules = async (teacherId) => {
+    try {
+      setLoading(true);
+      const scheduleResponse = await fetch(
+        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Schedules/teacher/${teacherId}/classs`
+      );
+      const data = await scheduleResponse.json();
 
-    setSchedules(updatedSchedules);
-    setFilteredSchedules(updatedSchedules);
+      if (data.isSucceed) {
+        setSchedules(data.data);
+      } else {
+        setSchedules([]);
+        message.error("Không thể tải lịch dạy của giáo viên");
+      }
+    } catch (error) {
+      console.error("Error fetching schedules:", error);
+      message.error("Không thể tải lịch dạy của giáo viên");
+      setSchedules([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Xử lý khi chọn giáo viên
+  const handleTeacherChange = (teacherId) => {
+    const teacher = teachers.find((t) => t.teacherId === teacherId);
+    setSelectedTeacher(teacher);
+    fetchTeacherSchedules(teacherId);
+  };
+
+  // Thêm một lịch dạy mới
+  const handleAddSchedule = (values) => {
+    message.info("Chức năng này đang được phát triển");
+    setModalVisible(false);
+    form.resetFields();
+  };
+
+  // Cập nhật lịch dạy
+  const handleEditSchedule = (values) => {
+    message.info("Chức năng này đang được phát triển");
     setModalVisible(false);
     setEditingSchedule(null);
     form.resetFields();
-    message.success("Cập nhật lịch dạy thành công");
   };
 
+  // Xóa lịch dạy
   const handleDeleteSchedule = (id) => {
-    const updatedSchedules = schedules.filter((schedule) => schedule.id !== id);
-    setSchedules(updatedSchedules);
-    setFilteredSchedules(updatedSchedules);
-    message.success("Xóa lịch dạy thành công");
+    message.info("Chức năng này đang được phát triển");
   };
 
+  // Render cell cho calendar view
+  const dateCellRender = (value) => {
+    const date = value.format("YYYY-MM-DD");
+    const daySchedules = schedules.filter(
+      (schedule) => schedule.startDay === date
+    );
+
+    if (daySchedules.length === 0) return null;
+
+    return (
+      <div className="h-full">
+        <div className="bg-blue-50 rounded-lg p-2 text-center">
+          <div className="text-blue-600 font-medium">
+            {daySchedules.length} buổi học
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Style cho cell trong calendar view
+  const getDateCellStyle = (value) => {
+    const date = value.format("YYYY-MM-DD");
+    const hasSchedules = schedules.some(
+      (schedule) => schedule.startDay === date
+    );
+
+    if (hasSchedules) {
+      return {
+        backgroundColor: "#f0f7ff",
+        borderRadius: "4px",
+        cursor: "pointer",
+      };
+    }
+    return {};
+  };
+
+  const convertDayToVietnamese = (day) => {
+    const dayMap = {
+      Monday: "Thứ 2",
+      Tuesday: "Thứ 3",
+      Wednesday: "Thứ 4",
+      Thursday: "Thứ 5",
+      Friday: "Thứ 6",
+      Saturday: "Thứ 7",
+      Sunday: "Chủ nhật",
+    };
+    return dayMap[day] || day;
+  };
+
+  // Định nghĩa các cột cho bảng
   const columns = [
     {
       title: "Giáo Viên",
-      dataIndex: "teacher",
-      key: "teacher",
+      dataIndex: "teacherName",
+      key: "teacherName",
       render: (text) => <strong>{text}</strong>,
     },
     {
-      title: "Khóa Học",
-      dataIndex: "course",
-      key: "course",
+      title: "Lớp",
+      dataIndex: "className",
+      key: "className",
       render: (text) => <Tag color="blue">{text}</Tag>,
     },
     {
-      title: "Phòng Học",
-      dataIndex: "room",
-      key: "room",
+      title: "Thứ",
+      dataIndex: "dayOfWeek",
+      key: "dayOfWeek",
+      render: (text) => {
+        const vietnameseDays = {
+          Monday: "Thứ 2",
+          Tuesday: "Thứ 3",
+          Wednesday: "Thứ 4",
+          Thursday: "Thứ 5",
+          Friday: "Thứ 6",
+          Saturday: "Thứ 7",
+          Sunday: "Chủ nhật",
+        };
+        return vietnameseDays[text] || text;
+      },
     },
     {
-      title: "Ngày",
-      dataIndex: "date",
-      key: "date",
+      title: "Ngày học",
+      dataIndex: "startDay",
+      key: "startDay",
+      render: (text) => dayjs(text).format("DD/MM/YYYY"),
     },
-    // {
-    //   title: "Thứ",
-    //   dataIndex: "day",
-    //   key: "day",
-    // },
     {
       title: "Giờ Học",
       key: "time",
-      render: (_, record) => `${record.startTime} - ${record.endTime}`,
+      render: (_, record) => `${record.timeStart} - ${record.timeEnd}`,
     },
     {
-      title: "Slot",
-      dataIndex: "slot",
-      key: "slot",
-    },
-    {
-      title: "Trạng Thái",
-      dataIndex: "status",
-      key: "status",
-      render: (status) => {
+      title: "Loại",
+      dataIndex: "mode",
+      key: "mode",
+      render: (text) => {
         const colorMap = {
-          "Đã xác nhận": "green",
-          "Chờ duyệt": "orange",
-          Hủy: "red",
+          Center: "green",
+          OneOnOne: "blue",
+          Online: "purple",
         };
-        return <Tag color={colorMap[status]}>{status}</Tag>;
+        const modeNames = {
+          Center: "Trung tâm",
+          OneOnOne: "1-1",
+          Online: "Trực tuyến",
+        };
+        return <Tag color={colorMap[text]}>{modeNames[text] || text}</Tag>;
       },
+    },
+    {
+      title: "Học viên",
+      dataIndex: "learnerName",
+      key: "learnerName",
+      render: (text) => text || <Tag color="orange">Chưa có học viên</Tag>,
     },
     {
       title: "Hành Động",
@@ -218,15 +280,13 @@ const TeacherCenterSchedule = () => {
               onClick={() => {
                 setEditingSchedule(record);
                 form.setFieldsValue({
-                  teacher: record.teacher,
-                  course: record.course,
-                  room: record.room,
-                  day: record.day,
-                  slot: record.slot,
-                  date: dayjs(record.date),
+                  teacherId: record.teacherId,
+                  className: record.className,
+                  dayOfWeek: record.dayOfWeek,
+                  date: dayjs(record.startDay),
                   time: [
-                    dayjs(record.startTime, "HH:mm"),
-                    dayjs(record.endTime, "HH:mm"),
+                    dayjs(record.timeStart, "HH:mm"),
+                    dayjs(record.timeEnd, "HH:mm"),
                   ],
                 });
                 setModalVisible(true);
@@ -238,7 +298,7 @@ const TeacherCenterSchedule = () => {
               icon={<DeleteOutlined />}
               size="small"
               danger
-              onClick={() => handleDeleteSchedule(record.id)}
+              onClick={() => handleDeleteSchedule(record.scheduleId)}
             />
           </Tooltip>
         </Space>
@@ -246,12 +306,20 @@ const TeacherCenterSchedule = () => {
     },
   ];
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Spin size="large" />
+      </div>
+    );
+  }
+
   return (
-    <Layout>
+    <Layout style={{ minHeight: "100vh" }}>
       <StaffSidebar
         collapsed={collapsed}
         setCollapsed={setCollapsed}
-        selectedMenu="teacher-schedules"
+        selectedMenu="teacher-center-schedule"
       />
       <Layout
         style={{
@@ -266,57 +334,116 @@ const TeacherCenterSchedule = () => {
             marginTop: "64px",
           }}
         >
-          <Card>
+          <Card className="shadow-sm">
             <div className="flex justify-between items-center mb-4">
-              <Title level={4}>Quản Lý Lịch Giảng Dạy Trung Tâm</Title>
-              <Space>
-                <Input
-                  placeholder="Tìm kiếm..."
-                  prefix={<SearchOutlined />}
-                  value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
-                  style={{ width: 250 }}
-                />
-                <Tooltip title="Làm mới">
-                  <Button
-                    icon={<ReloadOutlined />}
-                    onClick={() => {
-                      setLoading(true);
-                      const fakeData = generateFakeScheduleData();
-                      setSchedules(fakeData);
-                      setFilteredSchedules(fakeData);
-                      setLoading(false);
-                    }}
-                  />
-                </Tooltip>
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={() => {
-                    setEditingSchedule(null);
-                    form.resetFields();
-                    setModalVisible(true);
-                  }}
-                >
-                  Thêm Lịch
-                </Button>
-              </Space>
+              <Title level={4}>Quản lý lịch dạy tại trung tâm</Title>
+              <Select
+                placeholder="Chọn giáo viên"
+                style={{ width: 200 }}
+                onChange={handleTeacherChange}
+              >
+                {teachers.map((teacher) => (
+                  <Option key={teacher.teacherId} value={teacher.teacherId}>
+                    {teacher.fullname}
+                  </Option>
+                ))}
+              </Select>
             </div>
 
-            <Table
-              loading={loading}
-              columns={columns}
-              dataSource={filteredSchedules}
-              rowKey="id"
-              pagination={{
-                showSizeChanger: true,
-                pageSizeOptions: ["10", "20", "50"],
-                showTotal: (total) => `Tổng cộng ${total} lịch dạy`,
-              }}
-            />
+            {selectedTeacher && (
+              <div className="mb-4">
+                <div className="text-gray-600">
+                  <UserOutlined className="mr-2" />
+                  Giáo viên: {selectedTeacher.fullname}
+                </div>
+              </div>
+            )}
+
+            <Card className="shadow-sm">
+              <div className="mb-4">
+                <Radio.Group
+                  value={viewMode}
+                  onChange={(e) => setViewMode(e.target.value)}
+                >
+                  <Radio.Button value="month">Tháng</Radio.Button>
+                  <Radio.Button value="week">Tuần</Radio.Button>
+                </Radio.Group>
+              </div>
+
+              <Calendar
+                mode={viewMode}
+                fullscreen={false}
+                className="custom-calendar"
+                cellRender={(date) => {
+                  const dateStr = date.format("YYYY-MM-DD");
+                  const daySchedules = schedules.filter(
+                    (schedule) => schedule.startDay === dateStr
+                  );
+
+                  if (daySchedules.length === 0) return null;
+
+                  return (
+                    <Popover
+                      content={
+                        <div className="p-2">
+                          <div className="font-medium mb-2">
+                            Lịch dạy ngày {date.format("DD/MM/YYYY")}
+                          </div>
+                          <div className="space-y-2">
+                            {daySchedules.map((schedule) => (
+                              <div
+                                key={schedule.scheduleId}
+                                className="border rounded p-2"
+                              >
+                                <div className="flex items-center mb-1">
+                                  <Avatar
+                                    icon={<UserOutlined />}
+                                    size="small"
+                                    className="mr-2"
+                                  />
+                                  <div className="font-medium">
+                                    {schedule.className}
+                                  </div>
+                                </div>
+                                <div className="text-sm text-gray-600">
+                                  <Tag color="blue">
+                                    {convertDayToVietnamese(schedule.dayOfWeek)}
+                                  </Tag>
+                                </div>
+                                <div className="text-sm text-gray-600">
+                                  <ClockCircleOutlined className="mr-1" />
+                                  {schedule.timeStart} - {schedule.timeEnd}
+                                </div>
+                                <div className="text-sm text-gray-600">
+                                  <EnvironmentOutlined className="mr-1" />
+                                  Trung tâm
+                                </div>
+                                {schedule.participants &&
+                                  schedule.participants.length > 0 && (
+                                    <div className="text-sm text-gray-600 mt-1">
+                                      <TeamOutlined className="mr-1" />
+                                      Số học viên:{" "}
+                                      {schedule.participants.length}
+                                    </div>
+                                  )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      }
+                      trigger="click"
+                    >
+                      <div style={getDateCellStyle(date)}>
+                        {dateCellRender(date)}
+                      </div>
+                    </Popover>
+                  );
+                }}
+              />
+            </Card>
           </Card>
 
-          {/* Schedule Modal */}
+          {/* Modal thêm/sửa lịch dạy */}
           <Modal
             title={editingSchedule ? "Chỉnh Sửa Lịch Dạy" : "Thêm Lịch Dạy"}
             open={modalVisible}
@@ -333,95 +460,45 @@ const TeacherCenterSchedule = () => {
                 editingSchedule ? handleEditSchedule : handleAddSchedule
               }
             >
+              {!editingSchedule && (
+                <Form.Item
+                  name="teacherId"
+                  label="Giáo Viên"
+                  rules={[
+                    { required: true, message: "Vui lòng chọn giáo viên" },
+                  ]}
+                >
+                  <Select placeholder="Chọn giáo viên">
+                    {teachers.map((teacher) => (
+                      <Option key={teacher.teacherId} value={teacher.teacherId}>
+                        {teacher.fullname}
+                      </Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              )}
+
               <Form.Item
-                name="teacher"
-                label="Giáo Viên"
-                rules={[{ required: true, message: "Vui lòng chọn giáo viên" }]}
+                name="className"
+                label="Tên Lớp"
+                rules={[{ required: true, message: "Vui lòng nhập tên lớp" }]}
               >
-                <Select placeholder="Chọn giáo viên">
-                  {[
-                    "Nguyễn Văn A",
-                    "Trần Thị B",
-                    "Lê Văn C",
-                    "Phạm Thị D",
-                    "Hoàng Văn E",
-                  ].map((teacher) => (
-                    <Option key={teacher} value={teacher}>
-                      {teacher}
-                    </Option>
-                  ))}
-                </Select>
+                <Input placeholder="Nhập tên lớp" />
               </Form.Item>
 
               <Form.Item
-                name="course"
-                label="Khóa Học"
-                rules={[{ required: true, message: "Vui lòng chọn khóa học" }]}
-              >
-                <Select placeholder="Chọn khóa học">
-                  {[
-                    "Guitar Cơ Bản",
-                    "Piano Nâng Cao",
-                    "Trống Jazz",
-                    "Violin Cho Trẻ",
-                    "Saxophone Chuyên Nghiệp",
-                  ].map((course) => (
-                    <Option key={course} value={course}>
-                      {course}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-
-              <Form.Item
-                name="room"
-                label="Phòng Học"
-                rules={[{ required: true, message: "Vui lòng chọn phòng học" }]}
-              >
-                <Select placeholder="Chọn phòng học">
-                  {[
-                    "Phòng 101",
-                    "Phòng 102",
-                    "Phòng 103",
-                    "Phòng 201",
-                    "Phòng 202",
-                  ].map((room) => (
-                    <Option key={room} value={room}>
-                      {room}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-
-              {/* <Form.Item
-                name="day"
+                name="dayOfWeek"
                 label="Thứ"
                 rules={[{ required: true, message: "Vui lòng chọn thứ" }]}
               >
                 <Select placeholder="Chọn thứ">
-                  {["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"].map(
-                    (day) => (
-                      <Option key={day} value={day}>
-                        {day}
-                      </Option>
-                    )
-                  )}
-                </Select>
-              </Form.Item> */}
-
-              <Form.Item
-                name="slot"
-                label="Slot"
-                rules={[{ required: true, message: "Vui lòng chọn slot" }]}
-              >
-                <Select placeholder="Chọn slot">
-                  {["Slot 1", "Slot 2", "Slot 3", "Slot 4", "Slot 5"].map(
-                    (slot) => (
-                      <Option key={slot} value={slot}>
-                        {slot}
-                      </Option>
-                    )
-                  )}
+                  <Option value="Monday">Thứ 2</Option>
+                  <Option value="Tuesday">Thứ 3</Option>
+                  <Option value="Wednesday">Thứ 4</Option>
+                  <Option value="Thursday">Thứ 5</Option>
+                  <Option value="Friday">Thứ 6</Option>
+                  <Option value="Saturday">Thứ 7</Option>
+                  <Option value="Sunday">Chủ nhật</Option>
                 </Select>
               </Form.Item>
 

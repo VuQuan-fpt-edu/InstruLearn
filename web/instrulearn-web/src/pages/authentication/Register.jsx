@@ -8,6 +8,8 @@ import {
   Typography,
   Select,
   message,
+  Modal,
+  Result,
 } from "antd";
 import {
   UserOutlined,
@@ -20,6 +22,7 @@ import {
   VideoCameraOutlined,
   PlayCircleOutlined,
   UserAddOutlined,
+  CheckCircleOutlined,
 } from "@ant-design/icons";
 import "antd/dist/reset.css";
 import { register } from "../../api/auth";
@@ -31,6 +34,7 @@ export default function Register() {
   const [form] = Form.useForm();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
 
   const handleRegister = async (values) => {
     try {
@@ -45,21 +49,31 @@ export default function Register() {
 
       const response = await register(userData);
 
-      message.success("Đăng ký tài khoản thành công!");
+      if (response?.isSucceed) {
+        setSuccessModalVisible(true);
+        form.resetFields();
 
-      setTimeout(() => {
-        navigate("/login");
-      }, 1500);
+        // Chuyển hướng sau 3 giây
+        setTimeout(() => {
+          navigate("/login");
+        }, 3000);
+      } else {
+        throw new Error(response?.message || "Đăng ký không thành công");
+      }
     } catch (error) {
       if (error.response) {
-        message.error(
-          `Đăng ký thất bại: ${
+        message.error({
+          content: `Đăng ký thất bại: ${
             error.response.data.message ||
             "Vui lòng kiểm tra thông tin và thử lại"
-          }`
-        );
+          }`,
+          duration: 5,
+        });
       } else {
-        message.error("Đăng ký thất bại: Không thể kết nối với máy chủ");
+        message.error({
+          content: "Đăng ký thất bại: Không thể kết nối với máy chủ",
+          duration: 5,
+        });
       }
     } finally {
       setLoading(false);
@@ -146,6 +160,11 @@ export default function Register() {
               label="Số điện thoại"
               rules={[
                 { required: true, message: "Vui lòng nhập số điện thoại!" },
+                {
+                  pattern: /^0\d{9}$/,
+                  message:
+                    "Số điện thoại phải bắt đầu bằng số 0 và có 10 chữ số!",
+                },
               ]}
               className="mb-4"
             >
@@ -153,6 +172,7 @@ export default function Register() {
                 prefix={<PhoneOutlined className="text-gray-400" />}
                 placeholder="Nhập số điện thoại của bạn"
                 className="rounded-lg py-2 px-4 h-10"
+                maxLength={10}
               />
             </Form.Item>
 
@@ -322,6 +342,46 @@ export default function Register() {
           </div>
         </div>
       </div>
+
+      <Modal
+        open={successModalVisible}
+        footer={null}
+        closable={false}
+        centered
+        width={400}
+        className="rounded-xl"
+      >
+        <Result
+          status="success"
+          icon={<CheckCircleOutlined className="text-5xl text-green-500" />}
+          title={
+            <div className="text-xl font-semibold text-gray-800">
+              Đăng ký thành công!
+            </div>
+          }
+          subTitle={
+            <div className="text-gray-600">
+              <p className="mb-2">
+                Chào mừng bạn đến với InstruLearn! Tài khoản của bạn đã được tạo
+                thành công.
+              </p>
+              <p>
+                Bạn sẽ được chuyển hướng đến trang đăng nhập sau vài giây...
+              </p>
+            </div>
+          }
+          extra={[
+            <Button
+              key="login"
+              type="primary"
+              onClick={() => navigate("/login")}
+              className="bg-purple-700 hover:bg-purple-800"
+            >
+              Đăng nhập ngay
+            </Button>,
+          ]}
+        />
+      </Modal>
     </div>
   );
 }

@@ -27,7 +27,7 @@ const StaffProfile = () => {
       try {
         const token = localStorage.getItem("authToken");
         const response = await axios.get(
-          "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Auth/Profile",
+          "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Auth/Profile",
           {
             headers: {
               Authorization: `Bearer ${token}`,

@@ -21,16 +21,15 @@ import TeacherCenterSchedule from "./pages/staff/TeacherCenterSchedule";
 import StaffProfile from "./pages/staff/Profile";
 import Courses from "./pages/home/HomeAllCourses";
 import Booking11Management from "./pages/staff/Booking1-1Request";
-// import StudentBookingForm from "./pages/home/Booking1-1";
-import TeacherProfile from "./pages/home/TeacherProfile";
+import TeacherInfo from "./pages/home/teacher/TeacherProfile";
 import ClassManagement from "./pages/staff/ClassManagement";
 import AddClass from "./pages/staff/AddClass";
 import PurchaseHistory from "./pages/home/profile/PurchaseHistory";
 import StudentSchedule from "./pages/home/profile/Schedule";
 import TeacherClassManagement from "./pages/teacher/TeacherClassManagement";
 import RevenueReport from "./pages/manager/Revenue";
-import MusicTeachersList from "./pages/home/TeacherList";
-import OpenClasses from "./pages/home/OpenClass";
+import MusicTeachersList from "./pages/home/teacher/TeacherList";
+import OpenClasses from "./pages/home/class/OpenClass";
 import CenterClassDetail from "./pages/home/CenterClassDetail";
 import StudentList from "./pages/teacher/StudentList";
 import CenterSchedule from "./pages/teacher/CenterSchedule";
@@ -59,8 +58,20 @@ import TeacherManagement from "./pages/admin/TeacherManagement";
 import StudentBookingForm from "./pages/home/Booking1-1/index";
 import TopUp from "./pages/home/profile/TopUp";
 import PackageDetail from "./pages/home/package/PackageDetail";
-// import StaffProfile from "./pages/staff/StaffProfile";
-
+import MusicalInstrument from "./pages/staff/MusicalInstrument";
+import MajorTest from "./pages/staff/MajorTest";
+import TeacherProfiles from "./pages/teacher/Profile";
+import TeacherListManagement from "./pages/staff/TeacherListManagement";
+import TeacherDetail from "./pages/staff/TeacherDetail";
+import ClassDetail from "./pages/staff/ClassDetail";
+import AddTeacher from "./pages/staff/AddTeacher";
+import ClassDetails from "./pages/home/class/ClassDetail";
+import Syllabus from "./pages/staff/Syllabus";
+import Dashboard from "./pages/manager/Dashboard";
+import LevelManagement from "./pages/manager/LevelManagement";
+import ResponseManagement from "./pages/manager/ResponseManagement";
+import ResponseTypeManagement from "./pages/manager/ResponseTypeManagement";
+import PaymentManagement from "./pages/manager/PaymentManagement";
 export default function App() {
   return (
     <Router>
@@ -77,8 +88,9 @@ export default function App() {
           <Route path="/profile/topup" element={<TopUp />} />
           <Route path="/purchase-history" element={<PurchaseHistory />} />
           <Route path="/student-schedule" element={<StudentSchedule />} />
-          <Route path="/teacher-profile/:id" element={<TeacherProfile />} />
+          <Route path="/teacher-profile/:id" element={<TeacherInfo />} />
           <Route path="/package/:id" element={<PackageDetail />} />
+          <Route path="/class-detail/:id" element={<ClassDetails />} />
         </Route>
 
         {/* Admin Routes */}
@@ -100,7 +112,7 @@ export default function App() {
         {/* Staff Routes */}
         <Route path="/staff" element={<StaffDashboard />} />
         <Route
-          path="staff/instrument-management"
+          path="staff/instrument-type-management"
           element={<InstrumentManagement />}
         />
         <Route path="staff/add-course" element={<AddCourse />} />
@@ -146,9 +158,23 @@ export default function App() {
           path="staff/center-class-registration"
           element={<CenterClassRegistration />}
         />
+        <Route
+          path="staff/instrument-management"
+          element={<MusicalInstrument />}
+        />
+        <Route path="staff/major-test" element={<MajorTest />} />
+        <Route
+          path="staff/teacher-management"
+          element={<TeacherListManagement />}
+        />
+        <Route path="staff/teacher-detail/:id" element={<TeacherDetail />} />
+        <Route path="staff/class-detail/:id" element={<ClassDetail />} />
+        <Route path="staff/add-teacher" element={<AddTeacher />} />
+        <Route path="staff/syllabus" element={<Syllabus />} />
 
         {/* Teacher Routes */}
         <Route path="/teacher" element={<TeacherDashBoard />} />
+        <Route path="/teacher/profile" element={<TeacherProfiles />} />
         <Route path="teacher/students" element={<TeacherClassManagement />} />
         <Route path="/teacher/student-list" element={<StudentList />} />
         <Route path="teacher/center-schedule" element={<CenterSchedule />} />
@@ -166,6 +192,7 @@ export default function App() {
         <Route path="/teacher/student-feedback" element={<ClassFeedbacks />} />
 
         {/* Manager Routes */}
+        <Route path="manager" element={<Dashboard />} />
         <Route path="manager/revenue" element={<RevenueReport />} />
         <Route
           path="manager/revenue/center-class-payments"
@@ -192,7 +219,19 @@ export default function App() {
           element={<HistoryTransaction />}
         />
         <Route path="manager/promotions" element={<PromotionCodes />} />
-
+        <Route path="manager/level-management" element={<LevelManagement />} />
+        <Route
+          path="manager/response-management"
+          element={<ResponseManagement />}
+        />
+        <Route
+          path="manager/response-type-management"
+          element={<ResponseTypeManagement />}
+        />
+        <Route
+          path="manager/payment-management"
+          element={<PaymentManagement />}
+        />
         {/* Auth Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />

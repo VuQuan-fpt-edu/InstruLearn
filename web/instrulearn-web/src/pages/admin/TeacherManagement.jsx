@@ -18,6 +18,7 @@ import {
   Avatar,
   Upload,
   Select,
+  DatePicker,
 } from "antd";
 import {
   PlusOutlined,
@@ -36,6 +37,7 @@ import {
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import AdminHeader from "../../components/admin/AdminHeader";
 import axios from "axios";
+import dayjs from "dayjs";
 
 const { Content } = Layout;
 const { Option } = Select;
@@ -46,12 +48,14 @@ const TeacherManagement = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isAddMajorModalOpen, setIsAddMajorModalOpen] = useState(false);
+  const [isUpdateMajorModalOpen, setIsUpdateMajorModalOpen] = useState(false);
   const [editingTeacher, setEditingTeacher] = useState(null);
   const [selectedTeacher, setSelectedTeacher] = useState(null);
   const [collapsed, setCollapsed] = useState(false);
   const [selectedMenu, setSelectedMenu] = useState("teacher");
   const [form] = Form.useForm();
   const [majorForm] = Form.useForm();
+  const [updateMajorForm] = Form.useForm();
   const [avatarUrl, setAvatarUrl] = useState(null);
 
   useEffect(() => {
@@ -62,7 +66,7 @@ const TeacherManagement = () => {
   const fetchTeachers = async () => {
     try {
       const response = await axios.get(
-        "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Teacher/get-all"
+        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Teacher/get-all"
       );
       if (response.data && Array.isArray(response.data)) {
         // Lọc các phản hồi thành công và map dữ liệu
@@ -70,8 +74,11 @@ const TeacherManagement = () => {
           .filter((item) => item.isSucceed)
           .map((item) => ({
             ...item.data,
-            majorName: item.data.major.majorName,
-            majorId: item.data.major.majorId,
+            majorName: item.data.majors
+              .map((major) => major.majorName)
+              .join(", "),
+            majorIds: item.data.majors.map((major) => major.majorId),
+            isBanned: item.data.isActive === 0,
           }));
         setTeachers(validTeachers);
       } else {
@@ -86,7 +93,7 @@ const TeacherManagement = () => {
   const fetchMajors = async () => {
     try {
       const response = await axios.get(
-        "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Major/get-all"
+        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Major/get-all"
       );
       if (response.data.isSucceed) {
         setMajors(response.data.data);
@@ -105,7 +112,14 @@ const TeacherManagement = () => {
 
   const handleEdit = (record) => {
     setEditingTeacher(record);
-    form.setFieldsValue(record);
+    const formValues = {
+      ...record,
+      majorId: record.majorIds?.[0], // Lấy majorId đầu tiên vì API chỉ hỗ trợ 1 major
+      dateOfEmployment: record.dateOfEmployment
+        ? dayjs(record.dateOfEmployment)
+        : null,
+    };
+    form.setFieldsValue(formValues);
     setAvatarUrl(record.avatar);
     setIsModalOpen(true);
   };
@@ -126,19 +140,48 @@ const TeacherManagement = () => {
     try {
       const values = await form.validateFields();
       if (editingTeacher) {
-        // TODO: Implement update API call
-        console.log("Update teacher:", values);
-        message.success("Cập nhật thông tin giáo viên thành công!");
+        try {
+          const response = await axios.put(
+            `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Teacher/update/${editingTeacher.teacherId}`,
+            {
+              majors: values.majorIds.map((id) => ({ majorId: id })),
+              heading: values.heading,
+              details: values.details,
+              links: values.links,
+              phoneNumber: values.phoneNumber,
+              gender: values.gender,
+              address: values.address,
+              avatar: values.avatar,
+              dateOfEmployment: values.dateOfEmployment?.format("YYYY-MM-DD"),
+            }
+          );
+          if (response.data.isSucceed) {
+            message.success("Cập nhật thông tin giáo viên thành công!");
+            setIsModalOpen(false);
+            fetchTeachers();
+          } else {
+            message.error(
+              response.data.message || "Không thể cập nhật thông tin giáo viên!"
+            );
+          }
+        } catch (error) {
+          console.error("Error updating teacher:", error);
+          message.error("Không thể cập nhật thông tin giáo viên!");
+        }
       } else {
         try {
           const response = await axios.post(
-            "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Teacher/create",
+            "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Teacher/create",
             {
-              majorId: values.majorId,
+              majorIds: values.majorIds,
               email: values.email,
               username: values.username,
               fullname: values.fullname,
               password: values.password,
+              phoneNumber: values.phoneNumber,
+              dateOfEmployment: values.dateOfEmployment
+                ? values.dateOfEmployment.format("YYYY-MM-DD")
+                : null,
             }
           );
           if (response.data.isSucceed) {
@@ -185,10 +228,11 @@ const TeacherManagement = () => {
   const handleBanUnban = async (teacherId, isBanned) => {
     try {
       const endpoint = isBanned
-        ? `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Teacher/unban/${teacherId}`
-        : `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Teacher/delete/${teacherId}`;
+        ? `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Teacher/unban/${teacherId}`
+        : `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Teacher/ban/${teacherId}`;
 
-      const response = await axios.post(endpoint);
+      const response = await axios.put(endpoint);
+
       if (response.data.isSucceed) {
         message.success(
           isBanned
@@ -197,11 +241,13 @@ const TeacherManagement = () => {
         );
         fetchTeachers();
       } else {
-        message.error(response.data.message || "Không thể thực hiện thao tác!");
+        throw new Error(
+          response.data.message || "Không thể thực hiện thao tác!"
+        );
       }
     } catch (error) {
       console.error("Error banning/unbanning teacher:", error);
-      message.error("Không thể thực hiện thao tác!");
+      message.error(error.message || "Không thể thực hiện thao tác!");
     }
   };
 
@@ -209,9 +255,10 @@ const TeacherManagement = () => {
     try {
       const values = await majorForm.validateFields();
       const response = await axios.post(
-        "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Major/create",
+        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Major/create",
         {
           majorName: values.majorName,
+          teacherId: selectedTeacher?.teacherId,
         }
       );
       if (response.data.isSucceed) {
@@ -225,6 +272,40 @@ const TeacherManagement = () => {
     } catch (error) {
       console.error("Error creating major:", error);
       message.error("Không thể thêm nhạc cụ!");
+    }
+  };
+
+  const handleUpdateMajor = (record) => {
+    setSelectedTeacher(record);
+    updateMajorForm.setFieldsValue({
+      majorId: record.majorIds || [],
+    });
+    setIsUpdateMajorModalOpen(true);
+  };
+
+  const handleUpdateMajorSubmit = async () => {
+    try {
+      const values = await updateMajorForm.validateFields();
+      const majorIds = Array.isArray(values.majorId)
+        ? values.majorId
+        : [values.majorId];
+      const response = await axios.put(
+        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Teacher/update-major/${selectedTeacher.teacherId}`,
+        {
+          majorIds: majorIds,
+        }
+      );
+
+      if (response.data.isSucceed) {
+        message.success("Cập nhật nhạc cụ thành công!");
+        setIsUpdateMajorModalOpen(false);
+        fetchTeachers();
+      } else {
+        message.error(response.data.message || "Không thể cập nhật nhạc cụ!");
+      }
+    } catch (error) {
+      console.error("Error updating major:", error);
+      message.error("Không thể cập nhật nhạc cụ!");
     }
   };
 
@@ -242,7 +323,7 @@ const TeacherManagement = () => {
       width: "25%",
     },
     {
-      title: "Chức danh",
+      title: "Kinh nghiệm",
       dataIndex: "heading",
       key: "heading",
       width: "25%",
@@ -270,11 +351,19 @@ const TeacherManagement = () => {
             icon={<EditOutlined />}
             size="small"
             onClick={() => handleEdit(record)}
+            title="Chỉnh sửa thông tin"
           />
           <Button
             icon={<EyeOutlined />}
             size="small"
             onClick={() => handleViewDetail(record)}
+            title="Xem chi tiết"
+          />
+          <Button
+            icon={<PlusOutlined />}
+            size="small"
+            onClick={() => handleUpdateMajor(record)}
+            title="Cập nhật nhạc cụ"
           />
           <Popconfirm
             title={
@@ -290,6 +379,7 @@ const TeacherManagement = () => {
               type={record.isBanned ? "primary" : "default"}
               icon={record.isBanned ? <UnlockOutlined /> : <LockOutlined />}
               size="small"
+              title={record.isBanned ? "Mở khóa tài khoản" : "Khóa tài khoản"}
             />
           </Popconfirm>
         </Space>
@@ -357,99 +447,210 @@ const TeacherManagement = () => {
             width={700}
           >
             <Form form={form} layout="vertical">
-              <Form.Item
-                name="fullname"
-                label="Họ và tên"
-                rules={[
-                  {
-                    required: true,
-                    message: "Vui lòng nhập họ và tên!",
-                  },
-                ]}
-              >
-                <Input prefix={<UserOutlined />} />
-              </Form.Item>
+              {!editingTeacher ? (
+                <>
+                  <Form.Item
+                    name="fullname"
+                    label="Họ và tên"
+                    rules={[
+                      { required: true, message: "Vui lòng nhập họ và tên!" },
+                    ]}
+                  >
+                    <Input prefix={<UserOutlined />} />
+                  </Form.Item>
 
-              <Form.Item
-                name="username"
-                label="Tên đăng nhập"
-                rules={[
-                  {
-                    required: true,
-                    message: "Vui lòng nhập tên đăng nhập!",
-                  },
-                ]}
-              >
-                <Input prefix={<UserOutlined />} />
-              </Form.Item>
+                  <Form.Item
+                    name="username"
+                    label="Tên đăng nhập"
+                    rules={[
+                      {
+                        required: true,
+                        message: "Vui lòng nhập tên đăng nhập!",
+                      },
+                    ]}
+                  >
+                    <Input prefix={<UserOutlined />} />
+                  </Form.Item>
 
-              <Form.Item
-                name="email"
-                label="Email"
-                rules={[
-                  {
-                    required: true,
-                    message: "Vui lòng nhập email!",
-                  },
-                  {
-                    type: "email",
-                    message: "Email không hợp lệ!",
-                  },
-                ]}
-              >
-                <Input prefix={<MailOutlined />} />
-              </Form.Item>
+                  <Form.Item
+                    name="email"
+                    label="Email"
+                    rules={[
+                      { required: true, message: "Vui lòng nhập email!" },
+                      { type: "email", message: "Email không hợp lệ!" },
+                    ]}
+                  >
+                    <Input prefix={<MailOutlined />} />
+                  </Form.Item>
 
-              <Form.Item
-                name="password"
-                label="Mật khẩu"
-                rules={[
-                  {
-                    required: true,
-                    message: "Vui lòng nhập mật khẩu!",
-                  },
-                  {
-                    min: 6,
-                    message: "Mật khẩu phải có ít nhất 6 ký tự!",
-                  },
-                ]}
-              >
-                <Input.Password prefix={<LockOutlined />} />
-              </Form.Item>
+                  <Form.Item
+                    name="password"
+                    label="Mật khẩu"
+                    rules={[
+                      { required: true, message: "Vui lòng nhập mật khẩu!" },
+                      { min: 6, message: "Mật khẩu phải có ít nhất 6 ký tự!" },
+                    ]}
+                  >
+                    <Input.Password prefix={<LockOutlined />} />
+                  </Form.Item>
 
-              <Form.Item
-                name="majorId"
-                label="Nhạc cụ"
-                rules={[
-                  {
-                    required: true,
-                    message: "Vui lòng chọn nhạc cụ!",
-                  },
-                ]}
-              >
-                <Select
-                  dropdownRender={(menu) => (
-                    <>
-                      {menu}
-                      <Divider style={{ margin: "8px 0" }} />
-                      <Button
-                        type="text"
-                        icon={<PlusOutlined />}
-                        onClick={() => setIsAddMajorModalOpen(true)}
-                        style={{ width: "100%", textAlign: "left" }}
-                      >
-                        Thêm nhạc cụ mới
-                      </Button>
-                    </>
-                  )}
-                >
-                  {majors.map((major) => (
-                    <Option key={major.majorId} value={major.majorId}>
-                      {major.majorName}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
+                  <Form.Item
+                    name="phoneNumber"
+                    label="Số điện thoại"
+                    rules={[
+                      {
+                        required: true,
+                        message: "Vui lòng nhập số điện thoại!",
+                      },
+                    ]}
+                  >
+                    <Input prefix={<PhoneOutlined />} />
+                  </Form.Item>
+
+                  <Form.Item
+                    name="dateOfEmployment"
+                    label="Ngày bắt đầu giảng dạy"
+                    rules={[
+                      {
+                        required: true,
+                        message: "Vui lòng chọn ngày bắt đầu giảng dạy!",
+                      },
+                    ]}
+                  >
+                    <DatePicker style={{ width: "100%" }} />
+                  </Form.Item>
+
+                  <Form.Item
+                    name="majorIds"
+                    label="Nhạc cụ"
+                    rules={[
+                      {
+                        required: true,
+                        message: "Vui lòng chọn ít nhất một nhạc cụ!",
+                      },
+                    ]}
+                  >
+                    <Select
+                      mode="multiple"
+                      placeholder="Chọn một hoặc nhiều nhạc cụ"
+                      dropdownRender={(menu) => (
+                        <>
+                          {menu}
+                          <Divider style={{ margin: "8px 0" }} />
+                          <Button
+                            type="text"
+                            icon={<PlusOutlined />}
+                            onClick={() => setIsAddMajorModalOpen(true)}
+                            style={{ width: "100%", textAlign: "left" }}
+                          >
+                            Thêm nhạc cụ mới
+                          </Button>
+                        </>
+                      )}
+                    >
+                      {majors.map((major) => (
+                        <Option key={major.majorId} value={major.majorId}>
+                          {major.majorName}
+                        </Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </>
+              ) : (
+                <>
+                  <Form.Item
+                    name="heading"
+                    label="Kinh nghiệm"
+                    rules={[
+                      { required: true, message: "Vui lòng nhập kinh nghiệm!" },
+                    ]}
+                  >
+                    <Input placeholder="Ví dụ: Kinh nghiệm 10 năm giảng dạy" />
+                  </Form.Item>
+
+                  <Form.Item
+                    name="details"
+                    label="Mô tả"
+                    rules={[
+                      { required: true, message: "Vui lòng nhập mô tả!" },
+                    ]}
+                  >
+                    <Input.TextArea
+                      rows={4}
+                      placeholder="Nhập mô tả về giáo viên"
+                    />
+                  </Form.Item>
+
+                  <Form.Item
+                    name="links"
+                    label="Liên kết"
+                    rules={[
+                      { required: true, message: "Vui lòng nhập liên kết!" },
+                    ]}
+                  >
+                    <Input placeholder="Nhập liên kết (Facebook, YouTube, etc.)" />
+                  </Form.Item>
+
+                  <Form.Item
+                    name="phoneNumber"
+                    label="Số điện thoại"
+                    rules={[
+                      {
+                        required: true,
+                        message: "Vui lòng nhập số điện thoại!",
+                      },
+                      {
+                        pattern: /^[0-9]{10}$/,
+                        message: "Số điện thoại phải có 10 chữ số!",
+                      },
+                    ]}
+                  >
+                    <Input
+                      prefix={<PhoneOutlined />}
+                      placeholder="Nhập số điện thoại"
+                    />
+                  </Form.Item>
+
+                  <Form.Item
+                    name="gender"
+                    label="Giới tính"
+                    rules={[
+                      { required: true, message: "Vui lòng chọn giới tính!" },
+                    ]}
+                  >
+                    <Select placeholder="Chọn giới tính">
+                      <Option value="male">Nam</Option>
+                      <Option value="female">Nữ</Option>
+                    </Select>
+                  </Form.Item>
+
+                  <Form.Item
+                    name="address"
+                    label="Địa chỉ"
+                    rules={[
+                      { required: true, message: "Vui lòng nhập địa chỉ!" },
+                    ]}
+                  >
+                    <Input.TextArea
+                      rows={2}
+                      placeholder="Nhập địa chỉ của giáo viên"
+                    />
+                  </Form.Item>
+
+                  <Form.Item
+                    name="avatar"
+                    label="Ảnh đại diện"
+                    rules={[
+                      {
+                        required: true,
+                        message: "Vui lòng tải lên ảnh đại diện!",
+                      },
+                    ]}
+                  >
+                    <Input placeholder="Nhập đường dẫn ảnh đại diện" />
+                  </Form.Item>
+                </>
+              )}
             </Form>
           </Modal>
 
@@ -501,10 +702,10 @@ const TeacherManagement = () => {
 
                 <Card title="Thông tin chi tiết" bordered={false}>
                   <Descriptions column={1}>
-                    <Descriptions.Item label="Chức danh">
+                    <Descriptions.Item label="Kinh nghiệm">
                       {selectedTeacher.heading || "Chưa cập nhật"}
                     </Descriptions.Item>
-                    <Descriptions.Item label="Chi tiết">
+                    <Descriptions.Item label="Mô tả">
                       {selectedTeacher.details || "Chưa cập nhật"}
                     </Descriptions.Item>
                     <Descriptions.Item label="Liên kết">
@@ -514,6 +715,50 @@ const TeacherManagement = () => {
                 </Card>
               </>
             )}
+          </Modal>
+
+          {/* Modal cập nhật nhạc cụ */}
+          <Modal
+            title="Cập nhật nhạc cụ"
+            open={isUpdateMajorModalOpen}
+            onOk={handleUpdateMajorSubmit}
+            onCancel={() => {
+              setIsUpdateMajorModalOpen(false);
+              updateMajorForm.resetFields();
+            }}
+            width={500}
+          >
+            <Form form={updateMajorForm} layout="vertical">
+              <Form.Item
+                name="majorId"
+                label="Nhạc cụ"
+                rules={[{ required: true, message: "Vui lòng chọn nhạc cụ!" }]}
+              >
+                <Select
+                  mode="multiple"
+                  dropdownRender={(menu) => (
+                    <>
+                      {menu}
+                      <Divider style={{ margin: "8px 0" }} />
+                      <Button
+                        type="text"
+                        icon={<PlusOutlined />}
+                        onClick={() => setIsAddMajorModalOpen(true)}
+                        style={{ width: "100%", textAlign: "left" }}
+                      >
+                        Thêm nhạc cụ mới
+                      </Button>
+                    </>
+                  )}
+                >
+                  {majors.map((major) => (
+                    <Option key={major.majorId} value={major.majorId}>
+                      {major.majorName}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Form>
           </Modal>
         </Content>
       </Layout>

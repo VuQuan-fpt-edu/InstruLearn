@@ -4,6 +4,9 @@ import {
   UserOutlined,
   ClockCircleOutlined,
   StarOutlined,
+  PhoneOutlined,
+  EnvironmentOutlined,
+  LinkOutlined,
 } from "@ant-design/icons";
 
 const { Paragraph } = Typography;
@@ -50,12 +53,13 @@ const TeacherModal = ({ isVisible, onClose, teacher, onViewProfile }) => {
         <div className="flex items-center gap-4">
           <Avatar
             size={64}
-            src={teacher.image || "https://via.placeholder.com/150"}
+            src={teacher.avatar || "https://via.placeholder.com/150"}
           />
           <div>
-            <div className="text-xl font-bold">{teacher.name}</div>
+            <div className="text-xl font-bold">{teacher.fullname}</div>
             <div className="text-blue-600 font-medium">
-              Chuyên môn: {teacher.specialty}
+              Chuyên môn:{" "}
+              {teacher.majors.map((major) => major.majorName).join(", ")}
             </div>
           </div>
         </div>
@@ -63,36 +67,51 @@ const TeacherModal = ({ isVisible, onClose, teacher, onViewProfile }) => {
         <Divider />
 
         <Row gutter={16}>
-          <Col span={8}>
+          <Col span={12}>
             <Statistic
               title="Kinh nghiệm"
-              value={teacher.experience || "Chưa cập nhật"}
+              value={teacher.heading || "Chưa cập nhật"}
               prefix={<ClockCircleOutlined />}
             />
           </Col>
-          <Col span={8}>
+          <Col span={12}>
             <Statistic
-              title="Đánh giá"
-              value={teacher.rating || "N/A"}
+              title="Ngày vào nghề"
+              value={new Date(teacher.dateOfEmployment).toLocaleDateString(
+                "vi-VN"
+              )}
               prefix={<StarOutlined />}
-              suffix="/5"
-            />
-          </Col>
-          <Col span={8}>
-            <Statistic
-              title="Học viên"
-              value={teacher.students || 0}
-              prefix={<UserOutlined />}
             />
           </Col>
         </Row>
 
         <Divider />
 
+        <div className="space-y-2">
+          <div className="flex items-center">
+            <PhoneOutlined className="mr-2" />
+            <span>{teacher.phoneNumber}</span>
+          </div>
+          <div className="flex items-center">
+            <EnvironmentOutlined className="mr-2" />
+            <span>{teacher.address}</span>
+          </div>
+          {teacher.links && (
+            <div className="flex items-center">
+              <LinkOutlined className="mr-2" />
+              <a href={teacher.links} target="_blank" rel="noopener noreferrer">
+                Liên kết mạng xã hội
+              </a>
+            </div>
+          )}
+        </div>
+
+        <Divider />
+
         <div>
           <div className="font-medium mb-2">Giới thiệu:</div>
           <Paragraph>
-            {teacher.description || "Chưa có thông tin giới thiệu"}
+            {teacher.details || "Chưa có thông tin giới thiệu"}
           </Paragraph>
         </div>
       </div>

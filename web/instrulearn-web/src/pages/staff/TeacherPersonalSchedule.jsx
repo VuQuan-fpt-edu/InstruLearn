@@ -2,250 +2,175 @@ import React, { useState, useEffect } from "react";
 import {
   Layout,
   Card,
-  Table,
-  Tag,
+  Typography,
   Space,
   Button,
-  Modal,
-  Form,
-  Input,
   Select,
-  DatePicker,
-  TimePicker,
   message,
-  Typography,
-  Badge,
-  Tooltip,
-  Drawer,
-  Descriptions,
-  Divider,
+  Calendar,
+  Radio,
+  Popover,
+  Avatar,
+  Tag,
+  Spin,
 } from "antd";
 import {
-  PlusOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  EyeOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
+  UserOutlined,
+  CalendarOutlined,
   ClockCircleOutlined,
-  DollarOutlined,
   EnvironmentOutlined,
-  PhoneOutlined,
-  MailOutlined,
-  BookOutlined,
 } from "@ant-design/icons";
-import {
-  mockPersonalSchedules,
-  mockTeachers,
-  mockStudents,
-  mockCourses,
-  mockApiCall,
-} from "../../utils/mockData";
+import axios from "axios";
+import dayjs from "dayjs";
 import StaffSidebar from "../../components/staff/StaffSidebar";
 import StaffHeader from "../../components/staff/StaffHeader";
-import dayjs from "dayjs";
-import "dayjs/locale/vi";
-import locale from "antd/es/date-picker/locale/vi_VN";
 
 const { Content } = Layout;
-const { Title } = Typography;
+const { Title, Text } = Typography;
 const { Option } = Select;
 
 const TeacherPersonalSchedule = () => {
   const [collapsed, setCollapsed] = useState(false);
+  const [selectedTeacher, setSelectedTeacher] = useState(null);
+  const [teachers, setTeachers] = useState([]);
   const [schedules, setSchedules] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [drawerVisible, setDrawerVisible] = useState(false);
-  const [selectedSchedule, setSelectedSchedule] = useState(null);
-  const [form] = Form.useForm();
+  const [loading, setLoading] = useState(false);
+  const [viewMode, setViewMode] = useState("month");
 
   useEffect(() => {
-    fetchSchedules();
+    fetchTeachers();
   }, []);
 
-  const fetchSchedules = async () => {
+  const fetchTeachers = async () => {
     try {
-      setLoading(true);
-      const response = await mockApiCall(mockPersonalSchedules);
-      setSchedules(response.data);
+      const response = await axios.get(
+        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Teacher/get-all"
+      );
+      if (response.data) {
+        const activeTeachers = response.data
+          .filter((item) => item.isSucceed && item.data.isActive === 1)
+          .map((item) => ({
+            ...item.data,
+            majors: item.data.majors.filter((major) => major.status === 1),
+          }));
+        setTeachers(activeTeachers);
+      }
     } catch (error) {
-      console.error("Error fetching schedules:", error);
-      message.error("Không thể tải danh sách lịch dạy");
-    } finally {
-      setLoading(false);
+      console.error("Error fetching teachers:", error);
+      message.error("Không thể tải danh sách giáo viên");
     }
   };
 
-  const handleAddSchedule = async (values) => {
-    try {
-      const newSchedule = {
-        scheduleId: schedules.length + 1,
-        ...values,
-        teacherName: mockTeachers.find((t) => t.teacherId === values.teacherId)
-          ?.teacherName,
-        studentName: mockStudents.find((s) => s.studentId === values.studentId)
-          ?.studentName,
-        courseName: mockCourses.find((c) => c.courseId === values.courseId)
-          ?.courseName,
-        status: "scheduled",
-        payment: {
-          amount:
-            mockCourses.find((c) => c.courseId === values.courseId)?.price || 0,
-          status: "pending",
-        },
+  const handleTeacherChange = async (teacherId) => {
+    // Reset schedules trước khi fetch dữ liệu mới
+    setSchedules([]);
+
+    // Cập nhật giáo viên được chọn
+    const teacher = teachers.find((t) => t.teacherId === teacherId);
+    setSelectedTeacher(teacher);
+
+    if (teacherId) {
+      try {
+        setLoading(true);
+        const response = await axios.get(
+          `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Schedules/teacher/${teacherId}/register`
+        );
+
+        if (response.data?.isSucceed) {
+          setSchedules(response.data.data);
+        } else {
+          setSchedules([]);
+          message.error("Không thể tải lịch dạy của giáo viên");
+        }
+      } catch (error) {
+        console.error("Error fetching schedules:", error);
+        message.error("Không thể tải lịch dạy của giáo viên");
+        setSchedules([]);
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      setSchedules([]);
+    }
+  };
+
+  const dateCellRender = (value) => {
+    const date = value.format("YYYY-MM-DD");
+    const daySchedules = schedules.filter(
+      (schedule) => schedule.startDay === date
+    );
+
+    if (daySchedules.length === 0) return null;
+
+    return (
+      <div className="h-full">
+        <div className="bg-blue-50 rounded-lg p-2 text-center">
+          <div className="text-blue-600 font-medium">
+            {daySchedules.length} buổi học
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const getDateCellStyle = (value) => {
+    const date = value.format("YYYY-MM-DD");
+    const hasSchedules = schedules.some(
+      (schedule) => schedule.startDay === date
+    );
+
+    if (hasSchedules) {
+      return {
+        backgroundColor: "#f0f7ff",
+        borderRadius: "4px",
+        cursor: "pointer",
       };
-
-      await mockApiCall(newSchedule);
-      message.success("Thêm lịch dạy thành công");
-      setModalVisible(false);
-      form.resetFields();
-      fetchSchedules();
-    } catch (error) {
-      console.error("Error adding schedule:", error);
-      message.error("Thêm lịch dạy thất bại");
     }
+    return {};
   };
 
-  const showDrawer = (record) => {
-    setSelectedSchedule(record);
-    setDrawerVisible(true);
+  const convertDayToVietnamese = (day) => {
+    const dayMap = {
+      Monday: "Thứ 2",
+      Tuesday: "Thứ 3",
+      Wednesday: "Thứ 4",
+      Thursday: "Thứ 5",
+      Friday: "Thứ 6",
+      Saturday: "Thứ 7",
+      Sunday: "Chủ nhật",
+    };
+    return dayMap[day] || day;
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "scheduled":
-        return "processing";
-      case "completed":
-        return "success";
-      case "cancelled":
-        return "error";
-      default:
-        return "default";
-    }
+  const getModeTag = (mode) => {
+    const modeMap = {
+      Center: {
+        color: "green",
+        text: "Tại trung tâm",
+        icon: <EnvironmentOutlined />,
+      },
+      OneOnOne: { color: "blue", text: "1-1", icon: <UserOutlined /> },
+    };
+
+    const modeInfo = modeMap[mode] || {
+      color: "default",
+      text: mode,
+      icon: null,
+    };
+    return (
+      <Tag color={modeInfo.color} icon={modeInfo.icon}>
+        {modeInfo.text}
+      </Tag>
+    );
   };
 
-  const getStatusText = (status) => {
-    switch (status) {
-      case "scheduled":
-        return "Đã lên lịch";
-      case "completed":
-        return "Đã hoàn thành";
-      case "cancelled":
-        return "Đã hủy";
-      default:
-        return "Không xác định";
-    }
-  };
-
-  const getPaymentStatusColor = (status) => {
-    switch (status) {
-      case "paid":
-        return "success";
-      case "pending":
-        return "warning";
-      case "cancelled":
-        return "error";
-      default:
-        return "default";
-    }
-  };
-
-  const columns = [
-    {
-      title: "Giáo viên",
-      dataIndex: "teacherName",
-      key: "teacherName",
-      sorter: (a, b) => a.teacherName.localeCompare(b.teacherName),
-    },
-    {
-      title: "Học viên",
-      dataIndex: "studentName",
-      key: "studentName",
-      sorter: (a, b) => a.studentName.localeCompare(b.studentName),
-    },
-    {
-      title: "Khóa học",
-      dataIndex: "courseName",
-      key: "courseName",
-      sorter: (a, b) => a.courseName.localeCompare(b.courseName),
-    },
-    {
-      title: "Ngày",
-      dataIndex: "date",
-      key: "date",
-      render: (text) => dayjs(text).format("DD/MM/YYYY"),
-      sorter: (a, b) => dayjs(a.date).unix() - dayjs(b.date).unix(),
-    },
-    {
-      title: "Thời gian",
-      key: "time",
-      render: (_, record) => record.startTime,
-    },
-    {
-      title: "Thời lượng",
-      key: "duration",
-      render: (_, record) => <Tag color="blue">{record.duration} phút</Tag>,
-      filters: [
-        { text: "45 phút", value: "45" },
-        { text: "90 phút", value: "90" },
-        { text: "120 phút", value: "120" },
-      ],
-      onFilter: (value, record) => record.duration === value,
-    },
-    {
-      title: "Trạng thái",
-      key: "status",
-      render: (_, record) => (
-        <Space>
-          <Badge
-            status={getStatusColor(record.status)}
-            text={getStatusText(record.status)}
-          />
-        </Space>
-      ),
-      filters: [
-        { text: "Đã lên lịch", value: "scheduled" },
-        { text: "Đã hoàn thành", value: "completed" },
-        { text: "Đã hủy", value: "cancelled" },
-      ],
-      onFilter: (value, record) => record.status === value,
-    },
-    {
-      title: "Thao tác",
-      key: "action",
-      render: (_, record) => (
-        <Space size="middle">
-          <Tooltip title="Xem chi tiết">
-            <Button
-              type="text"
-              icon={<EyeOutlined />}
-              onClick={() => showDrawer(record)}
-            />
-          </Tooltip>
-          <Tooltip title="Chỉnh sửa">
-            <Button
-              type="text"
-              icon={<EditOutlined />}
-              onClick={() => {
-                /* Handle edit */
-              }}
-            />
-          </Tooltip>
-          <Tooltip title="Xóa">
-            <Button
-              type="text"
-              danger
-              icon={<DeleteOutlined />}
-              onClick={() => {
-                /* Handle delete */
-              }}
-            />
-          </Tooltip>
-        </Space>
-      ),
-    },
-  ];
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Spin size="large" />
+      </div>
+    );
+  }
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
@@ -269,236 +194,107 @@ const TeacherPersonalSchedule = () => {
         >
           <Card>
             <div className="flex justify-between items-center mb-4">
-              <Title level={4}>Quản lý lịch dạy tại nhà</Title>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => setModalVisible(true)}
+              <Title level={4}>Quản lý lịch dạy</Title>
+              <Select
+                placeholder="Chọn giáo viên"
+                style={{ width: 200 }}
+                onChange={handleTeacherChange}
               >
-                Thêm lịch dạy
-              </Button>
+                {teachers.map((teacher) => (
+                  <Option key={teacher.teacherId} value={teacher.teacherId}>
+                    {teacher.fullname}
+                  </Option>
+                ))}
+              </Select>
             </div>
 
-            <Table
-              columns={columns}
-              dataSource={schedules}
-              rowKey="scheduleId"
-              loading={loading}
-              pagination={{
-                showSizeChanger: true,
-                showTotal: (total) => `Tổng cộng ${total} lịch dạy`,
-              }}
-            />
-          </Card>
-
-          <Modal
-            title="Thêm lịch dạy mới"
-            open={modalVisible}
-            onCancel={() => {
-              setModalVisible(false);
-              form.resetFields();
-            }}
-            footer={[
-              <Button
-                key="cancel"
-                onClick={() => {
-                  setModalVisible(false);
-                  form.resetFields();
-                }}
-              >
-                Hủy
-              </Button>,
-              <Button key="submit" type="primary" onClick={() => form.submit()}>
-                Thêm
-              </Button>,
-            ]}
-            width={720}
-          >
-            <Form form={form} layout="vertical" onFinish={handleAddSchedule}>
-              <Form.Item
-                name="teacherId"
-                label="Giáo viên"
-                rules={[{ required: true, message: "Vui lòng chọn giáo viên" }]}
-              >
-                <Select placeholder="Chọn giáo viên">
-                  {mockTeachers.map((teacher) => (
-                    <Option key={teacher.teacherId} value={teacher.teacherId}>
-                      {teacher.teacherName} - {teacher.specialization}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-
-              <Form.Item
-                name="studentId"
-                label="Học viên"
-                rules={[{ required: true, message: "Vui lòng chọn học viên" }]}
-              >
-                <Select placeholder="Chọn học viên">
-                  {mockStudents.map((student) => (
-                    <Option key={student.studentId} value={student.studentId}>
-                      {student.studentName}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-
-              <Form.Item
-                name="courseId"
-                label="Khóa học"
-                rules={[{ required: true, message: "Vui lòng chọn khóa học" }]}
-              >
-                <Select placeholder="Chọn khóa học">
-                  {mockCourses.map((course) => (
-                    <Option key={course.courseId} value={course.courseId}>
-                      {course.courseName}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-
-              <Form.Item
-                name="date"
-                label="Ngày dạy"
-                rules={[{ required: true, message: "Vui lòng chọn ngày dạy" }]}
-              >
-                <DatePicker
-                  locale={locale}
-                  format="DD/MM/YYYY"
-                  style={{ width: "100%" }}
-                />
-              </Form.Item>
-
-              <Space style={{ width: "100%", justifyContent: "space-between" }}>
-                <Form.Item
-                  name="startTime"
-                  label="Thời gian bắt đầu"
-                  rules={[
-                    {
-                      required: true,
-                      message: "Vui lòng chọn thời gian bắt đầu",
-                    },
-                  ]}
-                  style={{ width: "300px" }}
-                >
-                  <TimePicker format="HH:mm" style={{ width: "100%" }} />
-                </Form.Item>
-
-                <Form.Item
-                  name="duration"
-                  label="Thời lượng"
-                  rules={[
-                    {
-                      required: true,
-                      message: "Vui lòng chọn thời lượng buổi học",
-                    },
-                  ]}
-                  style={{ width: "300px" }}
-                >
-                  <Select placeholder="Chọn thời lượng">
-                    <Option value="45">45 phút</Option>
-                    <Option value="90">90 phút</Option>
-                    <Option value="120">120 phút</Option>
-                  </Select>
-                </Form.Item>
-              </Space>
-
-              <Form.Item
-                name="address"
-                label="Địa chỉ"
-                rules={[{ required: true, message: "Vui lòng nhập địa chỉ" }]}
-              >
-                <Input.TextArea rows={3} placeholder="Nhập địa chỉ dạy học" />
-              </Form.Item>
-
-              <Form.Item name="notes" label="Ghi chú">
-                <Input.TextArea rows={3} placeholder="Nhập ghi chú (nếu có)" />
-              </Form.Item>
-            </Form>
-          </Modal>
-
-          <Drawer
-            title="Chi tiết lịch dạy"
-            placement="right"
-            onClose={() => setDrawerVisible(false)}
-            open={drawerVisible}
-            width={600}
-          >
-            {selectedSchedule && (
-              <>
-                <Descriptions title="Thông tin chung" bordered column={1}>
-                  <Descriptions.Item label="Trạng thái">
-                    <Badge
-                      status={getStatusColor(selectedSchedule.status)}
-                      text={getStatusText(selectedSchedule.status)}
-                    />
-                  </Descriptions.Item>
-                </Descriptions>
-
-                <Divider orientation="left">Thông tin giáo viên</Divider>
-                <Descriptions bordered column={1}>
-                  <Descriptions.Item
-                    label={
-                      <>
-                        <BookOutlined /> Giáo viên
-                      </>
-                    }
-                  >
-                    {selectedSchedule.teacherName}
-                  </Descriptions.Item>
-                </Descriptions>
-
-                <Divider orientation="left">Thông tin học viên</Divider>
-                <Descriptions bordered column={1}>
-                  <Descriptions.Item
-                    label={
-                      <>
-                        <BookOutlined /> Học viên
-                      </>
-                    }
-                  >
-                    {selectedSchedule.studentName}
-                  </Descriptions.Item>
-                  <Descriptions.Item
-                    label={
-                      <>
-                        <EnvironmentOutlined /> Địa chỉ
-                      </>
-                    }
-                  >
-                    {selectedSchedule.address}
-                  </Descriptions.Item>
-                </Descriptions>
-
-                <Divider orientation="left">Thông tin buổi học</Divider>
-                <Descriptions bordered column={1}>
-                  <Descriptions.Item
-                    label={
-                      <>
-                        <BookOutlined /> Khóa học
-                      </>
-                    }
-                  >
-                    {selectedSchedule.courseName}
-                  </Descriptions.Item>
-                  <Descriptions.Item
-                    label={
-                      <>
-                        <ClockCircleOutlined /> Thời gian
-                      </>
-                    }
-                  >
-                    {dayjs(selectedSchedule.date).format("DD/MM/YYYY")}{" "}
-                    {selectedSchedule.startTime} ({selectedSchedule.duration}{" "}
-                    phút)
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Ghi chú">
-                    {selectedSchedule.notes || "Không có ghi chú"}
-                  </Descriptions.Item>
-                </Descriptions>
-              </>
+            {selectedTeacher && (
+              <div className="mb-4">
+                <div className="text-gray-600">
+                  <UserOutlined className="mr-2" />
+                  Giáo viên: {selectedTeacher.fullname}
+                </div>
+              </div>
             )}
-          </Drawer>
+
+            <Card>
+              <div className="mb-4">
+                <Radio.Group
+                  value={viewMode}
+                  onChange={(e) => setViewMode(e.target.value)}
+                >
+                  <Radio.Button value="month">Tháng</Radio.Button>
+                  <Radio.Button value="week">Tuần</Radio.Button>
+                </Radio.Group>
+              </div>
+
+              <Calendar
+                mode={viewMode}
+                fullscreen={false}
+                className="custom-calendar"
+                cellRender={(date) => {
+                  const dateStr = date.format("YYYY-MM-DD");
+                  const daySchedules = schedules.filter(
+                    (schedule) => schedule.startDay === dateStr
+                  );
+
+                  if (daySchedules.length === 0) return null;
+
+                  return (
+                    <Popover
+                      content={
+                        <div className="p-2">
+                          <div className="font-medium mb-2">
+                            Lịch dạy ngày {date.format("DD/MM/YYYY")}
+                          </div>
+                          <div className="space-y-2">
+                            {daySchedules.map((schedule) => (
+                              <div
+                                key={schedule.scheduleId}
+                                className="border rounded p-2"
+                              >
+                                <div className="flex items-center mb-1">
+                                  <Avatar
+                                    icon={<UserOutlined />}
+                                    size="small"
+                                    className="mr-2"
+                                  />
+                                  <div className="font-medium">
+                                    {schedule.learnerName}
+                                  </div>
+                                </div>
+                                <div className="text-sm text-gray-600">
+                                  <Tag color="blue">
+                                    {convertDayToVietnamese(schedule.dayOfWeek)}
+                                  </Tag>
+                                  <span className="ml-1">
+                                    {getModeTag(schedule.mode)}
+                                  </span>
+                                </div>
+                                <div className="text-sm text-gray-600">
+                                  <ClockCircleOutlined className="mr-1" />
+                                  {schedule.timeStart} - {schedule.timeEnd}
+                                </div>
+                                <div className="text-sm text-gray-600">
+                                  <EnvironmentOutlined className="mr-1" />
+                                  {schedule.learnerAddress || "Chưa cập nhật"}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      }
+                      trigger="click"
+                    >
+                      <div style={getDateCellStyle(date)}>
+                        {dateCellRender(date)}
+                      </div>
+                    </Popover>
+                  );
+                }}
+              />
+            </Card>
+          </Card>
         </Content>
       </Layout>
     </Layout>

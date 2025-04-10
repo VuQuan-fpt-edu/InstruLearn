@@ -1,4 +1,14 @@
-import { Card, Rate, Tag, Input, Button, Badge, Modal } from "antd";
+import {
+  Card,
+  Rate,
+  Tag,
+  Input,
+  Button,
+  Badge,
+  Modal,
+  Divider,
+  Alert,
+} from "antd";
 import {
   SoundOutlined,
   PlayCircleFilled,
@@ -9,15 +19,20 @@ import {
   EnvironmentOutlined,
   TeamOutlined,
   FormOutlined,
+  BookOutlined,
+  CheckCircleOutlined,
 } from "@ant-design/icons";
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import SearchBar from "../../components/SearchBar";
+import { message } from "antd";
+import axios from "axios";
 
 export default function Home() {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openClasses, setOpenClasses] = useState([]);
+  const [loadingClasses, setLoadingClasses] = useState(true);
   const [isConfirmModalVisible, setIsConfirmModalVisible] = useState(false);
   const [
     isInsufficientBalanceModalVisible,
@@ -25,109 +40,155 @@ export default function Home() {
   ] = useState(false);
   const [isLoginWarningModalVisible, setIsLoginWarningModalVisible] =
     useState(false);
+  const [isProfileUpdateModalVisible, setIsProfileUpdateModalVisible] =
+    useState(false);
   const [walletBalance, setWalletBalance] = useState(0);
+  const [userProfile, setUserProfile] = useState(null);
+  const [selectedClass, setSelectedClass] = useState(null);
+  const [joining, setJoining] = useState(false);
+  const [hasJoined, setHasJoined] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchCourses = async () => {
-      try {
-        const response = await fetch(
-          "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Course/get-all"
-        );
-        const data = await response.json();
-        // Xử lý dữ liệu khóa học
-        const processedCourses = data.map((course) => ({
+  const fetchCourses = async () => {
+    try {
+      const response = await fetch(
+        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Course/get-all"
+      );
+      const data = await response.json();
+      const processedCourses = data
+        .filter((course) => course.status === 1)
+        .map((course) => ({
           courseId: course.coursePackageId,
           courseName: course.courseName,
-          typeName: course.typeName,
+          typeName: course.courseTypeName,
           description: course.courseDescription,
           headline: course.headline,
           rating: course.rating,
           price: course.price,
           discount: course.discount,
-          imageUrl: course.imageUrl,
+          imageUrl:
+            course.imageUrl || "https://placehold.co/600x400?text=No+Image",
         }));
-        setCourses(processedCourses);
-        setLoading(false);
-      } catch (error) {
-        console.error("Error fetching courses:", error);
-        setLoading(false);
-      }
-    };
+      setCourses(processedCourses);
+      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching courses:", error);
+      message.error("Không thể tải danh sách khóa học");
+      setLoading(false);
+    }
+  };
 
-    // Mocked data for open classes - in a real scenario, you'd fetch this from your API
-    const fetchOpenClasses = async () => {
-      // This is mock data - replace with actual API call when available
-      const mockClasses = [
-        {
-          id: 1,
-          title: "Lớp Piano cho người mới bắt đầu",
-          instructor: "Nguyễn Thanh Tùng",
-          location: "Số 15 Nguyễn Huệ, Quận 1, TP.HCM",
-          startDate: "28/03/2025",
-          seatsAvailable: 5,
-          totalSeats: 10,
-          imageUrl:
-            "https://ntt.edu.vn/wp-content/uploads/2023/04/KHOA-AM-NHAC-20-scaled.jpg",
-        },
-        {
-          id: 2,
-          title: "Guitar cơ bản - Khóa buổi tối",
-          instructor: "Trần Văn Minh",
-          location: "Số 27 Lê Lợi, Quận 3, TP.HCM",
-          startDate: "01/04/2025",
-          seatsAvailable: 3,
-          totalSeats: 8,
-          imageUrl:
-            "https://artiumacademy.mo.cloudinary.net/v1n/Learn_Guitar_Online.jpg",
-        },
-        {
-          id: 3,
-          title: "Violin cho trẻ em 8-12 tuổi",
-          instructor: "Lê Thị Hương",
-          location: "Số 45 Phạm Ngọc Thạch, Quận 3, TP.HCM",
-          startDate: "05/04/2025",
-          seatsAvailable: 6,
-          totalSeats: 12,
-          imageUrl:
-            "https://images.pexels.com/photos/111287/pexels-photo-111287.jpeg",
-        },
-      ];
+  const fetchOpenClasses = async () => {
+    try {
+      setLoadingClasses(true);
+      const response = await fetch(
+        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Class/get-all"
+      );
+      const data = await response.json();
 
-      setOpenClasses(mockClasses);
-    };
+      // Xử lý dữ liệu mới từ API
+      const processedClasses = data.map((classItem) => ({
+        ...classItem,
+        coursePackageName: classItem.majorName, // Sử dụng majorName thay vì coursePackageName
+        students: classItem.students || [], // Đảm bảo có mảng students
+      }));
 
-    const fetchWalletBalance = async () => {
-      try {
-        const token = localStorage.getItem("authToken");
-        const learnerId = localStorage.getItem("learnerId");
-
-        if (!token || !learnerId) {
-          throw new Error("Bạn chưa đăng nhập");
-        }
-
-        const response = await fetch(
-          `https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/wallet/${learnerId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
+      setOpenClasses(processedClasses);
+      if (userProfile?.learnerId) {
+        processedClasses.forEach((classItem) => {
+          const isJoined = classItem.students?.some(
+            (student) => student.learnerId === userProfile.learnerId
+          );
+          if (isJoined) {
+            classItem.hasJoined = true;
           }
-        );
-
-        const data = await response.json();
-        if (data.isSucceed) {
-          setWalletBalance(data.data.balance);
-        }
-      } catch (error) {
-        console.error("Error fetching wallet balance:", error);
+        });
       }
-    };
+    } catch (error) {
+      console.error("Error fetching open classes:", error);
+      message.error("Không thể tải danh sách lớp học");
+    } finally {
+      setLoadingClasses(false);
+    }
+  };
 
-    fetchCourses();
-    fetchOpenClasses();
-    fetchWalletBalance();
+  const fetchWalletBalance = async (learnerId) => {
+    try {
+      const token = localStorage.getItem("authToken");
+      const response = await axios.get(
+        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/wallet/${learnerId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data.isSucceed) {
+        setWalletBalance(response.data.data.balance);
+      }
+    } catch (error) {
+      console.error("Error fetching wallet balance:", error);
+    }
+  };
+
+  const fetchData = async () => {
+    await Promise.all([fetchCourses(), fetchOpenClasses()]);
+  };
+
+  const checkUserProfile = async () => {
+    try {
+      const token = localStorage.getItem("authToken");
+      if (!token) return;
+
+      const response = await axios.get(
+        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Auth/Profile",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data.isSucceed) {
+        const profileData = response.data.data;
+        setUserProfile(profileData);
+
+        // Kiểm tra thông tin địa chỉ và số điện thoại
+        if (!profileData.address || !profileData.phoneNumber) {
+          setIsProfileUpdateModalVisible(true);
+        }
+      }
+    } catch (error) {
+      console.error("Error checking user profile:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+    checkUserProfile();
   }, []);
+
+  useEffect(() => {
+    if (userProfile) {
+      fetchOpenClasses();
+    }
+  }, [userProfile]);
+
+  useEffect(() => {
+    if (selectedClass && userProfile) {
+      const isJoined = selectedClass.students?.some(
+        (student) => student.learnerId === userProfile.learnerId
+      );
+      setHasJoined(isJoined);
+    }
+  }, [selectedClass, userProfile]);
+
+  useEffect(() => {
+    if (userProfile?.learnerId) {
+      fetchWalletBalance(userProfile.learnerId);
+    }
+  }, [userProfile]);
 
   const coursesByType = courses.reduce((acc, course) => {
     if (!acc[course.typeName]) {
@@ -136,6 +197,32 @@ export default function Home() {
     acc[course.typeName].push(course);
     return acc;
   }, {});
+
+  const formatClassDays = (classDays) => {
+    if (!classDays) return "";
+    return classDays
+      .map((day) => {
+        switch (day.day) {
+          case "Sunday":
+            return "Chủ nhật";
+          case "Monday":
+            return "Thứ 2";
+          case "Tuesday":
+            return "Thứ 3";
+          case "Wednesday":
+            return "Thứ 4";
+          case "Thursday":
+            return "Thứ 5";
+          case "Friday":
+            return "Thứ 6";
+          case "Saturday":
+            return "Thứ 7";
+          default:
+            return day.day;
+        }
+      })
+      .join(", ");
+  };
 
   const formatPrice = (price) => {
     return new Intl.NumberFormat("vi-VN", {
@@ -146,6 +233,32 @@ export default function Home() {
     })
       .format(price)
       .replace(/\s₫/, " đ");
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 0:
+        return "blue";
+      case 1:
+        return "green";
+      case 2:
+        return "red";
+      default:
+        return "default";
+    }
+  };
+
+  const getStatusText = (status) => {
+    switch (status) {
+      case 0:
+        return "Đang mở lớp";
+      case 1:
+        return "Đang diễn ra";
+      case 2:
+        return "Đã kết thúc";
+      default:
+        return "Không xác định";
+    }
   };
 
   const testimonials = [
@@ -167,11 +280,24 @@ export default function Home() {
       setIsLoginWarningModalVisible(true);
       return;
     }
-    // Kiểm tra số dư ví trước khi hiển thị modal xác nhận
-    if (walletBalance < 50000) {
-      setIsInsufficientBalanceModalVisible(true);
-    } else {
-      setIsConfirmModalVisible(true);
+
+    // Kiểm tra thông tin địa chỉ và số điện thoại
+    if (!userProfile?.address || !userProfile?.phoneNumber) {
+      setIsProfileUpdateModalVisible(true);
+      return;
+    }
+
+    // Cập nhật số dư ví trước khi kiểm tra
+    if (userProfile?.learnerId) {
+      fetchWalletBalance(userProfile.learnerId).then(() => {
+        // Kiểm tra số dư ví sau khi đã cập nhật
+        const requiredBalance = 50000;
+        if (walletBalance < requiredBalance) {
+          setIsInsufficientBalanceModalVisible(true);
+        } else {
+          setIsConfirmModalVisible(true);
+        }
+      });
     }
   };
 
@@ -199,7 +325,7 @@ export default function Home() {
               Vui lòng đăng nhập
             </div>
             <div className="text-gray-500">
-              Bạn cần đăng nhập để đăng ký lớp học
+              Bạn cần đăng nhập để đăng ký học theo yêu cầu
             </div>
           </div>
         ),
@@ -207,7 +333,7 @@ export default function Home() {
           <div className="text-center py-4">
             <div className="bg-yellow-50 rounded-lg p-6 mb-4">
               <div className="text-lg text-yellow-700 mb-2">
-                Để đăng ký lớp học, bạn cần:
+                Để đăng ký học theo yêu cầu, bạn cần:
               </div>
               <ul className="text-left space-y-2 text-gray-600">
                 <li className="flex items-center">
@@ -236,41 +362,72 @@ export default function Home() {
       });
       return;
     }
-    // Xử lý đăng ký lớp học khi đã đăng nhập
-    Modal.info({
-      title: (
-        <div className="text-center">
-          <div className="text-2xl font-bold text-purple-600 mb-2">
-            Đăng ký lớp học
-          </div>
-          <div className="text-gray-500">
-            Vui lòng kiểm tra thông tin lớp học
-          </div>
-        </div>
-      ),
-      content: (
-        <div className="text-center py-4">
-          <div className="bg-purple-50 rounded-lg p-6 mb-4">
-            <div className="text-xl font-bold text-purple-600 mb-2">
-              {classItem.title}
-            </div>
-            <div className="text-gray-600">
-              Giáo viên: {classItem.instructor}
-            </div>
-            <div className="text-gray-600">
-              Khai giảng: {classItem.startDate}
-            </div>
-            <div className="text-gray-600">Địa điểm: {classItem.location}</div>
-          </div>
-        </div>
-      ),
-      okText: "Xác nhận đăng ký",
-      cancelText: "Hủy",
-      okButtonProps: { className: "bg-purple-600 hover:bg-purple-700" },
-      width: 500,
-      centered: true,
-      maskClosable: false,
-    });
+
+    // Kiểm tra xem học viên đã tham gia lớp chưa
+    const isJoined = classItem.students?.some(
+      (student) => student.learnerId === userProfile?.learnerId
+    );
+
+    if (isJoined) {
+      message.info("Bạn đã tham gia lớp học này");
+      return;
+    }
+
+    setSelectedClass(classItem);
+    const depositAmount = classItem.price * 0.1; // 10% học phí
+
+    // Cập nhật số dư ví trước khi kiểm tra
+    if (userProfile?.learnerId) {
+      fetchWalletBalance(userProfile.learnerId).then(() => {
+        // Kiểm tra số dư ví sau khi đã cập nhật
+        if (walletBalance < depositAmount) {
+          setIsInsufficientBalanceModalVisible(true);
+        } else {
+          setIsConfirmModalVisible(true);
+        }
+      });
+    }
+  };
+
+  const handleConfirmJoin = async () => {
+    if (!selectedClass || !userProfile) return;
+
+    try {
+      setJoining(true);
+      const token = localStorage.getItem("authToken");
+      const response = await axios.post(
+        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/LearningRegis/join-class",
+        {
+          learnerId: userProfile.learnerId,
+          classId: selectedClass.classId,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data.isSucceed) {
+        message.success("Đăng ký lớp học thành công!");
+        setIsConfirmModalVisible(false);
+        // Cập nhật lại danh sách lớp học
+        fetchData();
+        // Cập nhật số dư ví
+        await fetchWalletBalance(userProfile.learnerId);
+      } else {
+        throw new Error(response.data.message || "Đăng ký thất bại");
+      }
+    } catch (error) {
+      console.error("Error joining class:", error);
+      message.error(
+        error.response?.data?.message ||
+          error.message ||
+          "Đã xảy ra lỗi khi đăng ký lớp học"
+      );
+    } finally {
+      setJoining(false);
+    }
   };
 
   return (
@@ -352,51 +509,85 @@ export default function Home() {
           <h2 className="text-3xl font-bold mb-8">Các lớp học đang mở</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {openClasses.map((classItem) => (
-              <Card
-                key={classItem.id}
-                hoverable
-                className="overflow-hidden shadow-md border border-gray-200 rounded-md hover:shadow-lg transition-shadow"
-                cover={
-                  <img
-                    alt={classItem.title}
-                    src={classItem.imageUrl}
-                    className="w-full h-48 object-cover"
-                  />
-                }
-              >
-                <div className="mb-1">
-                  <Badge
-                    count={`${classItem.seatsAvailable}/${classItem.totalSeats} chỗ`}
-                    style={{
-                      backgroundColor:
-                        classItem.seatsAvailable < 3 ? "#ff4d4f" : "#52c41a",
-                    }}
-                  />
-                </div>
-                <h4 className="font-bold text-lg mb-2">{classItem.title}</h4>
-                <p className="text-sm text-gray-600 mb-1 flex items-center">
-                  <UserOutlined className="mr-2" />
-                  GV: {classItem.instructor}
-                </p>
-                <p className="text-sm text-gray-600 mb-1 flex items-center">
-                  <CalendarOutlined className="mr-2" />
-                  Khai giảng: {classItem.startDate}
-                </p>
-                <p className="text-sm text-gray-600 mb-3 flex items-center">
-                  <EnvironmentOutlined className="mr-2" />
-                  {classItem.location}
-                </p>
-                <Button
-                  type="primary"
-                  block
-                  className="bg-purple-600 hover:bg-purple-700"
-                  onClick={() => handleEnrollClass(classItem)}
-                >
-                  Đăng ký lớp học
-                </Button>
-              </Card>
-            ))}
+            {loadingClasses ? (
+              <div className="col-span-full text-center py-12">
+                Đang tải lớp học...
+              </div>
+            ) : (
+              openClasses
+                .filter((classItem) => classItem.status === 0)
+                .slice(0, 3)
+                .map((classItem) => (
+                  <Card
+                    key={classItem.classId}
+                    hoverable
+                    className="overflow-hidden shadow-md border border-gray-200 rounded-md hover:shadow-lg transition-shadow"
+                    cover={
+                      <img
+                        alt={classItem.className}
+                        src="https://ntt.edu.vn/wp-content/uploads/2023/04/KHOA-AM-NHAC-20-scaled.jpg"
+                        className="w-full h-48 object-cover"
+                      />
+                    }
+                  >
+                    <div className="mb-1">
+                      <Badge
+                        count={`${classItem.maxStudents} chỗ`}
+                        style={{
+                          backgroundColor: getStatusColor(classItem.status),
+                        }}
+                      />
+                    </div>
+                    <h4 className="font-bold text-lg mb-2">
+                      {classItem.className}
+                    </h4>
+                    <p className="text-sm text-gray-600 mb-1 flex items-center">
+                      <UserOutlined className="mr-2" />
+                      GV: {classItem.teacherName}
+                    </p>
+                    <p className="text-sm text-gray-600 mb-1 flex items-center">
+                      <CalendarOutlined className="mr-2" />
+                      Khai giảng:{" "}
+                      {new Date(classItem.startDate).toLocaleDateString(
+                        "vi-VN"
+                      )}
+                    </p>
+                    <p className="text-sm text-gray-600 mb-1 flex items-center">
+                      <ClockCircleOutlined className="mr-2" />
+                      {classItem.classTime.substring(0, 5)} -{" "}
+                      {classItem.classEndTime.substring(0, 5)}
+                    </p>
+                    <p className="text-sm text-gray-600 mb-1 flex items-center">
+                      <BookOutlined className="mr-2" />
+                      {classItem.coursePackageName}
+                    </p>
+                    <p className="text-sm text-gray-600 mb-3 flex items-center">
+                      <CalendarOutlined className="mr-2" />
+                      {formatClassDays(classItem.classDays)}
+                    </p>
+                    <div className="flex justify-between items-center mb-3">
+                      <span className="text-lg font-bold text-red-600">
+                        {formatPrice(classItem.price)}
+                      </span>
+                      <Tag color={getStatusColor(classItem.status)}>
+                        {getStatusText(classItem.status)}
+                      </Tag>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm text-gray-500">
+                        {classItem.status === 0 && "Lớp học đang mở"}
+                        {classItem.status === 1 && "Lớp đang diễn ra"}
+                        {classItem.status === 2 && "Lớp đã kết thúc"}
+                      </div>
+                      <Link to={`/class-detail/${classItem.classId}`}>
+                        <Button type="link" className="text-purple-600">
+                          Chi tiết
+                        </Button>
+                      </Link>
+                    </div>
+                  </Card>
+                ))
+            )}
           </div>
 
           <div className="text-center mt-8">
@@ -409,7 +600,7 @@ export default function Home() {
         </div>
 
         <div className="mb-16">
-          <h2 className="text-3xl font-bold mb-8">Khóa học nổi bật</h2>
+          <h2 className="text-3xl font-bold mb-8">Gói học online</h2>
 
           {loading ? (
             <div className="text-center py-12">Đang tải khóa học...</div>
@@ -603,6 +794,54 @@ export default function Home() {
         </div>
       </div>
 
+      {/* Modal yêu cầu cập nhật thông tin */}
+      <Modal
+        title={
+          <div className="text-center">
+            <div className="text-2xl font-bold text-yellow-600 mb-2">
+              Cập nhật thông tin cá nhân
+            </div>
+            <div className="text-gray-500">
+              Vui lòng cập nhật thông tin cá nhân đầy đủ để sử dụng các tính
+              năng của trang
+            </div>
+          </div>
+        }
+        open={isProfileUpdateModalVisible}
+        onOk={() => {
+          setIsProfileUpdateModalVisible(false);
+          navigate("/profile");
+        }}
+        onCancel={() => setIsProfileUpdateModalVisible(false)}
+        width={500}
+        className="custom-modal"
+        okText="Cập nhật ngay"
+        cancelText="Để sau"
+        okButtonProps={{ className: "bg-purple-600 hover:bg-purple-700" }}
+      >
+        <div className="text-center py-4">
+          <div className="bg-yellow-50 rounded-lg p-6 mb-4">
+            <div className="text-lg text-yellow-700 mb-2">
+              Thông tin cần cập nhật:
+            </div>
+            <ul className="text-left space-y-2 text-gray-600">
+              {!userProfile?.address && (
+                <li className="flex items-center">
+                  <span className="mr-2">•</span>
+                  Địa chỉ
+                </li>
+              )}
+              {!userProfile?.phoneNumber && (
+                <li className="flex items-center">
+                  <span className="mr-2">•</span>
+                  Số điện thoại
+                </li>
+              )}
+            </ul>
+          </div>
+        </div>
+      </Modal>
+
       {/* Modal cảnh báo chưa đăng nhập */}
       <Modal
         title={
@@ -650,52 +889,58 @@ export default function Home() {
         </div>
       </Modal>
 
-      {/* Modal xác nhận phí đăng ký */}
+      {/* Confirm Join Modal */}
       <Modal
         title={
           <div className="text-center">
             <div className="text-2xl font-bold text-purple-600 mb-2">
-              Xác nhận phí đăng ký
+              Xác nhận đăng ký học theo yêu cầu
             </div>
             <div className="text-gray-500">
-              Vui lòng kiểm tra thông tin trước khi tiếp tục
+              Vui lòng kiểm tra thông tin trước khi xác nhận
             </div>
           </div>
         }
         open={isConfirmModalVisible}
         onOk={handleConfirmBooking}
         onCancel={() => setIsConfirmModalVisible(false)}
-        width={500}
-        className="custom-modal"
-        okText="Đồng ý"
+        okText="Bắt đầu đăng ký"
         cancelText="Hủy"
-        okButtonProps={{ className: "bg-purple-600 hover:bg-purple-700" }}
+        okButtonProps={{
+          className: "bg-purple-600 hover:bg-purple-700",
+          loading: joining,
+        }}
       >
-        <div className="text-center py-4">
+        <div className="py-4">
           <div className="bg-purple-50 rounded-lg p-6 mb-4">
-            <div className="text-3xl font-bold text-purple-600 mb-2">
-              50,000 VND
+            <div className="text-center">
+              <div className="text-xl font-bold text-purple-600 mb-2">
+                Phí đăng ký học theo yêu cầu
+              </div>
+              <div className="text-3xl font-bold text-purple-700 mb-2">
+                50,000 VND
+              </div>
             </div>
-            <div className="text-gray-600">Phí đăng ký học theo yêu cầu</div>
-          </div>
-          <div className="bg-gray-50 rounded-lg p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-600">Số dư hiện tại:</span>
-              <span className="font-semibold text-green-600">
-                {formatPrice(walletBalance)}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-gray-600">Số dư sau khi trừ:</span>
-              <span className="font-semibold text-red-600">
-                {formatPrice(walletBalance - 50000)}
-              </span>
+            <Divider />
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span>Số dư hiện tại:</span>
+                <span className="font-medium">
+                  {formatPrice(walletBalance)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>Số dư sau khi thanh toán:</span>
+                <span className="font-medium">
+                  {formatPrice(walletBalance - 50000)}
+                </span>
+              </div>
             </div>
           </div>
         </div>
       </Modal>
 
-      {/* Modal thông báo số dư không đủ */}
+      {/* Insufficient Balance Modal */}
       <Modal
         title={
           <div className="text-center">
@@ -703,40 +948,43 @@ export default function Home() {
               Số dư không đủ
             </div>
             <div className="text-gray-500">
-              Vui lòng nạp thêm tiền để tiếp tục
+              Vui lòng nạp thêm tiền để đăng ký học theo yêu cầu
             </div>
           </div>
         }
         open={isInsufficientBalanceModalVisible}
-        onOk={handleNavigateToWallet}
+        onOk={() => {
+          setIsInsufficientBalanceModalVisible(false);
+          navigate("/profile/topup");
+        }}
         onCancel={() => setIsInsufficientBalanceModalVisible(false)}
-        width={500}
-        className="custom-modal"
         okText="Nạp tiền ngay"
         cancelText="Hủy"
         okButtonProps={{ className: "bg-purple-600 hover:bg-purple-700" }}
       >
-        <div className="text-center py-4">
+        <div className="py-4">
           <div className="bg-red-50 rounded-lg p-6 mb-4">
-            <div className="text-3xl font-bold text-red-600 mb-2">
-              {formatPrice(walletBalance)}
+            <div className="text-center">
+              <div className="text-xl font-bold text-red-600 mb-2">
+                Số dư hiện tại
+              </div>
+              <div className="text-3xl font-bold text-red-700 mb-2">
+                {formatPrice(walletBalance)}
+              </div>
             </div>
-            <div className="text-gray-600">Số dư hiện tại của bạn</div>
-          </div>
-          <div className="bg-gray-50 rounded-lg p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-600">Phí đăng ký cần:</span>
-              <span className="font-semibold text-purple-600">50,000 VND</span>
+            <Divider />
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span>Phí đăng ký học theo yêu cầu :</span>
+                <span className="font-medium">{formatPrice(50000)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Số tiền cần nạp thêm:</span>
+                <span className="font-medium text-red-600">
+                  {formatPrice(50000 - walletBalance)}
+                </span>
+              </div>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-gray-600">Số tiền cần nạp thêm:</span>
-              <span className="font-semibold text-red-600">
-                {formatPrice(50000 - walletBalance)}
-              </span>
-            </div>
-          </div>
-          <div className="mt-4 text-sm text-gray-500">
-            Bạn sẽ được chuyển đến trang nạp tiền sau khi xác nhận
           </div>
         </div>
       </Modal>

@@ -1,5 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { Layout, Card, Steps, Typography, message, Avatar, Form } from "antd";
+import {
+  Layout,
+  Card,
+  Steps,
+  Typography,
+  message,
+  Avatar,
+  Form,
+  Modal,
+} from "antd";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import axios from "axios";
@@ -30,8 +39,7 @@ const StudentBookingForm = () => {
   const [form] = Form.useForm();
   const [current, setCurrent] = useState(0);
   const [selectedTeacher, setSelectedTeacher] = useState(null);
-  const [teachers, setTeachers] = useState([]);
-  const [filteredTeachers, setFilteredTeachers] = useState([]);
+  const [availableTeachers, setAvailableTeachers] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedDays, setSelectedDays] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -40,30 +48,25 @@ const StudentBookingForm = () => {
   const [userProfile, setUserProfile] = useState(null);
   const [majors, setMajors] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [confirmModalVisible, setConfirmModalVisible] = useState(false);
+  const [formValues, setFormValues] = useState(null);
 
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchTeachers();
     fetchUserProfile();
     fetchMajors();
   }, [form, navigate]);
 
-  const fetchTeachers = async () => {
-    try {
-      const response = await axios.get(
-        "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Teacher/get-all"
-      );
-      if (response.data && Array.isArray(response.data)) {
-        const allTeachers = response.data
-          .filter((item) => item.isSucceed)
-          .map((item) => item.data);
-        setTeachers(allTeachers);
-      }
-    } catch (error) {
-      console.error("Error fetching teachers:", error);
-      message.error("Không thể tải danh sách giáo viên!");
-    }
+  const forceResetTeacherSelection = () => {
+    console.log("Force resetting teacher selection");
+    setSelectedTeacher(null);
+    // Reset form field và đảm bảo UI được cập nhật
+    form.setFieldsValue({ teacherId: undefined });
+    setTimeout(() => {
+      // Sử dụng setTimeout để đảm bảo React có thời gian cập nhật UI
+      form.setFieldsValue({ teacherId: undefined });
+    }, 0);
   };
 
   const fetchUserProfile = async () => {
@@ -73,7 +76,7 @@ const StudentBookingForm = () => {
 
       setLoading(true);
       const response = await axios.get(
-        "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Auth/Profile",
+        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Auth/Profile",
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -104,16 +107,21 @@ const StudentBookingForm = () => {
       console.error("Error fetching user profile:", err);
       message.error(err.message || "Không thể tải thông tin người dùng!");
       navigate("/login");
+    } finally {
+      setLoading(false);
     }
   };
 
   const fetchMajors = async () => {
     try {
       const response = await axios.get(
-        "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Major/get-all"
+        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Major/get-all"
       );
       if (response.data?.isSucceed) {
-        setMajors(response.data.data);
+        const activeMajors = response.data.data.filter(
+          (major) => major.status === 1
+        );
+        setMajors(activeMajors);
       }
     } catch (error) {
       message.error("Không thể tải danh sách nhạc cụ");
@@ -122,30 +130,40 @@ const StudentBookingForm = () => {
   };
 
   const handleInstrumentChange = (value) => {
+    console.log("Instrument changed to:", value);
     const selectedMajor = majors.find((m) => m.majorName === value);
     if (selectedMajor) {
-      const filtered = teachers.filter(
-        (teacher) => teacher.major?.majorId === selectedMajor.majorId
-      );
-      setFilteredTeachers(filtered);
+      // Cưỡng chế reset giáo viên khi thay đổi nhạc cụ
+      forceResetTeacherSelection();
     }
-    form.setFieldsValue({ teacherId: undefined });
-    setSelectedTeacher(null);
   };
 
-  const handleTeacherChange = (value) => {
-    const teacher = filteredTeachers.find((t) => t.teacherId === value);
-    setSelectedTeacher(teacher);
-  };
+  const handleTeacherChange = (teacherId) => {
+    if (!teacherId) {
+      setSelectedTeacher(null);
+      form.setFieldsValue({ teacherId: undefined });
+      return;
+    }
 
-  const handleViewTeacher = () => {
-    if (selectedTeacher) {
-      navigate(`/teacher-profile/${selectedTeacher.teacherId}`);
+    const teacher = availableTeachers.find((t) => t.teacherId === teacherId);
+    if (teacher) {
+      setSelectedTeacher(teacher);
+      form.setFieldsValue({ teacherId: teacherId });
+    } else {
+      // Nếu không tìm thấy giáo viên, reset
+      setSelectedTeacher(null);
+      form.setFieldsValue({ teacherId: undefined });
     }
   };
 
   const handleDayChange = (values) => {
     setSelectedDays(values);
+  };
+
+  const handleViewTeacher = () => {
+    if (selectedTeacher) {
+      setIsModalVisible(true);
+    }
   };
 
   const handleSubmit = async (values) => {
@@ -156,7 +174,7 @@ const StudentBookingForm = () => {
         throw new Error("Vui lòng chọn nhạc cụ và giáo viên");
       }
 
-      const selectedTeacher = teachers.find(
+      const selectedTeacher = availableTeachers.find(
         (t) => t.teacherId === values.teacherId
       );
       if (!selectedTeacher) {
@@ -170,25 +188,26 @@ const StudentBookingForm = () => {
         throw new Error("Không tìm thấy thông tin nhạc cụ");
       }
 
-      if (!values.videoUrl) {
-        throw new Error("Vui lòng tải lên video trình độ");
-      }
-
       const bookingData = {
         learnerId: parseInt(userProfile?.id),
         teacherId: parseInt(values.teacherId),
         regisTypeId: 1,
         majorId: parseInt(selectedMajor.majorId),
-        videoUrl: values.videoUrl,
+        videoUrl: values.videoUrl || "",
+        startDay: dayjs(values.startDay).format("YYYY-MM-DD"),
         timeStart: dayjs(values.bookingSlot).format("HH:mm:00"),
+        timeLearning: parseInt(values.timeLearning),
         requestDate: dayjs().format("YYYY-MM-DDTHH:mm:ss"),
         numberOfSession: parseInt(values.numberOfSlots),
+        learningRequest: values.learningRequest || "",
         learningDays: values.bookingDays.map((day) => parseInt(day)),
       };
 
+      console.log("Sending booking data:", bookingData);
+
       const token = localStorage.getItem("authToken");
       const response = await axios.post(
-        "https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/LearningRegis/create",
+        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/LearningRegis/create",
         bookingData,
         {
           headers: {
@@ -204,7 +223,7 @@ const StudentBookingForm = () => {
           ...values,
           teacherName: selectedTeacher?.fullname,
           bookingId:
-            response.data.data?.regisId ||
+            response.data.data?.learningRegisId ||
             `BK${Math.floor(1000 + Math.random() * 9000)}`,
           createdAt: dayjs().format(),
           status: "pending",
@@ -215,10 +234,14 @@ const StudentBookingForm = () => {
         setBookingDetails(bookingInfo);
         setSuccessModalVisible(true);
       } else {
+        console.error("API returned error:", response.data);
         throw new Error(response.data?.message || "Đăng ký không thành công");
       }
     } catch (error) {
       console.error("Error submitting form:", error);
+      if (error.response) {
+        console.error("Error response:", error.response.data);
+      }
       message.error({
         content: `Đăng ký thất bại: ${
           error.response?.data?.message ||
@@ -232,6 +255,16 @@ const StudentBookingForm = () => {
     }
   };
 
+  const handleFormSubmit = (values) => {
+    setFormValues(values);
+    setConfirmModalVisible(true);
+  };
+
+  const handleConfirmSubmit = async () => {
+    setConfirmModalVisible(false);
+    await handleSubmit(formValues);
+  };
+
   const steps = [
     {
       title: "Chọn nhạc cụ & giáo viên",
@@ -241,14 +274,16 @@ const StudentBookingForm = () => {
           majors={majors}
           days={days}
           sessionOptions={sessionOptions}
-          filteredTeachers={filteredTeachers}
           selectedTeacher={selectedTeacher}
+          setAvailableTeachers={setAvailableTeachers}
+          availableTeachers={availableTeachers}
           handleInstrumentChange={handleInstrumentChange}
           handleTeacherChange={handleTeacherChange}
           handleDayChange={handleDayChange}
           handleViewTeacher={handleViewTeacher}
-          handleSubmit={handleSubmit}
+          handleSubmit={handleFormSubmit}
           isSubmitting={isSubmitting}
+          forceResetTeacherSelection={forceResetTeacherSelection}
         />
       ),
     },
@@ -294,6 +329,27 @@ const StudentBookingForm = () => {
           </Steps>
 
           {steps[current].content}
+
+          <Modal
+            title="Xác nhận phí đăng ký"
+            open={confirmModalVisible}
+            onOk={handleConfirmSubmit}
+            onCancel={() => setConfirmModalVisible(false)}
+            okText="Đồng ý"
+            cancelText="Hủy"
+          >
+            <div className="text-center py-4">
+              <p className="text-lg mb-2">
+                Bạn sẽ bị trừ{" "}
+                <span className="text-red-500 font-bold">50,000 VNĐ</span> cho
+                phí đăng ký
+              </p>
+              <p className="text-gray-600">
+                Số tiền này sẽ được trừ vào tài khoản của bạn sau khi gửi đơn
+                thành công
+              </p>
+            </div>
+          </Modal>
         </Card>
       </Content>
 
