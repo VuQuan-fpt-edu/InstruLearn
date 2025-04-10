@@ -259,7 +259,8 @@ const ClassDetail = () => {
         message.success("Đăng ký lớp học thành công!");
         setHasJoined(true);
         setShowConfirmModal(false);
-        fetchWalletBalance(userProfile.learnerId);
+        await fetchWalletBalance(userProfile.learnerId);
+        await fetchData();
       } else {
         throw new Error(response.data.message || "Đăng ký thất bại");
       }
@@ -508,13 +509,60 @@ const ClassDetail = () => {
               <Title level={4} className="mb-6">
                 Thông tin đăng ký
               </Title>
-              <div className="mb-6">
-                <div className="text-gray-500 mb-2">Học phí</div>
-                <div className="text-3xl font-bold text-purple-600">
-                  {formatPrice(classData.price)}
+              <div className="mb-6 space-y-4">
+                <div>
+                  <div className="text-gray-500 mb-2">Chi tiết học phí</div>
+                  <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                    <div className="flex justify-between items-center">
+                      <Text>Số buổi học</Text>
+                      <Text strong>{classData.totalDays} buổi</Text>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <Text>Học phí/buổi</Text>
+                      <Text strong className="text-purple-600">
+                        {formatPrice(classData.price)}
+                      </Text>
+                    </div>
+                    <Divider className="my-2" />
+                    <div className="flex justify-between items-center">
+                      <Text>Tổng học phí</Text>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-purple-600">
+                          {formatPrice(classData.price * classData.totalDays)}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          ({formatPrice(classData.price)}/buổi ×{" "}
+                          {classData.totalDays} buổi)
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="text-sm text-gray-500 mt-1">
-                  Phí giữ chỗ (10%): {formatPrice(classData.price * 0.1)}
+
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <div className="flex justify-between items-center mb-2">
+                    <Text strong className="text-blue-600">
+                      Phí giữ chỗ (10%)
+                    </Text>
+                    <Text strong className="text-blue-600">
+                      {formatPrice(classData.price * classData.totalDays * 0.1)}
+                    </Text>
+                  </div>
+                  <Text type="secondary" className="text-sm block">
+                    * Phí này cần đóng ngay khi đăng ký để giữ chỗ
+                  </Text>
+                </div>
+
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="flex justify-between items-center mb-2">
+                    <Text strong>Phần học phí còn lại (90%)</Text>
+                    <Text strong>
+                      {formatPrice(classData.price * classData.totalDays * 0.9)}
+                    </Text>
+                  </div>
+                  <Text type="secondary" className="text-sm block">
+                    * Sẽ đóng trước khi bắt đầu khóa học
+                  </Text>
                 </div>
               </div>
               <div className="space-y-4 mb-6">
@@ -597,63 +645,6 @@ const ClassDetail = () => {
         </div>
       </Modal>
 
-      {/* Confirm Join Modal */}
-      <Modal
-        title={
-          <div className="text-center">
-            <div className="text-2xl font-bold text-purple-600 mb-2">
-              Xác nhận đăng ký lớp học
-            </div>
-            <div className="text-gray-500">
-              Vui lòng kiểm tra thông tin trước khi xác nhận
-            </div>
-          </div>
-        }
-        open={showConfirmModal}
-        onOk={handleConfirmJoin}
-        onCancel={() => setShowConfirmModal(false)}
-        okText="Xác nhận đăng ký"
-        cancelText="Hủy"
-        okButtonProps={{
-          className: "bg-purple-600 hover:bg-purple-700",
-          loading: joining,
-        }}
-      >
-        <div className="py-4">
-          <div className="bg-purple-50 rounded-lg p-6 mb-4">
-            <div className="text-center">
-              <div className="text-xl font-bold text-purple-600 mb-2">
-                Phí giữ chỗ (10%)
-              </div>
-              <div className="text-3xl font-bold text-purple-700 mb-2">
-                {formatPrice(classData.price * 0.1)}
-              </div>
-            </div>
-            <Divider />
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span>Số dư hiện tại:</span>
-                <span className="font-medium">
-                  {formatPrice(walletBalance)}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>Số dư sau khi thanh toán:</span>
-                <span className="font-medium">
-                  {formatPrice(walletBalance - classData.price * 0.1)}
-                </span>
-              </div>
-            </div>
-          </div>
-          <Alert
-            message="Lưu ý"
-            description="Phí giữ chỗ sẽ được trừ ngay khi bạn xác nhận đăng ký. Phí này không được hoàn lại nếu bạn hủy đăng ký."
-            type="warning"
-            showIcon
-          />
-        </div>
-      </Modal>
-
       {/* Insufficient Balance Modal */}
       <Modal
         title={
@@ -688,13 +679,19 @@ const ClassDetail = () => {
               <div className="flex justify-between">
                 <span>Phí giữ chỗ cần thanh toán:</span>
                 <span className="font-medium">
-                  {formatPrice(classData.price * 0.1)}
+                  {formatPrice(classData.price * classData.totalDays * 0.1)}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span>Số tiền cần nạp thêm:</span>
                 <span className="font-medium text-red-600">
-                  {formatPrice(classData.price * 0.1 - walletBalance)}
+                  {formatPrice(
+                    Math.max(
+                      classData.price * classData.totalDays * 0.1 -
+                        walletBalance,
+                      0
+                    )
+                  )}
                 </span>
               </div>
             </div>
@@ -703,6 +700,76 @@ const ClassDetail = () => {
             message="Lưu ý"
             description="Bạn cần nạp đủ số tiền phí giữ chỗ để đăng ký tham gia lớp học."
             type="info"
+            showIcon
+          />
+        </div>
+      </Modal>
+
+      {/* Confirm Join Modal */}
+      <Modal
+        title={
+          <div className="text-center">
+            <div className="text-2xl font-bold text-purple-600 mb-2">
+              Xác nhận đăng ký lớp học
+            </div>
+            <div className="text-gray-500">
+              Vui lòng kiểm tra thông tin trước khi xác nhận
+            </div>
+          </div>
+        }
+        open={showConfirmModal}
+        onOk={handleConfirmJoin}
+        onCancel={() => setShowConfirmModal(false)}
+        okText="Xác nhận đăng ký"
+        cancelText="Hủy"
+        okButtonProps={{
+          className: "bg-purple-600 hover:bg-purple-700",
+          loading: joining,
+        }}
+      >
+        <div className="py-4">
+          <div className="bg-purple-50 rounded-lg p-6 mb-4">
+            <div className="text-center">
+              <div className="text-xl font-bold text-purple-600 mb-2">
+                Phí giữ chỗ (10%)
+              </div>
+              <div className="text-3xl font-bold text-purple-700 mb-2">
+                {formatPrice(classData.price * classData.totalDays * 0.1)}
+              </div>
+            </div>
+            <Divider />
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span>Số dư hiện tại:</span>
+                <span className="font-medium">
+                  {formatPrice(walletBalance)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>Số dư sau khi thanh toán:</span>
+                <span className="font-medium">
+                  {formatPrice(
+                    walletBalance - classData.price * classData.totalDays * 0.1
+                  )}
+                </span>
+              </div>
+            </div>
+          </div>
+          <Alert
+            message="Lưu ý"
+            description={
+              <div>
+                <p>
+                  Phí giữ chỗ (10%) sẽ được trừ ngay khi bạn xác nhận đăng ký.
+                  Phí này không được hoàn lại nếu bạn hủy đăng ký.
+                </p>
+                <p className="mt-2">
+                  Phần học phí còn lại (90%) sẽ được đóng trước khi bắt đầu khóa
+                  học.
+                </p>
+              </div>
+            }
+            type="warning"
             showIcon
           />
         </div>

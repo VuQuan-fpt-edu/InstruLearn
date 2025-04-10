@@ -183,14 +183,17 @@ const TransactionHistory = () => {
       dataIndex: "transactionDate",
       key: "transactionDate",
       render: (date) => (
-        <span>
-          <CalendarOutlined className="mr-2 text-blue-500" />
-          {dayjs(date).format("DD/MM/YYYY HH:mm")}
-        </span>
+        <div className="flex flex-col">
+          <Text className="font-medium">{dayjs(date).format("HH:mm")}</Text>
+          <Text type="secondary" className="text-xs">
+            {dayjs(date).format("DD/MM/YYYY")}
+          </Text>
+        </div>
       ),
       sorter: (a, b) =>
         new Date(b.transactionDate) - new Date(a.transactionDate),
       defaultSortOrder: "descend",
+      width: 100,
     },
     {
       title: "Loại giao dịch",
@@ -202,14 +205,18 @@ const TransactionHistory = () => {
         { text: "Thanh toán", value: "Payment" },
       ],
       onFilter: (value, record) => record.transactionType === value,
+      width: 120,
     },
     {
       title: "Mã giao dịch",
       dataIndex: "transactionId",
       key: "transactionId",
       render: (id) => (
-        <span className="text-gray-500">{id.substring(0, 8)}...</span>
+        <Text copyable className="text-gray-500">
+          {id.substring(0, 8)}...
+        </Text>
       ),
+      width: 150,
     },
     {
       title: "Trạng thái",
@@ -222,6 +229,7 @@ const TransactionHistory = () => {
         { text: "Thất bại", value: "Failed" },
       ],
       onFilter: (value, record) => record.status === value,
+      width: 120,
     },
     {
       title: "Số tiền",
@@ -230,19 +238,87 @@ const TransactionHistory = () => {
       render: (amount) => {
         const isPositive = amount > 0;
         return (
-          <span
-            className={`font-medium ${
-              isPositive ? "text-green-600" : "text-red-600"
-            }`}
-          >
-            {isPositive ? "+" : ""}
-            {amount.toLocaleString()} VNĐ
-          </span>
+          <div className="text-right">
+            <Text
+              strong
+              className={`text-base ${
+                isPositive ? "text-green-600" : "text-red-600"
+              }`}
+            >
+              {isPositive ? "+" : ""}
+              {amount.toLocaleString()} VNĐ
+            </Text>
+          </div>
         );
       },
       sorter: (a, b) => a.signedAmount - b.signedAmount,
+      align: "right",
+      width: 150,
     },
   ];
+
+  // Hàm nhóm giao dịch theo ngày
+  const groupTransactionsByDate = (transactions) => {
+    const groups = {};
+    transactions.forEach((transaction) => {
+      const date = dayjs(transaction.transactionDate).format("YYYY-MM-DD");
+      if (!groups[date]) {
+        groups[date] = [];
+      }
+      groups[date].push(transaction);
+    });
+    return groups;
+  };
+
+  // Render bảng giao dịch với nhóm theo ngày
+  const renderTransactionTable = () => {
+    if (filteredData.length === 0) {
+      return (
+        <Empty
+          description="Không có giao dịch nào"
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+        />
+      );
+    }
+
+    const groupedTransactions = groupTransactionsByDate(filteredData);
+    const sortedDates = Object.keys(groupedTransactions).sort((a, b) =>
+      b.localeCompare(a)
+    );
+
+    return (
+      <div className="space-y-6">
+        {sortedDates.map((date) => (
+          <div key={date} className="bg-white rounded-lg overflow-hidden">
+            <div className="bg-gray-50 px-4 py-2 border-b">
+              <Text strong>
+                {dayjs(date).format("DD/MM/YYYY")}
+                {dayjs(date).isSame(dayjs(), "day") && (
+                  <Tag color="blue" className="ml-2">
+                    Hôm nay
+                  </Tag>
+                )}
+                {dayjs(date).isSame(dayjs().subtract(1, "day"), "day") && (
+                  <Tag color="purple" className="ml-2">
+                    Hôm qua
+                  </Tag>
+                )}
+              </Text>
+            </div>
+            <Table
+              columns={columns}
+              dataSource={groupedTransactions[date]}
+              rowKey="transactionId"
+              pagination={false}
+              className="transaction-table"
+              scroll={{ x: true }}
+              rowClassName="hover:bg-purple-50 transition-colors duration-300"
+            />
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   if (error) {
     return (
@@ -351,36 +427,16 @@ const TransactionHistory = () => {
         </div>
 
         {/* Bảng giao dịch */}
-        <Spin spinning={loading}>
-          {filteredData.length > 0 ? (
-            <Table
-              columns={columns}
-              dataSource={filteredData}
-              rowKey="transactionId"
-              pagination={{
-                pageSize: 10,
-                showSizeChanger: true,
-                pageSizeOptions: ["10", "20", "50"],
-                showTotal: (total, range) =>
-                  `${range[0]}-${range[1]} của ${total} giao dịch`,
-              }}
-              className="transaction-table"
-              scroll={{ x: true }}
-              rowClassName="hover:bg-purple-50 transition-colors duration-300"
-            />
-          ) : (
-            <Empty
-              description="Không có giao dịch nào"
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-            />
-          )}
-        </Spin>
+        <Spin spinning={loading}>{renderTransactionTable()}</Spin>
       </Card>
 
       <style jsx global>{`
         .transaction-table .ant-table-thead > tr > th {
           background-color: #f3f4f6;
           font-weight: 600;
+        }
+        .transaction-table .ant-table {
+          margin: -1px;
         }
       `}</style>
     </div>

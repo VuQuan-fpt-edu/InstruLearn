@@ -19,6 +19,8 @@ import {
   Upload,
   Select,
   DatePicker,
+  Progress,
+  Typography,
 } from "antd";
 import {
   PlusOutlined,
@@ -33,14 +35,39 @@ import {
   CalendarOutlined,
   IdcardOutlined,
   UploadOutlined,
+  PictureOutlined,
+  FileImageOutlined,
 } from "@ant-design/icons";
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import AdminHeader from "../../components/admin/AdminHeader";
 import axios from "axios";
 import dayjs from "dayjs";
+import { initializeApp } from "firebase/app";
+import {
+  getStorage,
+  ref,
+  uploadBytesResumable,
+  getDownloadURL,
+} from "firebase/storage";
 
 const { Content } = Layout;
 const { Option } = Select;
+const { Text } = Typography;
+
+// Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyB4EaRe-CrB3u7lYm2HZmHqIjE6E_PtaFM",
+  authDomain: "sdn-project-aba8a.firebaseapp.com",
+  projectId: "sdn-project-aba8a",
+  storageBucket: "sdn-project-aba8a.appspot.com",
+  messagingSenderId: "953028355031",
+  appId: "1:953028355031:web:7dfc4f2a85c932e507e192",
+  measurementId: "G-63KQ2X3RCL",
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const storage = getStorage(app);
 
 const TeacherManagement = () => {
   const [teachers, setTeachers] = useState([]);
@@ -57,6 +84,11 @@ const TeacherManagement = () => {
   const [majorForm] = Form.useForm();
   const [updateMajorForm] = Form.useForm();
   const [avatarUrl, setAvatarUrl] = useState(null);
+  const [uploadFile, setUploadFile] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState("");
+  const [previewImage, setPreviewImage] = useState("");
 
   useEffect(() => {
     fetchTeachers();
@@ -79,6 +111,15 @@ const TeacherManagement = () => {
               .join(", "),
             majorIds: item.data.majors.map((major) => major.majorId),
             isBanned: item.data.isActive === 0,
+            email: item.data.email || "",
+            heading: item.data.heading || "Chưa cập nhật",
+            details: item.data.details || "Chưa cập nhật",
+            links: item.data.links || "",
+            phoneNumber: item.data.phoneNumber || "",
+            gender: item.data.gender || null,
+            address: item.data.address || "",
+            avatar: item.data.avatar || null,
+            dateOfEmployment: item.data.dateOfEmployment || null,
           }));
         setTeachers(validTeachers);
       } else {
@@ -144,7 +185,7 @@ const TeacherManagement = () => {
           const response = await axios.put(
             `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Teacher/update/${editingTeacher.teacherId}`,
             {
-              majors: values.majorIds.map((id) => ({ majorId: id })),
+              email: editingTeacher.email,
               heading: values.heading,
               details: values.details,
               links: values.links,
@@ -152,7 +193,6 @@ const TeacherManagement = () => {
               gender: values.gender,
               address: values.address,
               avatar: values.avatar,
-              dateOfEmployment: values.dateOfEmployment?.format("YYYY-MM-DD"),
             }
           );
           if (response.data.isSucceed) {
@@ -309,6 +349,79 @@ const TeacherManagement = () => {
     }
   };
 
+  const handleFileSelect = (e) => {
+    if (e.target.files[0]) {
+      const file = e.target.files[0];
+
+      // Validate file is an image
+      if (!file.type.startsWith("image/")) {
+        message.error("Vui lòng chỉ chọn file hình ảnh");
+        return;
+      }
+
+      // Validate file size (maximum 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        message.error("Kích thước file không được vượt quá 5MB");
+        return;
+      }
+
+      setUploadFile(file);
+
+      // Create a preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewImage(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleUploadImage = () => {
+    if (!uploadFile) {
+      message.error("Vui lòng chọn file hình ảnh trước");
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadProgress(0);
+    setUploadStatus("Đang tải ảnh lên...");
+
+    // Create a storage reference with a unique filename
+    const storageRef = ref(
+      storage,
+      `avatars/${editingTeacher?.teacherId}-${Date.now()}-${uploadFile.name}`
+    );
+
+    // Upload the file
+    const uploadTask = uploadBytesResumable(storageRef, uploadFile);
+
+    // Monitor upload progress
+    uploadTask.on(
+      "state_changed",
+      (snapshot) => {
+        const progress = Math.round(
+          (snapshot.bytesTransferred / snapshot.totalBytes) * 100
+        );
+        setUploadProgress(progress);
+      },
+      (error) => {
+        console.error("Upload error:", error);
+        message.error("Tải ảnh lên thất bại");
+        setUploadStatus("Tải ảnh thất bại");
+        setIsUploading(false);
+      },
+      () => {
+        // Upload complete, get download URL
+        getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+          form.setFieldsValue({ avatar: downloadURL });
+          setUploadStatus("Tải ảnh thành công!");
+          setIsUploading(false);
+          message.success("Tải ảnh lên thành công");
+        });
+      }
+    );
+  };
+
   const columns = [
     {
       title: "Họ và tên",
@@ -447,7 +560,192 @@ const TeacherManagement = () => {
             width={700}
           >
             <Form form={form} layout="vertical">
-              {!editingTeacher ? (
+              {editingTeacher ? (
+                <>
+                  <Form.Item
+                    name="heading"
+                    label="Kinh nghiệm"
+                    rules={[
+                      { required: true, message: "Vui lòng nhập kinh nghiệm!" },
+                    ]}
+                  >
+                    <Input placeholder="Ví dụ: Kinh nghiệm 10 năm giảng dạy" />
+                  </Form.Item>
+
+                  <Form.Item
+                    name="email"
+                    label="Email"
+                    rules={[
+                      { required: true, message: "Vui lòng nhập email!" },
+                      { type: "email", message: "Email không hợp lệ!" },
+                    ]}
+                  >
+                    <Input prefix={<MailOutlined />} placeholder="Nhập email" />
+                  </Form.Item>
+
+                  <Form.Item
+                    name="details"
+                    label="Mô tả"
+                    rules={[
+                      { required: true, message: "Vui lòng nhập mô tả!" },
+                    ]}
+                  >
+                    <Input.TextArea
+                      rows={4}
+                      placeholder="Nhập mô tả về giáo viên"
+                    />
+                  </Form.Item>
+
+                  <Form.Item
+                    name="links"
+                    label="Liên kết"
+                    rules={[
+                      { required: true, message: "Vui lòng nhập liên kết!" },
+                    ]}
+                  >
+                    <Input placeholder="Nhập liên kết (Facebook, YouTube, etc.)" />
+                  </Form.Item>
+
+                  <Form.Item
+                    name="phoneNumber"
+                    label="Số điện thoại"
+                    rules={[
+                      {
+                        required: true,
+                        message: "Vui lòng nhập số điện thoại!",
+                      },
+                      {
+                        pattern: /^[0-9]{10}$/,
+                        message: "Số điện thoại phải có 10 chữ số!",
+                      },
+                    ]}
+                  >
+                    <Input
+                      prefix={<PhoneOutlined />}
+                      placeholder="Nhập số điện thoại"
+                    />
+                  </Form.Item>
+
+                  <Form.Item
+                    name="gender"
+                    label="Giới tính"
+                    rules={[
+                      { required: true, message: "Vui lòng chọn giới tính!" },
+                    ]}
+                  >
+                    <Select placeholder="Chọn giới tính">
+                      <Option value="male">Nam</Option>
+                      <Option value="female">Nữ</Option>
+                    </Select>
+                  </Form.Item>
+
+                  <Form.Item
+                    name="address"
+                    label="Địa chỉ"
+                    rules={[
+                      { required: true, message: "Vui lòng nhập địa chỉ!" },
+                    ]}
+                  >
+                    <Input.TextArea
+                      rows={2}
+                      placeholder="Nhập địa chỉ của giáo viên"
+                    />
+                  </Form.Item>
+
+                  <Form.Item
+                    name="avatar"
+                    label="Ảnh đại diện"
+                    rules={[
+                      {
+                        required: true,
+                        message: "Vui lòng tải lên ảnh đại diện!",
+                      },
+                    ]}
+                    hidden={true}
+                  >
+                    <Input disabled />
+                  </Form.Item>
+
+                  <div className="mb-4 border rounded-lg p-4 bg-gray-50">
+                    <div className="flex items-center mb-3">
+                      <PictureOutlined className="mr-2 text-blue-600" />
+                      <Text strong>Tải ảnh đại diện</Text>
+                    </div>
+
+                    <div className="mb-3">
+                      <input
+                        type="file"
+                        onChange={handleFileSelect}
+                        accept="image/*"
+                        className="block w-full text-sm border border-gray-300 rounded-md p-2 hover:border-blue-500 transition-colors"
+                      />
+                    </div>
+
+                    {uploadFile && !isUploading && (
+                      <Button
+                        type="primary"
+                        onClick={handleUploadImage}
+                        icon={<UploadOutlined />}
+                        block
+                        className="rounded-md"
+                      >
+                        Tải ảnh lên
+                      </Button>
+                    )}
+
+                    {isUploading && (
+                      <div className="mt-2">
+                        <Progress
+                          percent={uploadProgress}
+                          size="small"
+                          status="active"
+                          strokeColor="#1890ff"
+                        />
+                        <Text
+                          type="secondary"
+                          className="block mt-1 text-center"
+                        >
+                          {uploadStatus}
+                        </Text>
+                      </div>
+                    )}
+
+                    {uploadStatus === "Tải ảnh thành công!" && !isUploading && (
+                      <div className="mt-2">
+                        <Text type="success">
+                          Ảnh đã được tải lên thành công!
+                        </Text>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-4">
+                    {previewImage || editingTeacher?.avatar ? (
+                      <div className="text-center">
+                        <img
+                          src={previewImage || editingTeacher?.avatar}
+                          alt="Preview"
+                          className="max-w-full h-auto border rounded-lg shadow-sm"
+                          style={{ maxHeight: "200px" }}
+                        />
+                        <Text type="secondary" className="block mt-2">
+                          Xem trước ảnh đại diện
+                        </Text>
+                      </div>
+                    ) : (
+                      <div
+                        className="border rounded-lg flex items-center justify-center bg-gray-50"
+                        style={{ height: "200px" }}
+                      >
+                        <div className="text-center text-gray-400">
+                          <FileImageOutlined style={{ fontSize: "32px" }} />
+                          <p>Chưa có ảnh xem trước</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
                 <>
                   <Form.Item
                     name="fullname"
@@ -555,74 +853,6 @@ const TeacherManagement = () => {
                       ))}
                     </Select>
                   </Form.Item>
-                </>
-              ) : (
-                <>
-                  <Form.Item
-                    name="heading"
-                    label="Kinh nghiệm"
-                    rules={[
-                      { required: true, message: "Vui lòng nhập kinh nghiệm!" },
-                    ]}
-                  >
-                    <Input placeholder="Ví dụ: Kinh nghiệm 10 năm giảng dạy" />
-                  </Form.Item>
-
-                  <Form.Item
-                    name="details"
-                    label="Mô tả"
-                    rules={[
-                      { required: true, message: "Vui lòng nhập mô tả!" },
-                    ]}
-                  >
-                    <Input.TextArea
-                      rows={4}
-                      placeholder="Nhập mô tả về giáo viên"
-                    />
-                  </Form.Item>
-
-                  <Form.Item
-                    name="links"
-                    label="Liên kết"
-                    rules={[
-                      { required: true, message: "Vui lòng nhập liên kết!" },
-                    ]}
-                  >
-                    <Input placeholder="Nhập liên kết (Facebook, YouTube, etc.)" />
-                  </Form.Item>
-
-                  <Form.Item
-                    name="phoneNumber"
-                    label="Số điện thoại"
-                    rules={[
-                      {
-                        required: true,
-                        message: "Vui lòng nhập số điện thoại!",
-                      },
-                      {
-                        pattern: /^[0-9]{10}$/,
-                        message: "Số điện thoại phải có 10 chữ số!",
-                      },
-                    ]}
-                  >
-                    <Input
-                      prefix={<PhoneOutlined />}
-                      placeholder="Nhập số điện thoại"
-                    />
-                  </Form.Item>
-
-                  <Form.Item
-                    name="gender"
-                    label="Giới tính"
-                    rules={[
-                      { required: true, message: "Vui lòng chọn giới tính!" },
-                    ]}
-                  >
-                    <Select placeholder="Chọn giới tính">
-                      <Option value="male">Nam</Option>
-                      <Option value="female">Nữ</Option>
-                    </Select>
-                  </Form.Item>
 
                   <Form.Item
                     name="address"
@@ -646,9 +876,89 @@ const TeacherManagement = () => {
                         message: "Vui lòng tải lên ảnh đại diện!",
                       },
                     ]}
+                    hidden={true}
                   >
-                    <Input placeholder="Nhập đường dẫn ảnh đại diện" />
+                    <Input disabled />
                   </Form.Item>
+
+                  <div className="mb-4 border rounded-lg p-4 bg-gray-50">
+                    <div className="flex items-center mb-3">
+                      <PictureOutlined className="mr-2 text-blue-600" />
+                      <Text strong>Tải ảnh đại diện</Text>
+                    </div>
+
+                    <div className="mb-3">
+                      <input
+                        type="file"
+                        onChange={handleFileSelect}
+                        accept="image/*"
+                        className="block w-full text-sm border border-gray-300 rounded-md p-2 hover:border-blue-500 transition-colors"
+                      />
+                    </div>
+
+                    {uploadFile && !isUploading && (
+                      <Button
+                        type="primary"
+                        onClick={handleUploadImage}
+                        icon={<UploadOutlined />}
+                        block
+                        className="rounded-md"
+                      >
+                        Tải ảnh lên
+                      </Button>
+                    )}
+
+                    {isUploading && (
+                      <div className="mt-2">
+                        <Progress
+                          percent={uploadProgress}
+                          size="small"
+                          status="active"
+                          strokeColor="#1890ff"
+                        />
+                        <Text
+                          type="secondary"
+                          className="block mt-1 text-center"
+                        >
+                          {uploadStatus}
+                        </Text>
+                      </div>
+                    )}
+
+                    {uploadStatus === "Tải ảnh thành công!" && !isUploading && (
+                      <div className="mt-2">
+                        <Text type="success">
+                          Ảnh đã được tải lên thành công!
+                        </Text>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-4">
+                    {previewImage || editingTeacher?.avatar ? (
+                      <div className="text-center">
+                        <img
+                          src={previewImage || editingTeacher?.avatar}
+                          alt="Preview"
+                          className="max-w-full h-auto border rounded-lg shadow-sm"
+                          style={{ maxHeight: "200px" }}
+                        />
+                        <Text type="secondary" className="block mt-2">
+                          Xem trước ảnh đại diện
+                        </Text>
+                      </div>
+                    ) : (
+                      <div
+                        className="border rounded-lg flex items-center justify-center bg-gray-50"
+                        style={{ height: "200px" }}
+                      >
+                        <div className="text-center text-gray-400">
+                          <FileImageOutlined style={{ fontSize: "32px" }} />
+                          <p>Chưa có ảnh xem trước</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </>
               )}
             </Form>
@@ -691,7 +1001,19 @@ const TeacherManagement = () => {
             {selectedTeacher && (
               <>
                 <div className="text-center mb-6">
-                  <Avatar size={100} icon={<UserOutlined />} />
+                  {selectedTeacher.avatar ? (
+                    <Avatar
+                      size={100}
+                      src={selectedTeacher.avatar}
+                      className="border-2 border-gray-200 shadow-md"
+                    />
+                  ) : (
+                    <Avatar
+                      size={100}
+                      icon={<UserOutlined />}
+                      className="bg-purple-500"
+                    />
+                  )}
                   <h2 className="text-xl font-semibold mt-3">
                     {selectedTeacher.fullname}
                   </h2>
@@ -702,6 +1024,22 @@ const TeacherManagement = () => {
 
                 <Card title="Thông tin chi tiết" bordered={false}>
                   <Descriptions column={1}>
+                    <Descriptions.Item label="Email">
+                      {selectedTeacher.email}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Số điện thoại">
+                      {selectedTeacher.phoneNumber}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Giới tính">
+                      {selectedTeacher.gender === "male"
+                        ? "Nam"
+                        : selectedTeacher.gender === "female"
+                        ? "Nữ"
+                        : "Chưa cập nhật"}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Địa chỉ">
+                      {selectedTeacher.address || "Chưa cập nhật"}
+                    </Descriptions.Item>
                     <Descriptions.Item label="Kinh nghiệm">
                       {selectedTeacher.heading || "Chưa cập nhật"}
                     </Descriptions.Item>
@@ -709,7 +1047,18 @@ const TeacherManagement = () => {
                       {selectedTeacher.details || "Chưa cập nhật"}
                     </Descriptions.Item>
                     <Descriptions.Item label="Liên kết">
-                      {selectedTeacher.links || "Chưa cập nhật"}
+                      {selectedTeacher.links ? (
+                        <a
+                          href={selectedTeacher.links}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-800"
+                        >
+                          {selectedTeacher.links}
+                        </a>
+                      ) : (
+                        "Chưa cập nhật"
+                      )}
                     </Descriptions.Item>
                   </Descriptions>
                 </Card>

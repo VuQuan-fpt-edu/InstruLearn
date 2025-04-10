@@ -129,36 +129,13 @@ const MySchedule = () => {
     return {};
   };
 
-  const dateCellRender = (value, schedules) => {
-    const date = value.format("YYYY-MM-DD");
-    const daySchedules = schedules.filter(
-      (schedule) => schedule.startDay === date
-    );
-
-    if (daySchedules.length === 0) return null;
-
-    return (
-      <div className="h-full">
-        <div className="bg-blue-50 rounded-lg p-2 text-center">
-          <div className="text-blue-600 font-medium">
-            {daySchedules.length} buổi học
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const convertDayToVietnamese = (day) => {
-    const dayMap = {
-      Monday: "Thứ 2",
-      Tuesday: "Thứ 3",
-      Wednesday: "Thứ 4",
-      Thursday: "Thứ 5",
-      Friday: "Thứ 6",
-      Saturday: "Thứ 7",
-      Sunday: "Chủ nhật",
+  const getAttendanceStatus = (status) => {
+    const statusMap = {
+      0: { color: "default", text: "Chưa điểm danh" },
+      1: { color: "success", text: "Có mặt" },
+      2: { color: "error", text: "Vắng mặt" },
     };
-    return dayMap[day] || day;
+    return statusMap[status] || { color: "default", text: "Không xác định" };
   };
 
   const renderScheduleContent = (schedules) => {
@@ -167,9 +144,20 @@ const MySchedule = () => {
         <div className="space-y-2">
           {schedules.map((schedule) => (
             <div key={schedule.scheduleId} className="border rounded p-2">
-              <div className="flex items-center mb-1">
-                <Avatar icon={<UserOutlined />} size="small" className="mr-2" />
-                <div className="font-medium">{schedule.teacherName}</div>
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center">
+                  <Avatar
+                    icon={<UserOutlined />}
+                    size="small"
+                    className="mr-2"
+                  />
+                  <div className="font-medium">{schedule.teacherName}</div>
+                </div>
+                <Tag
+                  color={getAttendanceStatus(schedule.attendanceStatus).color}
+                >
+                  {getAttendanceStatus(schedule.attendanceStatus).text}
+                </Tag>
               </div>
               <div className="text-sm text-gray-600">
                 <Tag color="blue">
@@ -197,6 +185,67 @@ const MySchedule = () => {
         </div>
       </div>
     );
+  };
+
+  const dateCellRender = (value, schedules) => {
+    const date = value.format("YYYY-MM-DD");
+    const daySchedules = schedules.filter(
+      (schedule) => schedule.startDay === date
+    );
+
+    if (daySchedules.length === 0) return null;
+
+    const hasAttendance = daySchedules.some(
+      (schedule) => schedule.attendanceStatus > 0
+    );
+    const allPresent = daySchedules.every(
+      (schedule) => schedule.attendanceStatus === 1
+    );
+    const allAbsent = daySchedules.every(
+      (schedule) => schedule.attendanceStatus === 2
+    );
+
+    let bgColor = "bg-blue-50";
+    if (hasAttendance) {
+      bgColor = allPresent
+        ? "bg-green-50"
+        : allAbsent
+        ? "bg-red-50"
+        : "bg-yellow-50";
+    }
+
+    return (
+      <div className="h-full">
+        <div className={`${bgColor} rounded-lg p-2 text-center`}>
+          <div
+            className={`${
+              hasAttendance
+                ? allPresent
+                  ? "text-green-600"
+                  : allAbsent
+                  ? "text-red-600"
+                  : "text-yellow-600"
+                : "text-blue-600"
+            } font-medium`}
+          >
+            {daySchedules.length} buổi học
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const convertDayToVietnamese = (day) => {
+    const dayMap = {
+      Monday: "Thứ 2",
+      Tuesday: "Thứ 3",
+      Wednesday: "Thứ 4",
+      Thursday: "Thứ 5",
+      Friday: "Thứ 6",
+      Saturday: "Thứ 7",
+      Sunday: "Chủ nhật",
+    };
+    return dayMap[day] || day;
   };
 
   const getFilteredSchedules = () => {
@@ -314,8 +363,32 @@ const MySchedule = () => {
             <span className="ml-2">Học tại trung tâm</span>
           </div>
           <div className="flex items-center">
+            <Tag color="success">Có mặt</Tag>
+            <span className="ml-2">Đã điểm danh có mặt</span>
+          </div>
+          <div className="flex items-center">
+            <Tag color="error">Vắng mặt</Tag>
+            <span className="ml-2">Đã điểm danh vắng mặt</span>
+          </div>
+          <div className="flex items-center">
+            <Tag>Chưa điểm danh</Tag>
+            <span className="ml-2">Chưa được điểm danh</span>
+          </div>
+          <div className="flex items-center">
             <div className="w-5 h-5 bg-blue-50 rounded mr-2"></div>
-            <span>Ngày có lịch học</span>
+            <span>Ngày có lịch học (chưa điểm danh)</span>
+          </div>
+          <div className="flex items-center">
+            <div className="w-5 h-5 bg-green-50 rounded mr-2"></div>
+            <span>Ngày có mặt đầy đủ</span>
+          </div>
+          <div className="flex items-center">
+            <div className="w-5 h-5 bg-red-50 rounded mr-2"></div>
+            <span>Ngày vắng mặt</span>
+          </div>
+          <div className="flex items-center">
+            <div className="w-5 h-5 bg-yellow-50 rounded mr-2"></div>
+            <span>Ngày có cả buổi có mặt và vắng mặt</span>
           </div>
         </div>
       </Card>
