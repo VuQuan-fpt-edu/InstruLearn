@@ -32,8 +32,38 @@ const InstrumentManagement = () => {
     fetchInstruments();
   }, []);
 
+  const checkNameExists = async (name) => {
+    try {
+      const existingInstruments = await axios.get(
+        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/CourseType/get-all"
+      );
+
+      return existingInstruments.data.data.some(
+        (instrument) =>
+          instrument.courseTypeName.toLowerCase() === name.toLowerCase() &&
+          (!editingInstrument ||
+            instrument.courseTypeId !== editingInstrument.courseTypeId)
+      );
+    } catch (error) {
+      console.error("Lỗi khi kiểm tra tên nhạc cụ:", error);
+      return false;
+    }
+  };
+
   const handleAddOrUpdate = async (values) => {
     try {
+      const isNameExists = await checkNameExists(values.courseTypeName);
+
+      if (isNameExists) {
+        form.setFields([
+          {
+            name: "courseTypeName",
+            errors: ["Tên nhạc cụ này đã tồn tại!"],
+          },
+        ]);
+        return;
+      }
+
       if (editingInstrument) {
         await axios.put(
           `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/CourseType/update/${editingInstrument.courseTypeId}`,
@@ -148,14 +178,30 @@ const InstrumentManagement = () => {
       <Modal
         title={editingInstrument ? "Chỉnh sửa Nhạc Cụ" : "Thêm Nhạc Cụ"}
         open={isModalOpen}
-        onCancel={() => setIsModalOpen(false)}
+        onCancel={() => {
+          setIsModalOpen(false);
+          form.resetFields();
+        }}
         onOk={() => form.submit()}
       >
         <Form form={form} layout="vertical" onFinish={handleAddOrUpdate}>
           <Form.Item
             name="courseTypeName"
             label="Tên nhạc cụ"
-            rules={[{ required: true, message: "Vui lòng nhập tên nhạc cụ" }]}
+            rules={[
+              { required: true, message: "Vui lòng nhập tên nhạc cụ" },
+              {
+                validator: async (_, value) => {
+                  if (value) {
+                    const exists = await checkNameExists(value);
+                    if (exists) {
+                      throw new Error("Tên nhạc cụ này đã tồn tại!");
+                    }
+                  }
+                },
+              },
+            ]}
+            validateTrigger="onBlur"
           >
             <Input />
           </Form.Item>
