@@ -161,7 +161,7 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
     try {
       final response = await http.post(
         Uri.parse(
-          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/LearningRegis/join-class',
+          'https://instrulearnapplication.azurewebsites.net/api/LearningRegis/join-class',
         ),
         headers: {
           'Content-Type': 'application/json',
@@ -258,7 +258,7 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
 
       final response = await http.get(
         Uri.parse(
-            'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Class/${widget.classId}'),
+            'https://instrulearnapplication.azurewebsites.net/api/Class/${widget.classId}'),
       );
 
       if (response.statusCode == 200) {

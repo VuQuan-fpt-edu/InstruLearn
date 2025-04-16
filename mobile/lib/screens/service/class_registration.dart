@@ -130,7 +130,7 @@ class _ClassRegistrationScreenState extends State<ClassRegistrationScreen> {
     try {
       final response = await http.get(
         Uri.parse(
-            'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Major/get-all'),
+            'https://instrulearnapplication.azurewebsites.net/api/Major/get-all'),
       );
 
       if (response.statusCode == 200) {
@@ -159,7 +159,7 @@ class _ClassRegistrationScreenState extends State<ClassRegistrationScreen> {
 
       final response = await http.get(
         Uri.parse(
-            'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Class/get-all'),
+            'https://instrulearnapplication.azurewebsites.net/api/Class/get-all'),
       );
 
       if (response.statusCode == 200) {

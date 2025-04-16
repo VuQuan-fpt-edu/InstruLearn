@@ -93,7 +93,7 @@ class _WalletScreenState extends State<WalletScreen> {
 
       final response = await http.get(
         Uri.parse(
-          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/wallet/${widget.learnerId}',
+          'https://instrulearnapplication.azurewebsites.net/api/wallet/${widget.learnerId}',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
@@ -129,7 +129,7 @@ class _WalletScreenState extends State<WalletScreen> {
 
       final response = await http.get(
         Uri.parse(
-          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/WalletTransactions/wallet/${widget.learnerId}',
+          'https://instrulearnapplication.azurewebsites.net/api/WalletTransactions/wallet/${widget.learnerId}',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
@@ -311,7 +311,7 @@ class _WalletScreenState extends State<WalletScreen> {
     try {
       final response = await http.post(
         Uri.parse(
-          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/wallet/add-funds',
+          'https://instrulearnapplication.azurewebsites.net/api/wallet/add-funds',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
@@ -366,7 +366,7 @@ class _WalletScreenState extends State<WalletScreen> {
     try {
       final response = await http.post(
         Uri.parse(
-          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/wallet/add-funds-vnpay',
+          'https://instrulearnapplication.azurewebsites.net/api/wallet/add-funds-vnpay',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
@@ -442,7 +442,7 @@ class _WalletScreenState extends State<WalletScreen> {
 
       final response = await http.post(
         Uri.parse(
-          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/wallet/withdraw',
+          'https://instrulearnapplication.azurewebsites.net/api/wallet/withdraw',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',

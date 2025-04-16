@@ -41,7 +41,7 @@ class _LearnerScheduleCenterScreenState
 
       final response = await http.get(
         Uri.parse(
-          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Schedules/learner/$learnerId/class',
+          'https://instrulearnapplication.azurewebsites.net/api/Schedules/learner/$learnerId/class',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',

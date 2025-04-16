@@ -28,6 +28,10 @@ class LearningRegistration {
   final int? score;
   final String? levelAssigned;
   final String? feedback;
+  final int? remainingAmount;
+  final String? acceptedDate;
+  final String? paymentDeadline;
+  final int? daysRemaining;
 
   LearningRegistration({
     required this.learningRegisId,
@@ -59,6 +63,10 @@ class LearningRegistration {
     this.score,
     this.levelAssigned,
     this.feedback,
+    this.remainingAmount,
+    this.acceptedDate,
+    this.paymentDeadline,
+    this.daysRemaining,
   });
 
   factory LearningRegistration.fromJson(Map<String, dynamic> json) {
@@ -96,6 +104,14 @@ class LearningRegistration {
       score: json['score'] != null ? _parseIntValue(json['score']) : null,
       levelAssigned: json['levelAssigned'],
       feedback: json['feedback'],
+      remainingAmount: json['remainingAmount'] != null
+          ? _parseIntValue(json['remainingAmount'])
+          : null,
+      acceptedDate: json['acceptedDate'],
+      paymentDeadline: json['paymentDeadline'],
+      daysRemaining: json['daysRemaining'] != null
+          ? _parseIntValue(json['daysRemaining'])
+          : null,
     );
   }
 

@@ -52,7 +52,7 @@ class _CartScreenState extends State<CartScreen> {
 
       final response = await http.get(
         Uri.parse(
-          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/wallet/$learnerId',
+          'https://instrulearnapplication.azurewebsites.net/api/wallet/$learnerId',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
@@ -124,7 +124,7 @@ class _CartScreenState extends State<CartScreen> {
 
       final response = await http.post(
         Uri.parse(
-            'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/PurchaseItem/create'),
+            'https://instrulearnapplication.azurewebsites.net/api/PurchaseItem/create'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',

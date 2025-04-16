@@ -52,7 +52,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
       final response = await http.put(
         Uri.parse(
-          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/wallet/update-payment-status-by-ordercode',
+          'https://instrulearnapplication.azurewebsites.net/api/wallet/update-payment-status-by-ordercode',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',

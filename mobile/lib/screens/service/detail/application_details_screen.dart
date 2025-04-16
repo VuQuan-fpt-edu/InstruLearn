@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 import '../../../models/learning_registration.dart';
+import '../../../models/learning_path_session.dart';
+import '../../../services/learning_path_session_service.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -28,6 +30,11 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
   VideoPlayerController? _videoController;
   ChewieController? _chewieController;
   bool _isVideoInitialized = false;
+  final LearningPathSessionService _learningPathSessionService =
+      LearningPathSessionService();
+  List<LearningPathSession> _learningPathSessions = [];
+  bool _isLoadingSessions = true;
+  String? _sessionError;
 
   String _getStatusText(String status) {
     switch (status.toLowerCase()) {
@@ -50,6 +57,7 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
   void initState() {
     super.initState();
     _initializeVideo();
+    _loadLearningPathSessions();
   }
 
   Future<void> _initializeVideo() async {
@@ -233,6 +241,8 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
                     const SizedBox(height: 16),
                     _buildLearningInfo(),
                     const SizedBox(height: 16),
+                    _buildLearningPathSessions(),
+                    const SizedBox(height: 16),
                     if (widget.registration.score != null) ...[
                       _buildAssessmentInfo(),
                       const SizedBox(height: 16),
@@ -255,6 +265,63 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
                       const SizedBox(height: 8),
                       Text(
                           'Tổng học phí: ${_formatCurrency(widget.registration.price)} VNĐ'),
+                      if (widget.registration.remainingAmount != null)
+                        Text(
+                          'Số tiền còn lại cần thanh toán: ${_formatCurrency(widget.registration.remainingAmount)} VNĐ',
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      if (widget.registration.acceptedDate != null)
+                        Text(
+                            'Ngày duyệt đơn: ${widget.registration.acceptedDate!.split('T')[0]}'),
+                      if (widget.registration.paymentDeadline != null)
+                        Text(
+                            'Hạn thanh toán: ${widget.registration.paymentDeadline!.split('T')[0]}'),
+                      if (widget.registration.daysRemaining != null)
+                        Container(
+                          margin: const EdgeInsets.only(top: 8),
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: widget.registration.daysRemaining! <= 3
+                                ? Colors.red[50]
+                                : Colors.blue[50],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: widget.registration.daysRemaining! <= 3
+                                  ? Colors.red
+                                  : Colors.blue,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                widget.registration.daysRemaining! <= 3
+                                    ? Icons.warning
+                                    : Icons.info_outline,
+                                color: widget.registration.daysRemaining! <= 3
+                                    ? Colors.red
+                                    : Colors.blue,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  widget.registration.daysRemaining! <= 3
+                                      ? 'Còn ${widget.registration.daysRemaining} ngày để thanh toán học phí!'
+                                      : 'Còn ${widget.registration.daysRemaining} ngày để thanh toán học phí',
+                                  style: TextStyle(
+                                    color:
+                                        widget.registration.daysRemaining! <= 3
+                                            ? Colors.red
+                                            : Colors.blue,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       if (widget.registration.regisTypeId == 1) ...[
                         if (widget.status == 'Accepted') ...[
                           Text(
@@ -742,7 +809,7 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
       // Gọi API lấy số dư
       final walletResponse = await http.get(
         Uri.parse(
-          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/wallet/$learnerId',
+          'https://instrulearnapplication.azurewebsites.net/api/wallet/$learnerId',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
@@ -852,7 +919,7 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
       // Gọi API thanh toán
       final paymentResponse = await http.post(
         Uri.parse(
-          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Payment/process-learning-payment',
+          'https://instrulearnapplication.azurewebsites.net/api/Payment/process-learning-payment',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
@@ -937,7 +1004,7 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
       // Gọi API lấy số dư
       final walletResponse = await http.get(
         Uri.parse(
-          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/wallet/$learnerId',
+          'https://instrulearnapplication.azurewebsites.net/api/wallet/$learnerId',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
@@ -1044,7 +1111,7 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
       // Gọi API thanh toán 60% còn lại
       final paymentResponse = await http.post(
         Uri.parse(
-          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Payment/process-remaining-payment/${widget.registration.learningRegisId}',
+          'https://instrulearnapplication.azurewebsites.net/api/Payment/process-remaining-payment/${widget.registration.learningRegisId}',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
@@ -1069,5 +1136,110 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
       Navigator.pop(context);
       _showErrorMessage('Lỗi: ${e.toString()}');
     }
+  }
+
+  Future<void> _loadLearningPathSessions() async {
+    try {
+      setState(() {
+        _isLoadingSessions = true;
+        _sessionError = null;
+      });
+
+      final sessions =
+          await _learningPathSessionService.getLearningPathSessions(
+        widget.registration.learningRegisId,
+      );
+
+      setState(() {
+        _learningPathSessions = sessions;
+        _isLoadingSessions = false;
+      });
+    } catch (e) {
+      setState(() {
+        _sessionError = e.toString();
+        _isLoadingSessions = false;
+      });
+    }
+  }
+
+  Widget _buildLearningPathSessions() {
+    if (_isLoadingSessions) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_sessionError != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'Lỗi: $_sessionError',
+              style: const TextStyle(color: Colors.red),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadLearningPathSessions,
+              child: const Text('Thử lại'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_learningPathSessions.isEmpty) {
+      return const Center(
+        child: Text(
+          'Chưa có thông tin về các buổi học',
+          style: TextStyle(color: Colors.grey),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Giáo trình học tập:',
+          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: _learningPathSessions.length,
+          itemBuilder: (context, index) {
+            final session = _learningPathSessions[index];
+            return Card(
+              margin: const EdgeInsets.only(bottom: 8),
+              child: ListTile(
+                leading: CircleAvatar(
+                  backgroundColor:
+                      session.isCompleted ? Colors.green : Colors.blue,
+                  child: Icon(
+                    session.isCompleted ? Icons.check : Icons.schedule,
+                    color: Colors.white,
+                  ),
+                ),
+                title: Text(
+                  session.title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                subtitle: Text(session.description),
+                trailing: Text(
+                  'Buổi ${session.sessionNumber}',
+                  style: TextStyle(
+                    color: session.isCompleted ? Colors.green : Colors.blue,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ],
+    );
   }
 }

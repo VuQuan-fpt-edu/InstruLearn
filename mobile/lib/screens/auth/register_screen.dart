@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'verify_email.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({Key? key}) : super(key: key);
@@ -41,7 +42,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       try {
         final response = await http.post(
           Uri.parse(
-            'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Auth/Register',
+            'https://instrulearnapplication.azurewebsites.net/api/Auth/Register',
           ),
           headers: <String, String>{
             'Content-Type': 'application/json; charset=UTF-8',
@@ -62,10 +63,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
         if (response.statusCode == 200 || response.statusCode == 201) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Đăng ký thành công! Vui lòng đăng nhập.'),
+              content: Text('Đăng ký thành công! Vui lòng xác minh email.'),
             ),
           );
-          _navigateToLogin();
+          _navigateToVerifyEmail();
         } else {
           final errorData = json.decode(response.body);
           String errorMessage = 'Đăng ký thất bại. Vui lòng thử lại.';
@@ -107,6 +108,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   void _navigateToLogin() {
     Navigator.of(context).pop();
+  }
+
+  void _navigateToVerifyEmail() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => VerifyEmailScreen(email: _emailController.text),
+      ),
+    );
   }
 
   @override

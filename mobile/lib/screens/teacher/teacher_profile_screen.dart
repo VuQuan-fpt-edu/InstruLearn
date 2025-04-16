@@ -33,7 +33,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
 
       final response = await http.get(
         Uri.parse(
-          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Auth/Profile',
+          'https://instrulearnapplication.azurewebsites.net/api/Auth/Profile',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',

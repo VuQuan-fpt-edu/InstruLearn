@@ -43,6 +43,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String fullName = 'Loading...';
   String email = 'Loading...';
   String username = 'Loading...';
+  String avatar = '';
   bool isLoading = true;
   int _currentIndex = 0;
   int learnerId = 0;
@@ -72,7 +73,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
       final response = await http.get(
         Uri.parse(
-          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Auth/Profile',
+          'https://instrulearnapplication.azurewebsites.net/api/Auth/Profile',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
@@ -92,6 +93,7 @@ class _HomeScreenState extends State<HomeScreen> {
             fullName = data['data']['fullName'] ?? 'Không có thông tin';
             email = data['data']['email'] ?? 'Không có thông tin';
             username = data['data']['username'] ?? 'Không có thông tin';
+            avatar = data['data']['avatar'] ?? '';
             isLoading = false;
           });
         } else {
@@ -142,7 +144,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
       final response = await http.get(
         Uri.parse(
-          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/wallet/$learnerId',
+          'https://instrulearnapplication.azurewebsites.net/api/wallet/$learnerId',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
@@ -346,17 +348,38 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       child: isLoading
                           ? const CircularProgressIndicator()
-                          : Center(
-                              child: Text(
-                                username.isNotEmpty
-                                    ? username[0].toUpperCase()
-                                    : 'U',
-                                style: const TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
+                          : avatar.isNotEmpty
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(15),
+                                  child: Image.network(
+                                    avatar,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Center(
+                                        child: Text(
+                                          username.isNotEmpty
+                                              ? username[0].toUpperCase()
+                                              : 'U',
+                                          style: const TextStyle(
+                                            fontSize: 24,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                )
+                              : Center(
+                                  child: Text(
+                                    username.isNotEmpty
+                                        ? username[0].toUpperCase()
+                                        : 'U',
+                                    style: const TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ),
                     ),
                   ],
                 ),
@@ -560,6 +583,7 @@ class _HomeScreenState extends State<HomeScreen> {
               setState(() {
                 _currentIndex = 0;
               });
+              _fetchUserProfile();
             });
           }
         },

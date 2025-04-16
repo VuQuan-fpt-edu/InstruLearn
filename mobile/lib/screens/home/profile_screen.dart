@@ -34,7 +34,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       final response = await http.get(
         Uri.parse(
-          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Auth/Profile',
+          'https://instrulearnapplication.azurewebsites.net/api/Auth/Profile',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
@@ -153,17 +153,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(50),
                           ),
-                          child: Center(
-                            child: Text(
-                              userProfile['username']?.isNotEmpty == true
-                                  ? userProfile['username'][0].toUpperCase()
-                                  : 'U',
-                              style: const TextStyle(
-                                fontSize: 36,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
+                          child: userProfile['avatar']?.isNotEmpty == true
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(50),
+                                  child: Image.network(
+                                    userProfile['avatar'],
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Center(
+                                        child: Text(
+                                          userProfile['username']?.isNotEmpty ==
+                                                  true
+                                              ? userProfile['username'][0]
+                                                  .toUpperCase()
+                                              : 'U',
+                                          style: const TextStyle(
+                                            fontSize: 36,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                )
+                              : Center(
+                                  child: Text(
+                                    userProfile['username']?.isNotEmpty == true
+                                        ? userProfile['username'][0]
+                                            .toUpperCase()
+                                        : 'U',
+                                    style: const TextStyle(
+                                      fontSize: 36,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
                         ),
                         const SizedBox(height: 15),
                         Text(
@@ -320,14 +344,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _buildActionButton(
             icon: Icons.edit,
             title: 'Chỉnh sửa thông tin',
-            onTap: () {
-              Navigator.push(
+            onTap: () async {
+              await Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (context) =>
                       UpdateProfileScreen(userData: userProfile),
                 ),
-              ).then((_) => _fetchUserProfile());
+              );
+              setState(() {
+                isLoading = true;
+              });
+              await _fetchUserProfile();
             },
           ),
           const SizedBox(height: 10),

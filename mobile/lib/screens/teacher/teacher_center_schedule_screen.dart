@@ -41,7 +41,7 @@ class _TeacherCenterScheduleScreenState
 
       final response = await http.get(
         Uri.parse(
-          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Schedules/teacher/$teacherId/classs',
+          'https://instrulearnapplication.azurewebsites.net/api/Schedules/teacher/$teacherId/classs',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
@@ -876,7 +876,7 @@ class _TeacherCenterScheduleScreenState
 
       final response = await http.put(
         Uri.parse(
-          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Schedules/update-attendance/$scheduleId',
+          'https://instrulearnapplication.azurewebsites.net/api/Schedules/update-attendance/$scheduleId',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',

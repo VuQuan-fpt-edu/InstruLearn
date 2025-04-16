@@ -5,7 +5,7 @@ import '../models/schedule.dart';
 
 class ScheduleService {
   final String _baseUrl =
-      'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api';
+      'https://instrulearnapplication.azurewebsites.net/api';
 
   Future<List<Schedule>> getTeacherSchedules(int teacherId) async {
     try {
@@ -18,7 +18,7 @@ class ScheduleService {
 
       final response = await http.get(
         Uri.parse(
-          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Schedules/teacher/$teacherId/register',
+          'https://instrulearnapplication.azurewebsites.net/api/Schedules/teacher/$teacherId/register',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
@@ -54,7 +54,7 @@ class ScheduleService {
 
       final response = await http.get(
         Uri.parse(
-          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Schedules/learner/$learnerId/schedules',
+          'https://instrulearnapplication.azurewebsites.net/api/Schedules/learner/$learnerId/schedules',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',

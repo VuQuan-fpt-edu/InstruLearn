@@ -120,7 +120,7 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
 
       final response = await http.get(
         Uri.parse(
-          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Auth/Profile',
+          'https://instrulearnapplication.azurewebsites.net/api/Auth/Profile',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
@@ -195,7 +195,7 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
 
       final response = await http.get(
         Uri.parse(
-          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/MajorTest/by-major/$selectedMajorId',
+          'https://instrulearnapplication.azurewebsites.net/api/MajorTest/by-major/$selectedMajorId',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
@@ -623,7 +623,7 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
 
       final response = await http.post(
         Uri.parse(
-          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/LearningRegis/create',
+          'https://instrulearnapplication.azurewebsites.net/api/LearningRegis/create',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
@@ -695,7 +695,7 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
 
       // Sử dụng Uri để đảm bảo các tham số được mã hóa đúng
       final uri = Uri.https(
-        'instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net',
+        'instrulearnapplication.azurewebsites.net',
         '/api/Schedules/available-teachers',
         {
           'majorId': selectedMajorId.toString(),
@@ -1501,14 +1501,43 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Thông báo'),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Đóng'),
+            ),
+          ],
+        );
+      },
     );
   }
 
   void _showSuccess(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.green),
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Thành công'),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.pop(context); // Quay lại màn hình trước
+              },
+              child: const Text('Đóng'),
+            ),
+          ],
+        );
+      },
     );
   }
 

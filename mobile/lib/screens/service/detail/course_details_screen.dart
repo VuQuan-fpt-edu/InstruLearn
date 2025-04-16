@@ -103,7 +103,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
 
       final response = await http.get(
         Uri.parse(
-          'https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Course/${widget.course.coursePackageId}',
+          'https://instrulearnapplication.azurewebsites.net/api/Course/${widget.course.coursePackageId}',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
