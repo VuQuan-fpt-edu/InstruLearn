@@ -7,6 +7,7 @@ import 'teacher_schedule_screen.dart';
 import 'teacher_notification_screen.dart';
 import 'teacher_student_performance_screen.dart';
 import 'teacher_profile_screen.dart';
+import 'teacher_center_schedule_screen.dart';
 
 class TeacherHomeScreen extends StatefulWidget {
   const TeacherHomeScreen({Key? key}) : super(key: key);
@@ -41,7 +42,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
 
       final response = await http.get(
         Uri.parse(
-          'https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Auth/Profile',
+          'https://instrulearnapplication.azurewebsites.net/api/Auth/Profile',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
@@ -294,9 +295,17 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                 ),
                 _buildMenuItem(
                   context: context,
-                  title: 'Lịch sử dạy học',
-                  icon: Icons.history,
-                  onTap: () {},
+                  title: 'Lịch dạy tại trung tâm',
+                  icon: Icons.school,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            const TeacherCenterScheduleScreen(),
+                      ),
+                    );
+                  },
                 ),
                 _buildMenuItem(
                   context: context,

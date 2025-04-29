@@ -1,31 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../models/schedule.dart';
-import '../../services/schedule_service.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-enum FilterType {
-  day,
-  week,
-  month,
-}
-
-class TeacherScheduleScreen extends StatefulWidget {
-  const TeacherScheduleScreen({Key? key}) : super(key: key);
+class TeacherCenterScheduleScreen extends StatefulWidget {
+  const TeacherCenterScheduleScreen({Key? key}) : super(key: key);
 
   @override
-  State<TeacherScheduleScreen> createState() => _TeacherScheduleScreenState();
+  State<TeacherCenterScheduleScreen> createState() =>
+      _TeacherCenterScheduleScreenState();
 }
 
-class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
+class _TeacherCenterScheduleScreenState
+    extends State<TeacherCenterScheduleScreen> {
   DateTime _selectedDate = DateTime.now();
-  List<Schedule> schedules = [];
+  List<dynamic> schedules = [];
   bool isLoading = true;
   String? errorMessage;
   FilterType _currentFilter = FilterType.month;
-  final ScheduleService _scheduleService = ScheduleService();
 
   @override
   void initState() {
@@ -46,72 +39,54 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
         return;
       }
 
-      final fetchedSchedules =
-          await _scheduleService.getTeacherSchedules(teacherId);
+      final response = await http.get(
+        Uri.parse(
+          'https://instrulearnapplication.azurewebsites.net/api/Schedules/teacher/$teacherId/classs',
+        ),
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer ${prefs.getString('token')}',
+        },
+      );
 
-      setState(() {
-        if (fetchedSchedules.isEmpty) {
-          errorMessage = 'Không có lịch dạy';
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['isSucceed'] == true) {
+          setState(() {
+            schedules = data['data'];
+            errorMessage = null;
+            isLoading = false;
+          });
         } else {
-          schedules = fetchedSchedules;
-          errorMessage = null;
+          setState(() {
+            errorMessage = data['message'] ?? 'Không thể tải lịch dạy';
+            isLoading = false;
+          });
         }
-        isLoading = false;
-      });
-    } catch (e) {
-      if (e
-          .toString()
-          .contains('No Learning Registrations found for this teacher')) {
-        setState(() {
-          errorMessage = 'Không có lịch dạy';
-          isLoading = false;
-          schedules = [];
-        });
       } else {
         setState(() {
-          errorMessage = 'Lỗi: $e';
+          errorMessage = 'Lỗi kết nối: ${response.statusCode}';
           isLoading = false;
-          schedules = [];
         });
       }
+    } catch (e) {
+      setState(() {
+        errorMessage = 'Lỗi: $e';
+        isLoading = false;
+      });
     }
   }
 
-  List<Schedule> _getFilteredSchedules() {
-    final filteredSchedules = schedules.where((schedule) {
-      return schedule.mode == 'OneOnOne';
+  List<dynamic> _getFilteredSchedules() {
+    return schedules.where((schedule) {
+      return schedule['mode'] == 'Center';
     }).toList();
-
-    // Sắp xếp theo ngày, tháng, năm và giờ từ bé đến lớn
-    filteredSchedules.sort((a, b) {
-      final dateA = DateTime.parse(a.startDate);
-      final dateB = DateTime.parse(b.startDate);
-
-      // So sánh ngày, tháng, năm trước
-      if (dateA.year != dateB.year) return dateA.year.compareTo(dateB.year);
-      if (dateA.month != dateB.month) return dateA.month.compareTo(dateB.month);
-      if (dateA.day != dateB.day) return dateA.day.compareTo(dateB.day);
-
-      // Nếu cùng ngày thì so sánh giờ
-      final timeA = a.timeStart.split(':');
-      final timeB = b.timeStart.split(':');
-
-      final hourA = int.parse(timeA[0]);
-      final minuteA = int.parse(timeA[1]);
-      final hourB = int.parse(timeB[0]);
-      final minuteB = int.parse(timeB[1]);
-
-      if (hourA != hourB) return hourA.compareTo(hourB);
-      return minuteA.compareTo(minuteB);
-    });
-
-    return filteredSchedules;
   }
 
-  List<Schedule> _getSchedulesForDay() {
+  List<dynamic> _getSchedulesForDay() {
     return _getFilteredSchedules().where((schedule) {
       try {
-        final scheduleDate = DateTime.parse(schedule.startDate);
+        final scheduleDate = DateTime.parse(schedule['startDay']);
         return scheduleDate.year == _selectedDate.year &&
             scheduleDate.month == _selectedDate.month &&
             scheduleDate.day == _selectedDate.day;
@@ -121,30 +96,29 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
     }).toList();
   }
 
-  List<Schedule> _getSchedulesForWeek() {
+  List<dynamic> _getSchedulesForWeek() {
     final startOfWeek = _getStartOfWeek(_selectedDate);
     final endOfWeek = startOfWeek.add(const Duration(days: 6));
 
     return _getFilteredSchedules().where((schedule) {
       try {
-        final scheduleDate = DateTime.parse(schedule.startDate);
+        final scheduleDate = DateTime.parse(schedule['startDay']);
         return scheduleDate
                 .isAfter(startOfWeek.subtract(const Duration(days: 1))) &&
             scheduleDate.isBefore(endOfWeek.add(const Duration(days: 1)));
       } catch (e) {
-        // Nếu phân tích ngày bị lỗi, bỏ qua mục này
         return false;
       }
     }).toList();
   }
 
-  List<Schedule> _getSchedulesForMonth() {
+  List<dynamic> _getSchedulesForMonth() {
     final startOfMonth = DateTime(_selectedDate.year, _selectedDate.month, 1);
     final endOfMonth = DateTime(_selectedDate.year, _selectedDate.month + 1, 0);
 
     return _getFilteredSchedules().where((schedule) {
       try {
-        final scheduleDate = DateTime.parse(schedule.startDate);
+        final scheduleDate = DateTime.parse(schedule['startDay']);
         return scheduleDate
                 .isAfter(startOfMonth.subtract(const Duration(days: 1))) &&
             scheduleDate.isBefore(endOfMonth.add(const Duration(days: 1)));
@@ -154,7 +128,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
     }).toList();
   }
 
-  List<Schedule> _getCurrentFilteredSchedules() {
+  List<dynamic> _getCurrentFilteredSchedules() {
     switch (_currentFilter) {
       case FilterType.day:
         return _getSchedulesForDay();
@@ -182,7 +156,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
         return isInSelectedWeek &&
             _getFilteredSchedules().any((schedule) {
               try {
-                final scheduleDate = DateTime.parse(schedule.startDate);
+                final scheduleDate = DateTime.parse(schedule['startDay']);
                 return scheduleDate.year == date.year &&
                     scheduleDate.month == date.month &&
                     scheduleDate.day == date.day;
@@ -193,7 +167,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
       case FilterType.month:
         return _getFilteredSchedules().any((schedule) {
           try {
-            final scheduleDate = DateTime.parse(schedule.startDate);
+            final scheduleDate = DateTime.parse(schedule['startDay']);
             return scheduleDate.year == date.year &&
                 scheduleDate.month == date.month &&
                 scheduleDate.day == date.day;
@@ -212,11 +186,10 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
       );
     }
 
-    // Luôn hiển thị lịch, ngay cả khi có lỗi hoặc không có dữ liệu
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Lịch dạy'),
+        title: const Text('Lịch dạy tại trung tâm'),
         backgroundColor: const Color(0xFF8C9EFF),
       ),
       body: Container(
@@ -445,16 +418,13 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
   }
 
   Widget _buildMonthGrid() {
-    // Tính toán ngày đầu tiên và cuối cùng của grid
     final firstDayOfMonth =
         DateTime(_selectedDate.year, _selectedDate.month, 1);
     final lastDayOfMonth =
         DateTime(_selectedDate.year, _selectedDate.month + 1, 0);
 
-    // Tính số ngày cần hiển thị từ tháng trước
     final firstWeekday = firstDayOfMonth.weekday % 7;
 
-    // Tính tổng số ngày cần hiển thị (gồm cả ngày từ tháng trước và tháng sau)
     final daysInGrid = firstWeekday + lastDayOfMonth.day;
     final rowsRequired = (daysInGrid / 7).ceil();
     final totalDays = rowsRequired * 7;
@@ -468,21 +438,17 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
       ),
       itemCount: totalDays,
       itemBuilder: (context, index) {
-        // Tính ngày tương ứng với index
         DateTime date;
         bool isCurrentMonth = true;
 
         if (index < firstWeekday) {
-          // Ngày từ tháng trước
           final daysToSubtract = firstWeekday - index;
           date = firstDayOfMonth.subtract(Duration(days: daysToSubtract));
           isCurrentMonth = false;
         } else if (index < firstWeekday + lastDayOfMonth.day) {
-          // Ngày trong tháng hiện tại
           final day = index - firstWeekday + 1;
           date = DateTime(_selectedDate.year, _selectedDate.month, day);
         } else {
-          // Ngày từ tháng sau
           final daysToAdd = index - firstWeekday - lastDayOfMonth.day + 1;
           date =
               DateTime(_selectedDate.year, _selectedDate.month + 1, daysToAdd);
@@ -587,122 +553,296 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
       itemCount: filteredSchedules.length,
       itemBuilder: (context, index) {
         final schedule = filteredSchedules[index];
-        return InkWell(
-          onTap: () => _showAttendanceBottomSheet(context, schedule),
-          child: _buildScheduleCard(schedule),
+        return _buildScheduleCard(schedule);
+      },
+    );
+  }
+
+  Widget _buildScheduleCard(Map<String, dynamic> schedule) {
+    final date = DateTime.parse(schedule['startDay']);
+    final dayName = _getVietnameseDayName(date.weekday);
+
+    return GestureDetector(
+      onTap: () => _showClassDetailDialog(schedule),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '$dayName    Ngày ${date.day}/${date.month}/${date.year}',
+              style: const TextStyle(
+                color: Colors.black87,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${schedule['timeStart']} - ${schedule['timeEnd']}',
+              style: const TextStyle(
+                color: Colors.black54,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF536DFE),
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF536DFE).withOpacity(0.3),
+                    spreadRadius: 1,
+                    blurRadius: 3,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    schedule['className'],
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Dạy tại trung tâm',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Số học viên: ${schedule['participants'].length}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w400,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showClassDetailDialog(Map<String, dynamic> schedule) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.8,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        schedule['className'],
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF536DFE),
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ],
+                ),
+                const Divider(),
+                const SizedBox(height: 10),
+                _buildDetailItem('Thời gian',
+                    '${schedule['timeStart']} - ${schedule['timeEnd']}'),
+                _buildDetailItem(
+                    'Ngày học',
+                    _getVietnameseDayName(
+                        _getDayNumber(schedule['dayOfWeek']))),
+                _buildDetailItem(
+                    'Ngày bắt đầu', _formatDate(schedule['startDay'])),
+                _buildDetailItem(
+                    'Số học viên', '${schedule['participants'].length}'),
+                const SizedBox(height: 15),
+                const Text(
+                  'Danh sách học viên',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Flexible(
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: schedule['participants'].length,
+                    itemBuilder: (context, index) {
+                      final participant = schedule['participants'][index];
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: participant['attendanceStatus'] == 1
+                              ? Colors.green.withOpacity(0.1)
+                              : participant['attendanceStatus'] == 2
+                                  ? Colors.red.withOpacity(0.1)
+                                  : Colors.grey[100],
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: participant['attendanceStatus'] == 1
+                                ? Colors.green
+                                : participant['attendanceStatus'] == 2
+                                    ? Colors.red
+                                    : Colors.grey[300]!,
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: participant['attendanceStatus'] == 1
+                                    ? Colors.green
+                                    : participant['attendanceStatus'] == 2
+                                        ? Colors.red
+                                        : const Color(0xFF536DFE),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  participant['learnerName'][0].toUpperCase(),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    participant['learnerName'],
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    'ID: ${participant['learnerId']}',
+                                    style: TextStyle(
+                                      color: Colors.grey[600],
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  onPressed: () {
+                                    _markAttendance(
+                                        participant['scheduleId'], 1);
+                                    Navigator.of(context).pop();
+                                  },
+                                  icon: const Icon(Icons.check_circle),
+                                  color: Colors.green,
+                                  iconSize: 32,
+                                  tooltip: 'Có mặt',
+                                ),
+                                const SizedBox(width: 16),
+                                IconButton(
+                                  onPressed: () {
+                                    _markAttendance(
+                                        participant['scheduleId'], 2);
+                                    Navigator.of(context).pop();
+                                  },
+                                  icon: const Icon(Icons.cancel),
+                                  color: Colors.red,
+                                  iconSize: 32,
+                                  tooltip: 'Vắng mặt',
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
         );
       },
     );
   }
 
-  Widget _buildScheduleCard(Schedule schedule) {
-    final date = DateTime.parse(schedule.startDate);
-    final dayName = _getVietnameseDayName(date.weekday);
-
-    // Determine card color based on attendance status and date
-    Color cardColor;
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final scheduleDate = DateTime(date.year, date.month, date.day);
-
-    if (schedule.attendanceStatus == 1) {
-      cardColor = Colors.green; // Present
-    } else if (schedule.attendanceStatus == 2) {
-      cardColor = Colors.red; // Absent
-    } else {
-      // attendanceStatus == 0 (or null/other)
-      if (scheduleDate.isBefore(today)) {
-        cardColor = Colors.grey; // Past and not attended
-      } else {
-        cardColor = const Color(
-            0xFF536DFE); // Future or today, not attended (default blue)
-      }
-    }
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildDetailItem(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
         children: [
           Text(
-            '$dayName    Ngày ${date.day}/${date.month}/${date.year}',
+            '$label: ',
             style: const TextStyle(
+              fontWeight: FontWeight.bold,
               color: Colors.black87,
-              fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(height: 4),
           Text(
-            '${schedule.timeStart} - ${schedule.timeEnd}',
+            value,
             style: const TextStyle(
               color: Colors.black54,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: cardColor, // Use the determined color
-              borderRadius: BorderRadius.circular(8),
-              boxShadow: [
-                BoxShadow(
-                  color: cardColor
-                      .withOpacity(0.3), // Use the determined color for shadow
-                  spreadRadius: 1,
-                  blurRadius: 3,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  schedule.learnerName,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Dạy kèm 1:1',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.location_on,
-                      color: Colors.white,
-                      size: 16,
-                    ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        schedule.learnerAddress ?? 'Không có địa chỉ',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w400,
-                          fontSize: 12,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
             ),
           ),
         ],
       ),
     );
+  }
+
+  String _formatDate(String dateString) {
+    final date = DateTime.parse(dateString);
+    return '${date.day}/${date.month}/${date.year}';
+  }
+
+  int _getDayNumber(String dayOfWeek) {
+    final days = {
+      'Monday': 1,
+      'Tuesday': 2,
+      'Wednesday': 3,
+      'Thursday': 4,
+      'Friday': 5,
+      'Saturday': 6,
+      'Sunday': 7,
+    };
+    return days[dayOfWeek] ?? 1;
   }
 
   DateTime _getStartOfWeek(DateTime date) {
@@ -722,135 +862,64 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
     return dayNames[weekday % 7];
   }
 
-  void _showAttendanceBottomSheet(BuildContext context, Schedule schedule) {
-    final scheduleDate = DateTime.parse(schedule.startDate);
-    final now = DateTime.now();
-    // Compare dates only, ignoring time
-    final today = DateTime(now.year, now.month, now.day);
-    final scheduleDateOnly =
-        DateTime(scheduleDate.year, scheduleDate.month, scheduleDate.day);
-    final isFutureDate = scheduleDateOnly.isAfter(today);
-
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (BuildContext bc) {
-        return Container(
-          padding: const EdgeInsets.all(20),
-          child: Wrap(
-            children: <Widget>[
-              Center(
-                child: Text(
-                  'Điểm danh cho buổi học',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text('Học viên: ${schedule.learnerName}',
-                  style: const TextStyle(fontSize: 16)),
-              Text('Thời gian: ${schedule.timeStart} - ${schedule.timeEnd}',
-                  style: const TextStyle(fontSize: 16)),
-              Text(
-                  'Ngày: ${DateFormat('dd/MM/yyyy').format(DateTime.parse(schedule.startDate))}',
-                  style: const TextStyle(fontSize: 16)),
-              const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: <Widget>[
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.check_circle, color: Colors.white),
-                    label: const Text('Có mặt',
-                        style: TextStyle(color: Colors.white)),
-                    onPressed: () {
-                      Navigator.pop(context); // Close bottom sheet first
-                      if (isFutureDate) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                                'Không thể điểm danh cho ngày trong tương lai.'),
-                            backgroundColor: Colors.orange,
-                          ),
-                        );
-                      } else {
-                        _updateAttendance(schedule.scheduleId, 1);
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 12),
-                    ),
-                  ),
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.cancel, color: Colors.white),
-                    label: const Text('Vắng mặt',
-                        style: TextStyle(color: Colors.white)),
-                    onPressed: () {
-                      Navigator.pop(context); // Close bottom sheet first
-                      if (isFutureDate) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                                'Không thể điểm danh cho ngày trong tương lai.'),
-                            backgroundColor: Colors.orange,
-                          ),
-                        );
-                      } else {
-                        _updateAttendance(schedule.scheduleId, 2);
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 12),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> _updateAttendance(int scheduleId, int status) async {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Đang cập nhật điểm danh...')),
-    );
-
+  Future<void> _markAttendance(int scheduleId, int status) async {
     try {
-      final success =
-          await _scheduleService.updateAttendance(scheduleId, status);
-      if (success) {
-        ScaffoldMessenger.of(context).removeCurrentSnackBar();
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      if (token == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Cập nhật điểm danh thành công!'),
-            backgroundColor: Colors.green,
-          ),
+          const SnackBar(content: Text('Vui lòng đăng nhập lại')),
         );
-        await _fetchSchedules();
+        return;
+      }
+
+      final response = await http.put(
+        Uri.parse(
+          'https://instrulearnapplication.azurewebsites.net/api/Schedules/update-attendance/$scheduleId',
+        ),
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode(status),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['isSucceed'] == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                status == 1
+                    ? 'Đã điểm danh thành công'
+                    : 'Đã đánh dấu vắng mặt',
+              ),
+              backgroundColor: status == 1 ? Colors.green : Colors.red,
+            ),
+          );
+          await _fetchSchedules(); // Refresh data
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text(data['message'] ?? 'Lỗi cập nhật điểm danh')),
+          );
+        }
       } else {
-        ScaffoldMessenger.of(context).removeCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Cập nhật điểm danh thất bại.'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Lỗi kết nối: ${response.statusCode}')),
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).removeCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Lỗi khi cập nhật điểm danh: $e'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text('Lỗi: $e')),
       );
     }
   }
+}
+
+enum FilterType {
+  day,
+  week,
+  month,
 }

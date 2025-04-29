@@ -2,9 +2,15 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/services.dart';
 import 'register_screen.dart';
+import 'forgot_password.dart';
 import '../home/home_screen.dart';
 import '../teacher/teacher_home_screen.dart';
+import '../profile/update_profile_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -17,6 +23,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
   bool _isPasswordVisible = false;
   bool _isLoading = false;
 
@@ -36,7 +44,7 @@ class _LoginScreenState extends State<LoginScreen> {
       try {
         final response = await http.post(
           Uri.parse(
-            'https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Auth/Login',
+            'https://instrulearnapplication.azurewebsites.net/api/Auth/Login',
           ),
           headers: <String, String>{
             'Content-Type': 'application/json; charset=UTF-8',
@@ -64,7 +72,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
             final profileResponse = await http.get(
               Uri.parse(
-                'https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Auth/Profile',
+                'https://instrulearnapplication.azurewebsites.net/api/Auth/Profile',
               ),
               headers: {
                 'Content-Type': 'application/json; charset=UTF-8',
@@ -87,6 +95,24 @@ class _LoginScreenState extends State<LoginScreen> {
                       'teacherId', profileData['data']['teacherId']);
                 }
 
+                if (role == 'Learner') {
+                  if (profileData['data']['address'] == null ||
+                      profileData['data']['gender'] == null ||
+                      profileData['data']['phoneNumber'] == null) {
+                    _navigateToUpdateProfile(profileData['data']);
+                  } else {
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(
+                          builder: (context) => const HomeScreen()),
+                    );
+                  }
+                } else if (role == 'Teacher') {
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(
+                        builder: (context) => const TeacherHomeScreen()),
+                  );
+                }
+
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
@@ -94,17 +120,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 );
-
-                if (role == 'Teacher') {
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(
-                        builder: (context) => const TeacherHomeScreen()),
-                  );
-                } else {
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (context) => const HomeScreen()),
-                  );
-                }
               }
             }
           } else {
@@ -144,16 +159,145 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _forgotPassword() {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Chức năng quên mật khẩu')));
+  Future<void> _loginWithGoogle() async {
+    try {
+      setState(() {
+        _isLoading = true;
+      });
+
+      // Đăng xuất trước khi đăng nhập lại để hiển thị dialog chọn tài khoản
+      await _googleSignIn.signOut();
+
+      // Bắt đầu quá trình đăng nhập với Google
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+
+      if (googleUser == null) {
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // Lấy thông tin xác thực
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      // Gửi ID token đến API của bạn
+      final response = await http.post(
+        Uri.parse(
+            'https://instrulearnapplication.azurewebsites.net/api/Auth/google-login'),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: jsonEncode(<String, String>{
+          'idToken': googleAuth.idToken ?? '',
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+
+        if (responseData['isSucceed'] == true) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('token', responseData['data']['token']);
+          await prefs.setString(
+              'refreshToken', responseData['data']['refreshToken']);
+
+          // Lấy thông tin profile
+          final profileResponse = await http.get(
+            Uri.parse(
+                'https://instrulearnapplication.azurewebsites.net/api/Auth/Profile'),
+            headers: {
+              'Content-Type': 'application/json; charset=UTF-8',
+              'Authorization': 'Bearer ${responseData['data']['token']}',
+            },
+          );
+
+          if (profileResponse.statusCode == 200) {
+            final profileData = json.decode(profileResponse.body);
+            if (profileData['isSucceed'] == true) {
+              final role = profileData['data']['role'];
+
+              if (role == 'Learner' &&
+                  profileData['data']['learnerId'] != null) {
+                await prefs.setInt(
+                    'learnerId', profileData['data']['learnerId']);
+              } else if (role == 'Teacher' &&
+                  profileData['data']['teacherId'] != null) {
+                await prefs.setInt(
+                    'teacherId', profileData['data']['teacherId']);
+              }
+
+              if (role == 'Learner') {
+                if (profileData['data']['address'] == null ||
+                    profileData['data']['gender'] == null ||
+                    profileData['data']['phoneNumber'] == null) {
+                  _navigateToUpdateProfile(profileData['data']);
+                } else {
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(builder: (context) => const HomeScreen()),
+                  );
+                }
+              } else if (role == 'Teacher') {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                      builder: (context) => const TeacherHomeScreen()),
+                );
+              }
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content:
+                      Text(responseData['message'] ?? 'Đăng nhập thành công!'),
+                ),
+              );
+            }
+          }
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(responseData['message'] ??
+                  'Đăng nhập thất bại. Vui lòng thử lại.'),
+            ),
+          );
+        }
+      } else {
+        final errorData = json.decode(response.body);
+        String errorMessage = 'Đăng nhập thất bại. Vui lòng thử lại.';
+
+        if (errorData != null && errorData['message'] != null) {
+          errorMessage = errorData['message'];
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMessage)),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Lỗi đăng nhập với Google: ${e.toString()}'),
+        ),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
-  void _loginWithGoogle() {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Đăng nhập với Google')));
+  void _navigateToUpdateProfile(Map<String, dynamic> userData) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => UpdateProfileScreen(userData: userData),
+      ),
+    );
+  }
+
+  void _forgotPassword() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => const ForgotPasswordScreen()),
+    );
   }
 
   void _loginWithFacebook() {

@@ -4,13 +4,19 @@ import 'package:http/http.dart' as http;
 import 'buy_course_screen.dart';
 
 class InstrumentType {
-  final int typeId;
-  final String typeName;
+  final int courseTypeId;
+  final String courseTypeName;
 
-  InstrumentType({required this.typeId, required this.typeName});
+  InstrumentType({
+    required this.courseTypeId,
+    required this.courseTypeName,
+  });
 
   factory InstrumentType.fromJson(Map<String, dynamic> json) {
-    return InstrumentType(typeId: json['typeId'], typeName: json['typeName']);
+    return InstrumentType(
+      courseTypeId: json['courseTypeId'] as int,
+      courseTypeName: json['courseTypeName'] as String,
+    );
   }
 }
 
@@ -45,7 +51,7 @@ class _FilterScreenState extends State<FilterScreen> {
     try {
       final response = await http.get(
         Uri.parse(
-          'https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/CourseType/get-all',
+          'https://instrulearnapplication.azurewebsites.net/api/CourseType/get-all',
         ),
       );
 
@@ -60,20 +66,20 @@ class _FilterScreenState extends State<FilterScreen> {
           });
         } else {
           setState(() {
-            errorMessage =
-                responseData['message'] ?? 'Failed to load instrument types';
+            errorMessage = responseData['message'] ??
+                'Không thể tải danh sách loại khóa học';
             isLoading = false;
           });
         }
       } else {
         setState(() {
-          errorMessage = 'Server error: ${response.statusCode}';
+          errorMessage = 'Lỗi máy chủ: ${response.statusCode}';
           isLoading = false;
         });
       }
     } catch (e) {
       setState(() {
-        errorMessage = 'Connection error: $e';
+        errorMessage = 'Lỗi kết nối: $e';
         isLoading = false;
       });
     }
@@ -140,25 +146,24 @@ class _FilterScreenState extends State<FilterScreen> {
     }
 
     return Column(
-      children:
-          instrumentTypes.map((type) {
-            return RadioListTile<String>(
-              title: Text(
-                type.typeName,
-                style: const TextStyle(color: Colors.white),
-              ),
-              value: type.typeName,
-              groupValue: filters.selectedType,
-              onChanged: (value) {
-                setState(() {
-                  filters = filters.copyWith(selectedType: value);
-                });
-              },
-              activeColor: Colors.white,
-              contentPadding: EdgeInsets.zero,
-              dense: true,
-            );
-          }).toList(),
+      children: instrumentTypes.map((type) {
+        return RadioListTile<String>(
+          title: Text(
+            type.courseTypeName,
+            style: const TextStyle(color: Colors.white),
+          ),
+          value: type.courseTypeName,
+          groupValue: filters.selectedType,
+          onChanged: (value) {
+            setState(() {
+              filters = filters.copyWith(selectedType: value);
+            });
+          },
+          activeColor: Colors.white,
+          contentPadding: EdgeInsets.zero,
+          dense: true,
+        );
+      }).toList(),
     );
   }
 
@@ -189,7 +194,6 @@ class _FilterScreenState extends State<FilterScreen> {
                     ),
                   ],
                 ),
-
                 Expanded(
                   child: SingleChildScrollView(
                     child: Column(
@@ -239,7 +243,6 @@ class _FilterScreenState extends State<FilterScreen> {
                             ),
                           ],
                         ),
-
                         const SizedBox(height: 20),
                         const Text(
                           'Loại Nhạc Cụ',
@@ -250,7 +253,6 @@ class _FilterScreenState extends State<FilterScreen> {
                         ),
                         const SizedBox(height: 10),
                         _buildInstrumentTypeSection(),
-
                         const SizedBox(height: 20),
                         const Text(
                           'Xếp hạng',
@@ -268,7 +270,6 @@ class _FilterScreenState extends State<FilterScreen> {
                             _buildRatingRadio('Từ 3 trở lên (10)', 3.0),
                           ],
                         ),
-
                         const SizedBox(height: 20),
                         const Text(
                           'Thời lượng video',
@@ -289,7 +290,6 @@ class _FilterScreenState extends State<FilterScreen> {
                             ),
                           ],
                         ),
-
                         const SizedBox(height: 20),
                         const Text(
                           'Sắp xếp theo',
@@ -325,18 +325,17 @@ class _FilterScreenState extends State<FilterScreen> {
                                 );
                               });
                             },
-                            items:
-                                <String>[
-                                  'Xếp hạng',
-                                  'Giá: Thấp đến cao',
-                                  'Giá: Cao đến thấp',
-                                  'Tên: A-Z',
-                                ].map<DropdownMenuItem<String>>((String value) {
-                                  return DropdownMenuItem<String>(
-                                    value: value,
-                                    child: Text(value),
-                                  );
-                                }).toList(),
+                            items: <String>[
+                              'Xếp hạng',
+                              'Giá: Thấp đến cao',
+                              'Giá: Cao đến thấp',
+                              'Tên: A-Z',
+                            ].map<DropdownMenuItem<String>>((String value) {
+                              return DropdownMenuItem<String>(
+                                value: value,
+                                child: Text(value),
+                              );
+                            }).toList(),
                           ),
                         ),
                       ],

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import '../auth/login_screen.dart';
+import '../profile/update_profile_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -33,7 +34,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       final response = await http.get(
         Uri.parse(
-          'https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api/Auth/Profile',
+          'https://instrulearnapplication.azurewebsites.net/api/Auth/Profile',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
@@ -152,17 +153,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(50),
                           ),
-                          child: Center(
-                            child: Text(
-                              userProfile['username']?.isNotEmpty == true
-                                  ? userProfile['username'][0].toUpperCase()
-                                  : 'U',
-                              style: const TextStyle(
-                                fontSize: 36,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
+                          child: userProfile['avatar']?.isNotEmpty == true
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(50),
+                                  child: Image.network(
+                                    userProfile['avatar'],
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Center(
+                                        child: Text(
+                                          userProfile['username']?.isNotEmpty ==
+                                                  true
+                                              ? userProfile['username'][0]
+                                                  .toUpperCase()
+                                              : 'U',
+                                          style: const TextStyle(
+                                            fontSize: 36,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                )
+                              : Center(
+                                  child: Text(
+                                    userProfile['username']?.isNotEmpty == true
+                                        ? userProfile['username'][0]
+                                            .toUpperCase()
+                                        : 'U',
+                                    style: const TextStyle(
+                                      fontSize: 36,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
                         ),
                         const SizedBox(height: 15),
                         Text(
@@ -263,6 +288,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             icon: Icons.badge,
             title: 'ID học viên',
             value: userProfile['learnerId']?.toString() ?? 'Không có thông tin',
+          ),
+          _buildInfoItem(
+            icon: Icons.location_on,
+            title: 'Địa chỉ',
+            value: userProfile['address'] ?? 'Không có thông tin',
             isLast: true,
           ),
         ],
@@ -314,8 +344,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _buildActionButton(
             icon: Icons.edit,
             title: 'Chỉnh sửa thông tin',
-            onTap: () {
-              _showErrorMessage('Chức năng đang được phát triển');
+            onTap: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      UpdateProfileScreen(userData: userProfile),
+                ),
+              );
+              setState(() {
+                isLoading = true;
+              });
+              await _fetchUserProfile();
             },
           ),
           const SizedBox(height: 10),

@@ -3,6 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 import '../../../models/learning_registration.dart';
+import '../../../models/learning_path_session.dart';
+import '../../../services/learning_path_session_service.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ApplicationDetailsScreen extends StatefulWidget {
   final String status;
@@ -25,48 +30,149 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
   VideoPlayerController? _videoController;
   ChewieController? _chewieController;
   bool _isVideoInitialized = false;
+  final LearningPathSessionService _learningPathSessionService =
+      LearningPathSessionService();
+  List<LearningPathSession> _learningPathSessions = [];
+  bool _isLoadingSessions = true;
+  String? _sessionError;
+
+  String _getStatusText(String status) {
+    switch (status.toLowerCase()) {
+      case 'accepted':
+        return 'Chờ thanh toán';
+      case 'pending':
+        return 'Đang chờ';
+      case 'declined':
+        return 'Từ chối';
+      case 'fourty':
+        return 'Đã thanh toán 40% học phí';
+      case 'sixty':
+        return 'Đã hoàn tất thanh toán học phí';
+      default:
+        return status;
+    }
+  }
 
   @override
   void initState() {
     super.initState();
     _initializeVideo();
+    _loadLearningPathSessions();
   }
 
   Future<void> _initializeVideo() async {
-    if (widget.registration.videoUrl.startsWith('http')) {
-      _videoController =
-          VideoPlayerController.network(widget.registration.videoUrl);
+    if (widget.registration.videoUrl.isNotEmpty &&
+        widget.registration.videoUrl.startsWith('http')) {
       try {
-        await _videoController!.initialize();
-        _chewieController = ChewieController(
-          videoPlayerController: _videoController!,
-          autoPlay: false,
-          looping: false,
-          showControlsOnInitialize: false,
-          allowFullScreen: true,
-          deviceOrientationsAfterFullScreen: [DeviceOrientation.portraitUp],
-          placeholder: Container(
-            color: Colors.black,
-            child: const Center(child: CircularProgressIndicator()),
-          ),
-          materialProgressColors: ChewieProgressColors(
-            playedColor: Colors.blue,
-            handleColor: Colors.blue,
-            backgroundColor: Colors.grey,
-            bufferedColor: Colors.grey[300]!,
-          ),
-        );
-        setState(() {
-          _isVideoInitialized = true;
+        _videoController =
+            VideoPlayerController.network(widget.registration.videoUrl);
+        await _videoController!
+            .initialize()
+            .timeout(const Duration(seconds: 15), onTimeout: () {
+          // Nếu quá thời gian, đánh dấu lỗi nhưng không gây crash
+          print('Video initialization timed out');
+          return;
         });
+
+        if (_videoController!.value.isInitialized) {
+          _chewieController = ChewieController(
+            videoPlayerController: _videoController!,
+            autoPlay: false,
+            looping: false,
+            showControls: true,
+            allowPlaybackSpeedChanging: true,
+            showControlsOnInitialize: false,
+            allowFullScreen: true,
+            placeholder: Container(
+              color: Colors.black,
+              child: const Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              ),
+            ),
+            hideControlsTimer: const Duration(seconds: 3),
+            materialProgressColors: ChewieProgressColors(
+              playedColor: Colors.blue,
+              handleColor: Colors.blue,
+              backgroundColor: Colors.grey,
+              bufferedColor: Colors.grey[300]!,
+            ),
+            errorBuilder: (context, errorMessage) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      color: Colors.white,
+                      size: 32,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Lỗi: $errorMessage',
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                    const SizedBox(height: 8),
+                    ElevatedButton(
+                      onPressed: _initializeVideo,
+                      child: const Text('Thử lại'),
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+
+          _videoController!.addListener(_onVideoPositionChanged);
+
+          setState(() {
+            _isVideoInitialized = true;
+          });
+        } else {
+          print('Video could not be initialized');
+        }
       } catch (e) {
         print('Error initializing video: $e');
+        setState(() {
+          _isVideoInitialized = false;
+        });
       }
+    } else {
+      setState(() {
+        _isVideoInitialized = false;
+      });
+    }
+  }
+
+  // Theo dõi trạng thái video
+  void _onVideoPositionChanged() {
+    // Kiểm tra nếu video kết thúc
+    if (_videoController != null &&
+        _videoController!.value.position >= _videoController!.value.duration) {
+      // Video đã kết thúc, hiển thị nút replay nếu cần
+      if (mounted) {
+        setState(() {
+          // Có thể cập nhật trạng thái ở đây nếu cần hiển thị nút replay
+        });
+      }
+    }
+
+    // Kiểm tra nếu video bị tua về đầu nhưng không chạy
+    if (_videoController != null &&
+        _videoController!.value.position == Duration.zero &&
+        !_videoController!.value.isPlaying) {
+      // Video đã bị tua về đầu nhưng không chạy, tự động play lại
+      _videoController!.play();
     }
   }
 
   @override
   void dispose() {
+    // Dọn dẹp listeners trước khi dispose controller
+    if (_videoController != null) {
+      _videoController!.removeListener(_onVideoPositionChanged);
+    }
     _chewieController?.dispose();
     _videoController?.dispose();
     super.dispose();
@@ -113,7 +219,7 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
                 ),
                 color: widget.statusColor,
                 child: Text(
-                  widget.status,
+                  _getStatusText(widget.status),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 18,
@@ -127,13 +233,15 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildInfoSection(
-                        'Type: ${widget.registration.regisTypeName}'),
+                        'Loại đơn: ${widget.registration.regisTypeName}'),
                     _buildInfoSection(
-                        'Create date: ${widget.registration.requestDate.split('T')[0]}'),
+                        'Ngày bắt đầu: ${widget.registration.requestDate.split('T')[0]}'),
                     const SizedBox(height: 16),
                     _buildTeacherInfo(),
                     const SizedBox(height: 16),
                     _buildLearningInfo(),
+                    const SizedBox(height: 16),
+                    _buildLearningPathSessions(),
                     const SizedBox(height: 16),
                     if (widget.registration.score != null) ...[
                       _buildAssessmentInfo(),
@@ -146,6 +254,193 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
                     if (widget.registration.feedback != null) ...[
                       _buildFeedback(),
                       const SizedBox(height: 16),
+                    ],
+                    if (widget.registration.price != null) ...[
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Thông tin học phí:',
+                        style: TextStyle(
+                            fontSize: 15, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                          'Tổng học phí: ${_formatCurrency(widget.registration.price)} VNĐ'),
+                      if (widget.registration.remainingAmount != null)
+                        Text(
+                          'Số tiền còn lại cần thanh toán: ${_formatCurrency(widget.registration.remainingAmount)} VNĐ',
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      if (widget.registration.acceptedDate != null)
+                        Text(
+                            'Ngày duyệt đơn: ${widget.registration.acceptedDate!.split('T')[0]}'),
+                      if (widget.registration.paymentDeadline != null)
+                        Text(
+                            'Hạn thanh toán: ${widget.registration.paymentDeadline!.split('T')[0]}'),
+                      if (widget.registration.daysRemaining != null)
+                        Container(
+                          margin: const EdgeInsets.only(top: 8),
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: widget.registration.daysRemaining! <= 3
+                                ? Colors.red[50]
+                                : Colors.blue[50],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: widget.registration.daysRemaining! <= 3
+                                  ? Colors.red
+                                  : Colors.blue,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                widget.registration.daysRemaining! <= 3
+                                    ? Icons.warning
+                                    : Icons.info_outline,
+                                color: widget.registration.daysRemaining! <= 3
+                                    ? Colors.red
+                                    : Colors.blue,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  widget.registration.daysRemaining! <= 3
+                                      ? 'Còn ${widget.registration.daysRemaining} ngày để thanh toán học phí!'
+                                      : 'Còn ${widget.registration.daysRemaining} ngày để thanh toán học phí',
+                                  style: TextStyle(
+                                    color:
+                                        widget.registration.daysRemaining! <= 3
+                                            ? Colors.red
+                                            : Colors.blue,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      if (widget.registration.regisTypeId == 1) ...[
+                        if (widget.status == 'Accepted') ...[
+                          Text(
+                            'Học phí cần thanh toán trước (40%): ${_formatCurrency((widget.registration.price ?? 0) ~/ 100 * 40)} VNĐ',
+                            style: const TextStyle(
+                              color: Colors.red,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                        if (widget.status == 'Fourty') ...[
+                          Text(
+                            'Học phí cần thanh toán (60% còn lại): ${_formatCurrency((widget.registration.price ?? 0) ~/ 100 * 60)} VNĐ',
+                            style: const TextStyle(
+                              color: Colors.red,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                        if (widget.status == 'Sixty') ...[
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.green[50],
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.green),
+                            ),
+                            child: const Row(
+                              children: [
+                                Icon(Icons.check_circle, color: Colors.green),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Bạn đã thanh toán toàn bộ học phí',
+                                  style: TextStyle(
+                                    color: Colors.green,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
+                      if (widget.registration.regisTypeId == 3 &&
+                          widget.status == 'Accepted') ...[
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.blue[50],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.blue),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(Icons.payment, color: Colors.blue[700]),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Phí đã thanh toán (10%): ${_formatCurrency((widget.registration.price ?? 0) ~/ 100 * 10)} VNĐ',
+                                    style: TextStyle(
+                                      color: Colors.blue[700],
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Icon(Icons.pending_actions,
+                                      color: Colors.red[700]),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Phí cần thanh toán còn lại (90%): ${_formatCurrency((widget.registration.price ?? 0) ~/ 100 * 90)} VNĐ',
+                                    style: TextStyle(
+                                      color: Colors.red[700],
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                      if (widget.registration.regisTypeId == 1 &&
+                          widget.status == 'Accepted') ...[
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: _showPaymentConfirmationDialog,
+                            icon: const Icon(Icons.payment),
+                            label: const Text('Thanh toán học phí'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                          ),
+                        ),
+                      ],
+                      if (widget.registration.regisTypeId == 1 &&
+                          widget.status == 'Fourty') ...[
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: _showRemainingPaymentConfirmationDialog,
+                            icon: const Icon(Icons.payment),
+                            label: const Text('Thanh toán 60% còn lại'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ],
                 ),
@@ -166,8 +461,15 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
           style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
-        Text(widget.registration.teacherName),
+        Text('Giáo viên: ${widget.registration.teacherName}'),
         Text('Nhạc cụ: ${widget.registration.majorName}'),
+        if (widget.registration.levelName != null) ...[
+          Text('Trình độ: ${widget.registration.levelName}'),
+        ],
+        if (widget.registration.levelPrice != null) ...[
+          Text(
+              'Giá theo trình độ: ${_formatCurrency(widget.registration.levelPrice)} VNĐ / buổi'),
+        ],
       ],
     );
   }
@@ -181,11 +483,47 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
           style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
+        Text('Loại học: ${widget.registration.regisTypeName}'),
+        Text('Ngày bắt đầu: ${widget.registration.startDay}'),
         Text('Học vào: ${widget.registration.learningDays.join(", ")}'),
-        Text('Vào lúc: ${widget.registration.timeStart}'),
-        Text(
-            'Thời lượng học: ${_calculateDuration(widget.registration.timeStart, widget.registration.timeEnd)} phút'),
+        Text('Thời gian bắt đầu: ${widget.registration.timeStart}'),
+        Text('Thời gian kết thúc: ${widget.registration.timeEnd}'),
+        Text('Thời lượng học: ${widget.registration.timeLearning} phút'),
         Text('Tổng số buổi: ${widget.registration.numberOfSession}'),
+        if (widget.registration.responseName != null) ...[
+          const SizedBox(height: 16),
+          const Text(
+            'Thông báo từ trung tâm:',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.green[50],
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.green[200]!),
+            ),
+            child: RichText(
+              text: TextSpan(
+                children: [
+                  const TextSpan(
+                    text: '[Trung Tâm InstruLearn]: ',
+                    style: TextStyle(
+                      color: Colors.blue,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  TextSpan(
+                    text: widget.registration.responseName ?? '',
+                    style: const TextStyle(color: Colors.black87),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
         if (widget.registration.learningRequest?.isNotEmpty == true) ...[
           const SizedBox(height: 16),
           const Text(
@@ -207,26 +545,6 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
                 fontSize: 14,
                 color: Colors.black87,
               ),
-            ),
-          ),
-        ],
-        if (widget.registration.status == 'Accepted' &&
-            widget.registration.price != null) ...[
-          const SizedBox(height: 16),
-          const Text(
-            'Thông tin học phí:',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Text(
-              'Học phí mỗi buổi: ${_formatCurrency(widget.registration.price!)} VNĐ'),
-          Text(
-              'Tổng học phí: ${_formatCurrency(widget.registration.price! * widget.registration.numberOfSession)} VNĐ'),
-          Text(
-            'Học phí cần thanh toán trước (40%): ${_formatCurrency((widget.registration.price! * widget.registration.numberOfSession * 40 ~/ 100))} VNĐ',
-            style: const TextStyle(
-              color: Colors.red,
-              fontWeight: FontWeight.bold,
             ),
           ),
         ],
@@ -268,29 +586,132 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(8),
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                if (_isVideoInitialized && _chewieController != null)
-                  Chewie(controller: _chewieController!)
-                else if (widget.registration.videoUrl.startsWith('http'))
-                  const Center(
-                    child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
+            child: _isVideoInitialized && _chewieController != null
+                ? Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      // Video player
+                      Chewie(controller: _chewieController!),
+
+                      // Nút replay khi video kết thúc
+                      if (_videoController != null &&
+                          _videoController!.value.position >=
+                              _videoController!.value.duration)
+                        Center(
+                          child: IconButton(
+                            icon: const Icon(
+                              Icons.replay,
+                              color: Colors.white,
+                              size: 48,
+                            ),
+                            onPressed: () {
+                              _videoController!.seekTo(Duration.zero);
+                              _videoController!.play();
+                            },
+                          ),
+                        ),
+                    ],
                   )
-                else
-                  const Center(
-                    child: Icon(
-                      Icons.video_file,
-                      size: 50,
-                      color: Colors.white,
-                    ),
-                  ),
+                : widget.registration.videoUrl.startsWith('http')
+                    ? Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          // Hiển thị hình thu nhỏ hoặc backdrop
+                          const Center(
+                            child: Icon(
+                              Icons.video_library,
+                              size: 64,
+                              color: Colors.white54,
+                            ),
+                          ),
+
+                          // Nút play
+                          Center(
+                            child: InkWell(
+                              onTap: () {
+                                // Thử khởi tạo lại video
+                                _initializeVideo();
+
+                                // Hiển thị thông báo cho người dùng
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Đang tải video...'),
+                                    duration: Duration(seconds: 2),
+                                  ),
+                                );
+                              },
+                              child: Container(
+                                width: 64,
+                                height: 64,
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.withOpacity(0.7),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.play_arrow,
+                                  color: Colors.white,
+                                  size: 40,
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          // Nút mở trong trình duyệt ở góc phải dưới
+                          Positioned(
+                            right: 8,
+                            bottom: 8,
+                            child: IconButton(
+                              icon: const Icon(
+                                Icons.open_in_new,
+                                color: Colors.white,
+                              ),
+                              onPressed: () {
+                                // Hiển thị URL của video
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                        'Video URL: ${widget.registration.videoUrl}'),
+                                    action: SnackBarAction(
+                                      label: 'Copy',
+                                      onPressed: () {
+                                        // Copy URL vào clipboard
+                                      },
+                                    ),
+                                  ),
+                                );
+                              },
+                              tooltip: 'Mở trong trình duyệt',
+                            ),
+                          ),
+                        ],
+                      )
+                    : const Center(
+                        child: Icon(
+                          Icons.video_file,
+                          size: 50,
+                          color: Colors.white,
+                        ),
+                      ),
+          ),
+        ),
+        // Thêm nút tải lại video
+        if (_isVideoInitialized && _videoController != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                TextButton.icon(
+                  icon: const Icon(Icons.replay),
+                  label: const Text('Xem lại từ đầu'),
+                  onPressed: () {
+                    _videoController!.seekTo(Duration.zero);
+                    _videoController!.play();
+                  },
+                ),
               ],
             ),
           ),
-        ),
       ],
     );
   }
@@ -351,7 +772,8 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
     return endMinutes - startMinutes;
   }
 
-  String _formatCurrency(num amount) {
+  String _formatCurrency(num? amount) {
+    if (amount == null) return '0';
     final formatted = amount.toStringAsFixed(0);
     final chars = formatted.split('').reversed.toList();
     final withCommas = <String>[];
@@ -362,5 +784,462 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
       withCommas.add(chars[i]);
     }
     return withCommas.reversed.join('');
+  }
+
+  // Hàm hiển thị dialog xác nhận thanh toán
+  void _showPaymentConfirmationDialog() async {
+    try {
+      // Lấy thông tin số dư ví
+      final prefs = await SharedPreferences.getInstance();
+      final learnerId = prefs.getInt('learnerId');
+      final token = prefs.getString('token');
+
+      if (learnerId == null || token == null) {
+        _showErrorMessage('Vui lòng đăng nhập lại');
+        return;
+      }
+
+      // Hiển thị dialog loading
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      // Gọi API lấy số dư
+      final walletResponse = await http.get(
+        Uri.parse(
+          'https://instrulearnapplication.azurewebsites.net/api/wallet/$learnerId',
+        ),
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      // Đóng dialog loading
+      Navigator.pop(context);
+
+      if (walletResponse.statusCode != 200) {
+        _showErrorMessage('Không thể tải thông tin ví');
+        return;
+      }
+
+      final walletData = json.decode(walletResponse.body);
+      if (walletData['isSucceed'] != true) {
+        _showErrorMessage(
+            walletData['message'] ?? 'Không thể tải thông tin ví');
+        return;
+      }
+
+      final double balance = walletData['data']['balance'].toDouble();
+      final int totalFee = widget.registration.price ?? 0;
+      final int amountToPay = (totalFee * 40) ~/ 100; // Tính 40% học phí
+      final double remainingBalance = balance - amountToPay;
+
+      // Hiển thị dialog xác nhận thanh toán
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Xác nhận thanh toán'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Số dư hiện tại: ${_formatCurrency(balance)} VNĐ'),
+              const SizedBox(height: 8),
+              Text('Tổng học phí: ${_formatCurrency(totalFee)} VNĐ'),
+              const SizedBox(height: 8),
+              Text(
+                  'Số tiền cần thanh toán (40%): ${_formatCurrency(amountToPay)} VNĐ',
+                  style: const TextStyle(
+                      color: Colors.red, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Text(
+                  'Số dư sau khi thanh toán: ${_formatCurrency(remainingBalance)} VNĐ'),
+              const SizedBox(height: 16),
+              if (remainingBalance < 0)
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.red[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.red),
+                  ),
+                  child: const Text(
+                    'Số dư không đủ để thanh toán. Vui lòng nạp thêm tiền vào ví.',
+                    style: TextStyle(color: Colors.red),
+                  ),
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Hủy'),
+            ),
+            ElevatedButton(
+              onPressed: remainingBalance < 0
+                  ? null // Disable nếu không đủ tiền
+                  : () {
+                      Navigator.pop(context);
+                      _processPayment();
+                    },
+              child: const Text('Xác nhận thanh toán'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      _showErrorMessage('Lỗi: ${e.toString()}');
+    }
+  }
+
+  // Xử lý thanh toán
+  Future<void> _processPayment() async {
+    try {
+      final int totalFee = widget.registration.price ?? 0;
+      final int amountToPay = (totalFee * 40) ~/ 100; // Tính 40% học phí
+
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      if (token == null) {
+        Navigator.pop(context);
+        _showErrorMessage('Vui lòng đăng nhập lại');
+        return;
+      }
+
+      // Gọi API thanh toán
+      final paymentResponse = await http.post(
+        Uri.parse(
+          'https://instrulearnapplication.azurewebsites.net/api/Payment/process-learning-payment',
+        ),
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode({
+          'learningRegisId': widget.registration.learningRegisId,
+          'paymentMethod': 0,
+          'amount': amountToPay // Thêm số tiền thanh toán (40%)
+        }),
+      );
+
+      Navigator.pop(context);
+
+      if (paymentResponse.statusCode == 200) {
+        final paymentData = json.decode(paymentResponse.body);
+        if (paymentData['isSucceed'] == true) {
+          _showSuccessDialog();
+        } else {
+          _showErrorMessage(
+              paymentData['message'] ?? 'Thanh toán không thành công');
+        }
+      } else {
+        _showErrorMessage('Lỗi kết nối: ${paymentResponse.statusCode}');
+      }
+    } catch (e) {
+      Navigator.pop(context);
+      _showErrorMessage('Lỗi: ${e.toString()}');
+    }
+  }
+
+  // Hiển thị dialog thành công
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Thanh toán thành công'),
+        content: const Text(
+            'Học phí đã được thanh toán thành công. Chúc bạn học tốt!'),
+        actions: [
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context); // Đóng dialog
+
+              // Quay về màn hình home (pop đến khi hết stack)
+              Navigator.of(context).popUntil((route) => route.isFirst);
+            },
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Hiển thị thông báo lỗi
+  void _showErrorMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  // Hiển thị dialog xác nhận thanh toán 60% còn lại
+  void _showRemainingPaymentConfirmationDialog() async {
+    try {
+      // Lấy thông tin số dư ví
+      final prefs = await SharedPreferences.getInstance();
+      final learnerId = prefs.getInt('learnerId');
+      final token = prefs.getString('token');
+
+      if (learnerId == null || token == null) {
+        _showErrorMessage('Vui lòng đăng nhập lại');
+        return;
+      }
+
+      // Hiển thị dialog loading
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      // Gọi API lấy số dư
+      final walletResponse = await http.get(
+        Uri.parse(
+          'https://instrulearnapplication.azurewebsites.net/api/wallet/$learnerId',
+        ),
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      // Đóng dialog loading
+      Navigator.pop(context);
+
+      if (walletResponse.statusCode != 200) {
+        _showErrorMessage('Không thể tải thông tin ví');
+        return;
+      }
+
+      final walletData = json.decode(walletResponse.body);
+      if (walletData['isSucceed'] != true) {
+        _showErrorMessage(
+            walletData['message'] ?? 'Không thể tải thông tin ví');
+        return;
+      }
+
+      final double balance = walletData['data']['balance'].toDouble();
+      final int totalFee = widget.registration.price ?? 0;
+      final int amountToPay = (totalFee * 60) ~/ 100; // Tính 60% học phí
+      final double remainingBalance = balance - amountToPay;
+
+      // Hiển thị dialog xác nhận thanh toán
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Xác nhận thanh toán 60% còn lại'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Số dư hiện tại: ${_formatCurrency(balance)} VNĐ'),
+              const SizedBox(height: 8),
+              Text('Tổng học phí: ${_formatCurrency(totalFee)} VNĐ'),
+              const SizedBox(height: 8),
+              Text(
+                  'Số tiền cần thanh toán (60%): ${_formatCurrency(amountToPay)} VNĐ',
+                  style: const TextStyle(
+                      color: Colors.red, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Text(
+                  'Số dư sau khi thanh toán: ${_formatCurrency(remainingBalance)} VNĐ'),
+              const SizedBox(height: 16),
+              if (remainingBalance < 0)
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.red[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.red),
+                  ),
+                  child: const Text(
+                    'Số dư không đủ để thanh toán. Vui lòng nạp thêm tiền vào ví.',
+                    style: TextStyle(color: Colors.red),
+                  ),
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Hủy'),
+            ),
+            ElevatedButton(
+              onPressed: remainingBalance < 0
+                  ? null // Disable nếu không đủ tiền
+                  : () {
+                      Navigator.pop(context);
+                      _processRemainingPayment();
+                    },
+              child: const Text('Xác nhận thanh toán'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      _showErrorMessage('Lỗi: ${e.toString()}');
+    }
+  }
+
+  // Xử lý thanh toán 60% còn lại
+  Future<void> _processRemainingPayment() async {
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      if (token == null) {
+        Navigator.pop(context);
+        _showErrorMessage('Vui lòng đăng nhập lại');
+        return;
+      }
+
+      // Gọi API thanh toán 60% còn lại
+      final paymentResponse = await http.post(
+        Uri.parse(
+          'https://instrulearnapplication.azurewebsites.net/api/Payment/process-remaining-payment/${widget.registration.learningRegisId}',
+        ),
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      Navigator.pop(context);
+
+      if (paymentResponse.statusCode == 200) {
+        final paymentData = json.decode(paymentResponse.body);
+        if (paymentData['isSucceed'] == true) {
+          _showSuccessDialog();
+        } else {
+          _showErrorMessage(
+              paymentData['message'] ?? 'Thanh toán không thành công');
+        }
+      } else {
+        _showErrorMessage('Lỗi kết nối: ${paymentResponse.statusCode}');
+      }
+    } catch (e) {
+      Navigator.pop(context);
+      _showErrorMessage('Lỗi: ${e.toString()}');
+    }
+  }
+
+  Future<void> _loadLearningPathSessions() async {
+    try {
+      setState(() {
+        _isLoadingSessions = true;
+        _sessionError = null;
+      });
+
+      final sessions =
+          await _learningPathSessionService.getLearningPathSessions(
+        widget.registration.learningRegisId,
+      );
+
+      setState(() {
+        _learningPathSessions = sessions;
+        _isLoadingSessions = false;
+      });
+    } catch (e) {
+      setState(() {
+        _sessionError = e.toString();
+        _isLoadingSessions = false;
+      });
+    }
+  }
+
+  Widget _buildLearningPathSessions() {
+    if (_isLoadingSessions) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_sessionError != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'Lỗi: $_sessionError',
+              style: const TextStyle(color: Colors.red),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadLearningPathSessions,
+              child: const Text('Thử lại'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_learningPathSessions.isEmpty) {
+      return const Center(
+        child: Text(
+          'Chưa có thông tin về các buổi học',
+          style: TextStyle(color: Colors.grey),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Giáo trình học tập:',
+          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: _learningPathSessions.length,
+          itemBuilder: (context, index) {
+            final session = _learningPathSessions[index];
+            return Card(
+              margin: const EdgeInsets.only(bottom: 8),
+              child: ListTile(
+                leading: CircleAvatar(
+                  backgroundColor:
+                      session.isCompleted ? Colors.green : Colors.blue,
+                  child: Icon(
+                    session.isCompleted ? Icons.check : Icons.schedule,
+                    color: Colors.white,
+                  ),
+                ),
+                title: Text(
+                  session.title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                subtitle: Text(session.description),
+                trailing: Text(
+                  'Buổi ${session.sessionNumber}',
+                  style: TextStyle(
+                    color: session.isCompleted ? Colors.green : Colors.blue,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ],
+    );
   }
 }

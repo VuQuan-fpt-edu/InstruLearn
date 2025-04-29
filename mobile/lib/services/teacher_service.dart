@@ -5,7 +5,7 @@ import '../models/teacher.dart';
 
 class TeacherService {
   static const String baseUrl =
-      'https://instrulearnapplication-hqdkh8bedhb9e0ec.southeastasia-01.azurewebsites.net/api';
+      'https://instrulearnapplication.azurewebsites.net/api';
 
   Future<List<Teacher>> getAllTeachers() async {
     try {

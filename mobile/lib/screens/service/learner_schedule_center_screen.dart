@@ -1,28 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../models/schedule.dart';
-import '../../services/schedule_service.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
-enum FilterType {
-  day,
-  week,
-  month,
-}
-
-class ScheduleScreen extends StatefulWidget {
-  const ScheduleScreen({Key? key}) : super(key: key);
+class LearnerScheduleCenterScreen extends StatefulWidget {
+  const LearnerScheduleCenterScreen({Key? key}) : super(key: key);
 
   @override
-  State<ScheduleScreen> createState() => _ScheduleScreenState();
+  State<LearnerScheduleCenterScreen> createState() =>
+      _LearnerScheduleCenterScreenState();
 }
 
-class _ScheduleScreenState extends State<ScheduleScreen> {
+class _LearnerScheduleCenterScreenState
+    extends State<LearnerScheduleCenterScreen> {
   DateTime _selectedDate = DateTime.now();
-  List<Schedule> schedules = [];
+  List<dynamic> schedules = [];
   bool isLoading = true;
   String? errorMessage;
-  FilterType _currentFilter = FilterType.week; // Mặc định là lọc theo tuần
+  FilterType _currentFilter = FilterType.week;
 
   @override
   void initState() {
@@ -43,55 +39,53 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         return;
       }
 
-      final scheduleService = ScheduleService();
-      final fetchedSchedules =
-          await scheduleService.getLearnerSchedules(learnerId);
+      final response = await http.get(
+        Uri.parse(
+          'https://instrulearnapplication.azurewebsites.net/api/Schedules/learner/$learnerId/class',
+        ),
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer ${prefs.getString('token')}',
+        },
+      );
 
-      setState(() {
-        schedules = fetchedSchedules;
-        isLoading = false;
-      });
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['isSucceed'] == true) {
+          setState(() {
+            schedules = data['data'];
+            isLoading = false;
+          });
+        } else {
+          setState(() {
+            errorMessage = data['message'] ?? 'Không thể tải lịch học';
+            isLoading = false;
+          });
+        }
+      } else {
+        setState(() {
+          errorMessage = 'Lỗi kết nối: ${response.statusCode}';
+          isLoading = false;
+        });
+      }
     } catch (e) {
       setState(() {
-        schedules = []; // Khởi tạo danh sách rỗng nếu có lỗi
+        errorMessage = 'Lỗi: ${e.toString()}';
         isLoading = false;
       });
     }
   }
 
-  List<Schedule> _getFilteredSchedules() {
-    final filteredSchedules = schedules.where((schedule) {
-      return schedule.mode == "OneOnOne";
+  List<dynamic> _getFilteredSchedules() {
+    return schedules.where((schedule) {
+      return schedule['mode'] == "Center";
     }).toList();
-
-    // Sắp xếp theo ngày, tháng, năm và giờ từ bé đến lớn
-    filteredSchedules.sort((a, b) {
-      final dateA = DateTime.parse(a.startDate);
-      final dateB = DateTime.parse(b.startDate);
-
-      if (dateA.year != dateB.year) return dateA.year.compareTo(dateB.year);
-      if (dateA.month != dateB.month) return dateA.month.compareTo(dateB.month);
-      if (dateA.day != dateB.day) return dateA.day.compareTo(dateB.day);
-
-      final timeA = a.timeStart.split(':');
-      final timeB = b.timeStart.split(':');
-
-      final hourA = int.parse(timeA[0]);
-      final minuteA = int.parse(timeA[1]);
-      final hourB = int.parse(timeB[0]);
-      final minuteB = int.parse(timeB[1]);
-
-      if (hourA != hourB) return hourA.compareTo(hourB);
-      return minuteA.compareTo(minuteB);
-    });
-
-    return filteredSchedules;
   }
 
-  List<Schedule> _getSchedulesForDay() {
+  List<dynamic> _getSchedulesForDay() {
     return _getFilteredSchedules().where((schedule) {
       try {
-        final scheduleDate = DateTime.parse(schedule.startDate);
+        final scheduleDate = DateTime.parse(schedule['startDay']);
         return scheduleDate.year == _selectedDate.year &&
             scheduleDate.month == _selectedDate.month &&
             scheduleDate.day == _selectedDate.day;
@@ -101,13 +95,13 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     }).toList();
   }
 
-  List<Schedule> _getSchedulesForWeek() {
+  List<dynamic> _getSchedulesForWeek() {
     final startOfWeek = _getStartOfWeek(_selectedDate);
     final endOfWeek = startOfWeek.add(const Duration(days: 6));
 
     return _getFilteredSchedules().where((schedule) {
       try {
-        final scheduleDate = DateTime.parse(schedule.startDate);
+        final scheduleDate = DateTime.parse(schedule['startDay']);
         return scheduleDate
                 .isAfter(startOfWeek.subtract(const Duration(days: 1))) &&
             scheduleDate.isBefore(endOfWeek.add(const Duration(days: 1)));
@@ -117,13 +111,13 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     }).toList();
   }
 
-  List<Schedule> _getSchedulesForMonth() {
+  List<dynamic> _getSchedulesForMonth() {
     final startOfMonth = DateTime(_selectedDate.year, _selectedDate.month, 1);
     final endOfMonth = DateTime(_selectedDate.year, _selectedDate.month + 1, 0);
 
     return _getFilteredSchedules().where((schedule) {
       try {
-        final scheduleDate = DateTime.parse(schedule.startDate);
+        final scheduleDate = DateTime.parse(schedule['startDay']);
         return scheduleDate
                 .isAfter(startOfMonth.subtract(const Duration(days: 1))) &&
             scheduleDate.isBefore(endOfMonth.add(const Duration(days: 1)));
@@ -133,7 +127,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     }).toList();
   }
 
-  List<Schedule> _getCurrentFilteredSchedules() {
+  List<dynamic> _getCurrentFilteredSchedules() {
     switch (_currentFilter) {
       case FilterType.day:
         return _getSchedulesForDay();
@@ -147,7 +141,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   bool _hasScheduleOnDate(DateTime date) {
     return _getFilteredSchedules().any((schedule) {
       try {
-        final scheduleDate = DateTime.parse(schedule.startDate);
+        final scheduleDate = DateTime.parse(schedule['startDay']);
         return scheduleDate.year == date.year &&
             scheduleDate.month == date.month &&
             scheduleDate.day == date.day;
@@ -168,7 +162,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Lịch học'),
+        title: const Text('Lịch học tại trung tâm'),
         backgroundColor: const Color(0xFF8C9EFF),
       ),
       body: Container(
@@ -397,16 +391,12 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   }
 
   Widget _buildMonthGrid() {
-    // Tính toán ngày đầu tiên và cuối cùng của grid
     final firstDayOfMonth =
         DateTime(_selectedDate.year, _selectedDate.month, 1);
     final lastDayOfMonth =
         DateTime(_selectedDate.year, _selectedDate.month + 1, 0);
 
-    // Tính số ngày cần hiển thị từ tháng trước
     final firstWeekday = firstDayOfMonth.weekday % 7;
-
-    // Tính tổng số ngày cần hiển thị (gồm cả ngày từ tháng trước và tháng sau)
     final daysInGrid = firstWeekday + lastDayOfMonth.day;
     final rowsRequired = (daysInGrid / 7).ceil();
     final totalDays = rowsRequired * 7;
@@ -420,21 +410,17 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       ),
       itemCount: totalDays,
       itemBuilder: (context, index) {
-        // Tính ngày tương ứng với index
         DateTime date;
         bool isCurrentMonth = true;
 
         if (index < firstWeekday) {
-          // Ngày từ tháng trước
           final daysToSubtract = firstWeekday - index;
           date = firstDayOfMonth.subtract(Duration(days: daysToSubtract));
           isCurrentMonth = false;
         } else if (index < firstWeekday + lastDayOfMonth.day) {
-          // Ngày trong tháng hiện tại
           final day = index - firstWeekday + 1;
           date = DateTime(_selectedDate.year, _selectedDate.month, day);
         } else {
-          // Ngày từ tháng sau
           final daysToAdd = index - firstWeekday - lastDayOfMonth.day + 1;
           date =
               DateTime(_selectedDate.year, _selectedDate.month + 1, daysToAdd);
@@ -531,7 +517,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Bạn có thể đăng ký học kèm 1:1 để có lịch học',
+              'Bạn có thể đăng ký lớp học tại trung tâm để có lịch học',
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.grey[600],
@@ -552,27 +538,24 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     );
   }
 
-  Widget _buildScheduleCard(Schedule schedule) {
-    final date = DateTime.parse(schedule.startDate);
+  Widget _buildScheduleCard(Map<String, dynamic> schedule) {
+    final date = DateTime.parse(schedule['startDay']);
     final dayName = _getVietnameseDayName(date.weekday);
 
-    // Determine card color based on attendance status and date
     Color cardColor;
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final scheduleDate = DateTime(date.year, date.month, date.day);
 
-    if (schedule.attendanceStatus == 1) {
-      cardColor = Colors.green; // Present
-    } else if (schedule.attendanceStatus == 2) {
-      cardColor = Colors.red; // Absent
+    if (schedule['attendanceStatus'] == 1) {
+      cardColor = Colors.green;
+    } else if (schedule['attendanceStatus'] == 2) {
+      cardColor = Colors.red;
     } else {
-      // attendanceStatus == 0 (or null/other)
       if (scheduleDate.isBefore(today)) {
-        cardColor = Colors.grey; // Past and not attended
+        cardColor = Colors.grey;
       } else {
-        cardColor = const Color(
-            0xFF536DFE); // Future or today, not attended (default blue)
+        cardColor = const Color(0xFF536DFE);
       }
     }
 
@@ -590,7 +573,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            '${schedule.timeStart} - ${schedule.timeEnd}',
+            '${schedule['timeStart']} - ${schedule['timeEnd']}',
             style: const TextStyle(
               color: Colors.black54,
               fontWeight: FontWeight.w500,
@@ -600,12 +583,11 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: cardColor, // Use the determined color
+              color: cardColor,
               borderRadius: BorderRadius.circular(8),
               boxShadow: [
                 BoxShadow(
-                  color: cardColor
-                      .withOpacity(0.3), // Use the determined color for shadow
+                  color: cardColor.withOpacity(0.3),
                   spreadRadius: 1,
                   blurRadius: 3,
                   offset: const Offset(0, 2),
@@ -616,7 +598,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  schedule.teacherName,
+                  schedule['teacherName'],
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
@@ -624,13 +606,78 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                   ),
                 ),
                 const SizedBox(height: 4),
-                const Text(
-                  'Học kèm 1:1',
-                  style: TextStyle(
+                Text(
+                  schedule['className'],
+                  style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w400,
                   ),
                 ),
+                if (schedule['participants'] != null &&
+                    schedule['participants'].isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  const Divider(color: Colors.white54),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Danh sách học viên:',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  ...schedule['participants'].map<Widget>((participant) {
+                    Color statusColor;
+                    String statusText;
+
+                    if (participant['attendanceStatus'] == 1) {
+                      statusColor = Colors.green;
+                      statusText = 'Đã điểm danh';
+                    } else if (participant['attendanceStatus'] == 2) {
+                      statusColor = Colors.red;
+                      statusText = 'Vắng mặt';
+                    } else {
+                      statusColor = Colors.grey;
+                      statusText = 'Chưa điểm danh';
+                    }
+
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              participant['learnerName'],
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: statusColor.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: statusColor),
+                            ),
+                            child: Text(
+                              statusText,
+                              style: TextStyle(
+                                color: statusColor,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ],
               ],
             ),
           ),
@@ -655,4 +702,10 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     ];
     return dayNames[weekday % 7];
   }
+}
+
+enum FilterType {
+  day,
+  week,
+  month,
 }
