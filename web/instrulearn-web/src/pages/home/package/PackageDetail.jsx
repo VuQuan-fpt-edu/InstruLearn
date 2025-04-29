@@ -87,7 +87,7 @@ export default function PackageDetail() {
     try {
       setLoading(true);
       const response = await fetch(
-        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Course/${id}`
+        `https://instrulearnapplication.azurewebsites.net/api/Course/${id}`
       );
       const data = await response.json();
       setCourse(data);
@@ -131,7 +131,7 @@ export default function PackageDetail() {
     try {
       const token = localStorage.getItem("authToken");
       const response = await axios.get(
-        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Purchase/by-learner/${learnerId}`,
+        `https://instrulearnapplication.azurewebsites.net/api/Purchase/by-learner/${learnerId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -163,7 +163,7 @@ export default function PackageDetail() {
       }
 
       const response = await axios.get(
-        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/wallet/${learnerId}`,
+        `https://instrulearnapplication.azurewebsites.net/api/wallet/${learnerId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -199,7 +199,7 @@ export default function PackageDetail() {
 
     try {
       const response = await axios.post(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Feedback/create",
+        "https://instrulearnapplication.azurewebsites.net/api/Feedback/create",
         {
           coursePackageId: parseInt(id),
           accountId: userInfo.accountId,
@@ -240,7 +240,7 @@ export default function PackageDetail() {
 
     try {
       const response = await axios.post(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/FeedbackReplies/create",
+        "https://instrulearnapplication.azurewebsites.net/api/FeedbackReplies/create",
         {
           feedbackId: feedbackId,
           accountId: userInfo.accountId,
@@ -275,7 +275,7 @@ export default function PackageDetail() {
 
     try {
       const response = await axios.post(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/QnA/create",
+        "https://instrulearnapplication.azurewebsites.net/api/QnA/create",
         {
           coursePackageId: parseInt(id),
           accountId: userInfo.accountId,
@@ -316,7 +316,7 @@ export default function PackageDetail() {
 
     try {
       const response = await axios.post(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/QnAReplies/create",
+        "https://instrulearnapplication.azurewebsites.net/api/QnAReplies/create",
         {
           questionId: questionId,
           accountId: userInfo.accountId,
@@ -360,7 +360,7 @@ export default function PackageDetail() {
 
       setIsEnrolling(true);
       const response = await axios.post(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/PurchaseItem/create",
+        "https://instrulearnapplication.azurewebsites.net/api/PurchaseItem/create",
         {
           purchaseItemId: 0,
           learnerId: parseInt(learnerId),
@@ -540,7 +540,7 @@ export default function PackageDetail() {
                     onClick={handleEnrollClick}
                     loading={isEnrolling}
                   >
-                    Mua gói học
+                    Mua khóa học
                   </Button>
                 )}
               </div>

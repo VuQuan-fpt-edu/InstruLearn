@@ -44,7 +44,7 @@ const TeacherPersonalSchedule = () => {
   const fetchTeachers = async () => {
     try {
       const response = await axios.get(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Teacher/get-all"
+        "https://instrulearnapplication.azurewebsites.net/api/Teacher/get-all"
       );
       if (response.data) {
         const activeTeachers = response.data
@@ -62,10 +62,7 @@ const TeacherPersonalSchedule = () => {
   };
 
   const handleTeacherChange = async (teacherId) => {
-    // Reset schedules trước khi fetch dữ liệu mới
     setSchedules([]);
-
-    // Cập nhật giáo viên được chọn
     const teacher = teachers.find((t) => t.teacherId === teacherId);
     setSelectedTeacher(teacher);
 
@@ -73,11 +70,17 @@ const TeacherPersonalSchedule = () => {
       try {
         setLoading(true);
         const response = await axios.get(
-          `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Schedules/teacher/${teacherId}/register`
+          `https://instrulearnapplication.azurewebsites.net/api/Schedules/teacher/${teacherId}/register`
         );
 
         if (response.data?.isSucceed) {
-          setSchedules(response.data.data);
+          const processedSchedules = response.data.data.map((schedule) => ({
+            ...schedule,
+            formattedTime: `${schedule.timeStart} - ${schedule.timeEnd}`,
+            formattedDate: dayjs(schedule.startDay).format("DD/MM/YYYY"),
+            formattedDayOfWeek: convertDayToVietnamese(schedule.dayOfWeek),
+          }));
+          setSchedules(processedSchedules);
         } else {
           setSchedules([]);
           message.error("Không thể tải lịch dạy của giáo viên");
@@ -95,18 +98,32 @@ const TeacherPersonalSchedule = () => {
   };
 
   const dateCellRender = (value) => {
-    const date = value.format("YYYY-MM-DD");
+    const dateStr = value.format("YYYY-MM-DD");
     const daySchedules = schedules.filter(
-      (schedule) => schedule.startDay === date
+      (schedule) => schedule.startDay === dateStr
     );
 
     if (daySchedules.length === 0) return null;
 
     return (
       <div className="h-full">
-        <div className="bg-blue-50 rounded-lg p-2 text-center">
-          <div className="text-blue-600 font-medium">
-            {daySchedules.length} buổi học
+        <div className="bg-blue-50 rounded-lg p-2">
+          <div className="space-y-1">
+            {daySchedules.map((schedule, index) => (
+              <div key={index} className="text-xs">
+                <div className="flex items-center justify-between">
+                  <div className="font-medium text-gray-800 truncate">
+                    {schedule.learnerName}
+                  </div>
+                  <Tag color="blue" className="ml-1">
+                    Buổi {schedule.sessionNumber}
+                  </Tag>
+                </div>
+                <div className="text-gray-500">
+                  {schedule.timeStart} - {schedule.timeEnd}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -243,41 +260,90 @@ const TeacherPersonalSchedule = () => {
                   return (
                     <Popover
                       content={
-                        <div className="p-2">
-                          <div className="font-medium mb-2">
-                            Lịch dạy ngày {date.format("DD/MM/YYYY")}
+                        <div className="w-[500px]">
+                          <div className="flex items-center justify-between border-b pb-3 mb-4">
+                            <div>
+                              <div className="text-lg font-medium">
+                                Lịch dạy ngày {date.format("DD/MM/YYYY")}
+                              </div>
+                              <div className="text-gray-500 text-sm mt-1">
+                                {daySchedules.length} buổi học
+                              </div>
+                            </div>
+                            <Tag color="blue">
+                              {daySchedules[0]?.formattedDayOfWeek}
+                            </Tag>
                           </div>
-                          <div className="space-y-2">
-                            {daySchedules.map((schedule) => (
+
+                          <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                            {daySchedules.map((schedule, index) => (
                               <div
                                 key={schedule.scheduleId}
-                                className="border rounded p-2"
+                                className="bg-white rounded-lg border border-gray-200 p-4"
                               >
-                                <div className="flex items-center mb-1">
-                                  <Avatar
-                                    icon={<UserOutlined />}
-                                    size="small"
-                                    className="mr-2"
-                                  />
-                                  <div className="font-medium">
-                                    {schedule.learnerName}
+                                {/* Header Session Info */}
+                                <div className="flex items-center justify-between mb-3">
+                                  <div className="flex items-center gap-3">
+                                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-500 text-white font-medium">
+                                      {schedule.sessionNumber}
+                                    </div>
+                                    <div className="flex-1">
+                                      <div className="font-medium text-gray-900">
+                                        {schedule.sessionTitle}
+                                      </div>
+                                      {schedule.sessionDescription && (
+                                        <div className="text-sm text-gray-600 mt-1">
+                                          {schedule.sessionDescription}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <Tag
+                                    color={
+                                      schedule.isSessionCompleted
+                                        ? "success"
+                                        : "default"
+                                    }
+                                  >
+                                    {schedule.isSessionCompleted
+                                      ? "Đã hoàn thành"
+                                      : "Chưa hoàn thành"}
+                                  </Tag>
+                                </div>
+
+                                {/* Learner Info */}
+                                <div className="flex items-center gap-3 mb-3 p-2 bg-gray-50 rounded border border-gray-100">
+                                  <Avatar icon={<UserOutlined />} />
+                                  <div>
+                                    <div className="font-medium">
+                                      {schedule.learnerName}
+                                    </div>
+                                    <div className="text-xs text-gray-500">
+                                      Học viên
+                                    </div>
                                   </div>
                                 </div>
-                                <div className="text-sm text-gray-600">
-                                  <Tag color="blue">
-                                    {convertDayToVietnamese(schedule.dayOfWeek)}
-                                  </Tag>
-                                  <span className="ml-1">
+
+                                {/* Schedule Details */}
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-2 text-gray-600 text-sm">
+                                    <div className="flex items-center gap-2">
+                                      <ClockCircleOutlined />
+                                      <span>
+                                        {schedule.timeStart} -{" "}
+                                        {schedule.timeEnd}
+                                      </span>
+                                    </div>
                                     {getModeTag(schedule.mode)}
-                                  </span>
-                                </div>
-                                <div className="text-sm text-gray-600">
-                                  <ClockCircleOutlined className="mr-1" />
-                                  {schedule.timeStart} - {schedule.timeEnd}
-                                </div>
-                                <div className="text-sm text-gray-600">
-                                  <EnvironmentOutlined className="mr-1" />
-                                  {schedule.learnerAddress || "Chưa cập nhật"}
+                                  </div>
+
+                                  <div className="flex items-center text-sm text-gray-600">
+                                    <EnvironmentOutlined className="mr-2" />
+                                    <span>
+                                      {schedule.learnerAddress ||
+                                        "Chưa có địa chỉ"}
+                                    </span>
+                                  </div>
                                 </div>
                               </div>
                             ))}
@@ -285,6 +351,8 @@ const TeacherPersonalSchedule = () => {
                         </div>
                       }
                       trigger="click"
+                      placement="right"
+                      overlayClassName="custom-popover"
                     >
                       <div style={getDateCellStyle(date)}>
                         {dateCellRender(date)}
@@ -297,6 +365,69 @@ const TeacherPersonalSchedule = () => {
           </Card>
         </Content>
       </Layout>
+
+      {/* Thêm CSS cho thanh cuộn tùy chỉnh */}
+      <style jsx global>{`
+        .custom-calendar .ant-picker-calendar-date-content {
+          height: ${viewMode === "month" ? "80px" : "120px"};
+          overflow-y: auto;
+        }
+        .custom-calendar .ant-picker-calendar-date {
+          padding: 4px;
+        }
+        .custom-calendar .ant-picker-calendar-date-value {
+          font-size: 1.2em;
+        }
+        .custom-calendar .ant-picker-calendar-header {
+          padding: 12px 0;
+        }
+        .custom-calendar .ant-picker-calendar-date-content::-webkit-scrollbar {
+          width: 4px;
+        }
+        .custom-calendar
+          .ant-picker-calendar-date-content::-webkit-scrollbar-track {
+          background: #f1f1f1;
+        }
+        .custom-calendar
+          .ant-picker-calendar-date-content::-webkit-scrollbar-thumb {
+          background: #888;
+          border-radius: 2px;
+        }
+        .custom-calendar
+          .ant-picker-calendar-date-content::-webkit-scrollbar-thumb:hover {
+          background: #555;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 3px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #888;
+          border-radius: 3px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #555;
+        }
+
+        .custom-popover {
+          max-width: 90vw;
+        }
+
+        .custom-popover .ant-popover-inner {
+          padding: 0;
+        }
+
+        .custom-popover .ant-popover-inner-content {
+          padding: 16px;
+        }
+      `}</style>
     </Layout>
   );
 };

@@ -78,7 +78,7 @@ const AddCourse = () => {
   const fetchInstrumentTypes = async () => {
     try {
       const response = await axios.get(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/CourseType/get-all"
+        "https://instrulearnapplication.azurewebsites.net/api/CourseType/get-all"
       );
       if (response.data.isSucceed) {
         setInstrumentTypes(response.data.data);
@@ -105,7 +105,7 @@ const AddCourse = () => {
       };
 
       const response = await axios.post(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Course/create",
+        "https://instrulearnapplication.azurewebsites.net/api/Course/create",
         formData
       );
 

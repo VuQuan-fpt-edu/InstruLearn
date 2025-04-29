@@ -47,7 +47,7 @@ const ResponseTypeManagement = () => {
     try {
       setLoading(true);
       const response = await axios.get(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/ResponseType/get-all"
+        "https://instrulearnapplication.azurewebsites.net/api/ResponseType/get-all"
       );
 
       if (response.data) {
@@ -81,7 +81,7 @@ const ResponseTypeManagement = () => {
   const handleDelete = async (responseTypeId) => {
     try {
       const response = await axios.delete(
-        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/ResponseType/delete/${responseTypeId}`
+        `https://instrulearnapplication.azurewebsites.net/api/ResponseType/delete/${responseTypeId}`
       );
 
       if (response.data?.isSucceed) {
@@ -123,7 +123,7 @@ const ResponseTypeManagement = () => {
 
         // Cập nhật ResponseType
         const response = await axios.put(
-          `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/ResponseType/update/${editingType.responseTypeId}`,
+          `https://instrulearnapplication.azurewebsites.net/api/ResponseType/update/${editingType.responseTypeId}`,
           {
             responseTypeName: values.responseTypeName,
           }
@@ -149,7 +149,7 @@ const ResponseTypeManagement = () => {
 
         // Tạo mới ResponseType
         const response = await axios.post(
-          "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/ResponseType/create",
+          "https://instrulearnapplication.azurewebsites.net/api/ResponseType/create",
           {
             responseTypeName: values.responseTypeName,
           }

@@ -54,7 +54,7 @@ export default function OpenClasses() {
     try {
       setLoading(true);
       const response = await fetch(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Class/get-all"
+        "https://instrulearnapplication.azurewebsites.net/api/Class/get-all"
       );
       const data = await response.json();
 
@@ -99,7 +99,7 @@ export default function OpenClasses() {
 
     try {
       const response = await axios.get(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Auth/Profile",
+        "https://instrulearnapplication.azurewebsites.net/api/Auth/Profile",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -120,7 +120,7 @@ export default function OpenClasses() {
     try {
       const token = localStorage.getItem("authToken");
       const response = await axios.get(
-        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/wallet/${learnerId}`,
+        `https://instrulearnapplication.azurewebsites.net/api/wallet/${learnerId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -342,7 +342,7 @@ export default function OpenClasses() {
       setJoining(true);
       const token = localStorage.getItem("authToken");
       const response = await axios.post(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/LearningRegis/join-class",
+        "https://instrulearnapplication.azurewebsites.net/api/LearningRegis/join-class",
         {
           learnerId: userProfile.learnerId,
           classId: selectedClass.classId,

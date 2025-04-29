@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API_BASE_URL =
-  "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Auth";
+  "https://instrulearnapplication.azurewebsites.net/api/Auth";
 if (
   axios.interceptors.request.handlers &&
   axios.interceptors.request.handlers.length > 0
@@ -58,6 +58,44 @@ export const login = async (credentials) => {
     }
   } catch (error) {
     console.error("Login failed:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+export const loginWithGoogle = async (idToken, displayName) => {
+  try {
+    console.log("Sending Google login request with:", {
+      idToken: idToken,
+      fullName: displayName,
+    });
+
+    const response = await axios.post(`${API_BASE_URL}/google-login`, {
+      idToken: idToken,
+      fullName: displayName,
+    });
+
+    console.log("Google login response:", response.data);
+
+    if (response.data && response.data.isSucceed && response.data.data) {
+      // Lưu token và refresh token
+      localStorage.setItem("authToken", response.data.data.token);
+      if (response.data.data.refreshToken) {
+        localStorage.setItem("refreshToken", response.data.data.refreshToken);
+      }
+
+      // Lưu thông tin người dùng
+      if (response.data.data.user) {
+        localStorage.setItem("fullName", response.data.data.user.fullName);
+        localStorage.setItem("email", response.data.data.user.email);
+        localStorage.setItem("avatar", response.data.data.user.avatar);
+      }
+
+      return response.data;
+    } else {
+      throw new Error(response.data?.message || "Google login failed");
+    }
+  } catch (error) {
+    console.error("Google login error:", error.response?.data || error.message);
     throw error;
   }
 };

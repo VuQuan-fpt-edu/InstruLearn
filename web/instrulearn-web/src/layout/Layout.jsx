@@ -12,6 +12,8 @@ import {
   Typography,
   message,
   Spin,
+  List,
+  Empty,
 } from "antd";
 import {
   HomeOutlined,
@@ -29,8 +31,16 @@ import {
   YoutubeOutlined,
   TwitterOutlined,
   LoginOutlined,
+  FormOutlined,
+  WalletOutlined,
 } from "@ant-design/icons";
 import { getCurrentUser } from "../api/auth"; // Import the getCurrentUser function
+import axios from "axios";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+
+// Cấu hình dayjs để sử dụng plugin relativeTime
+dayjs.extend(relativeTime);
 
 const { Header, Content, Footer } = Layout;
 const { Title, Text, Paragraph } = Typography;
@@ -42,6 +52,8 @@ export default function AppLayout({ children }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [notifications, setNotifications] = useState([]);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
 
   // Kiểm tra trạng thái đăng nhập và lấy thông tin người dùng khi component mount
   useEffect(() => {
@@ -55,6 +67,11 @@ export default function AppLayout({ children }) {
           setIsLoggedIn(true);
           // Lưu thêm accountId vào localStorage
           localStorage.setItem("accountId", userData.accountId);
+
+          // Nếu đăng nhập thành công và có learnerId, lấy thông báo
+          if (userData.learnerId) {
+            fetchNotifications(userData.learnerId);
+          }
         } catch (error) {
           console.error("Error fetching user data:", error);
           message.error("Lỗi xác thực, vui lòng đăng nhập lại");
@@ -74,6 +91,26 @@ export default function AppLayout({ children }) {
 
     checkLoginStatus();
   }, []);
+
+  // Hàm lấy thông báo từ API
+  const fetchNotifications = async (learnerId) => {
+    try {
+      setLoadingNotifications(true);
+      const response = await axios.get(
+        `https://instrulearnapplication.azurewebsites.net/api/FeedbackNotification/check-notifications/${learnerId}`
+      );
+
+      if (response.data?.isSucceed) {
+        setNotifications(response.data.data || []);
+      } else {
+        console.error("Failed to fetch notifications:", response.data?.message);
+      }
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+    } finally {
+      setLoadingNotifications(false);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("authToken");
@@ -99,28 +136,77 @@ export default function AppLayout({ children }) {
     </Menu>
   );
 
+  // Định dạng thông báo để hiển thị
+  const formatNotification = (notification) => {
+    let icon = <FormOutlined className="text-blue-500" />;
+
+    // Kiểm tra trạng thái thông báo để hiển thị icon phù hợp
+    if (notification.progressPercentage > 0) {
+      icon = <BookOutlined className="text-green-500" />;
+    }
+
+    if (notification.remainingPayment > 0) {
+      icon = <WalletOutlined className="text-orange-500" />;
+    }
+
+    return {
+      icon: icon,
+      title: `Phản hồi khóa học với giáo viên ${notification.teacherName}`,
+      description: notification.message,
+      time: dayjs(notification.createdAt).fromNow(),
+      link: `/feedback/${notification.feedbackId}`,
+    };
+  };
+
   const notificationMenu = (
-    <Menu>
-      <Menu.Item key="notification1">
-        <div className="py-2">
-          <Text strong>Bài học mới đã được thêm</Text>
-          <Text type="secondary" className="block text-xs">
-            30 phút trước
-          </Text>
+    <Menu className="notification-menu">
+      <div className="p-2 border-b">
+        <Text strong>Thông báo</Text>
+      </div>
+      {loadingNotifications ? (
+        <div className="p-4 text-center">
+          <Spin size="small" />
+          <div className="mt-2">Đang tải thông báo...</div>
         </div>
-      </Menu.Item>
-      <Menu.Item key="notification2">
-        <div className="py-2">
-          <Text strong>Nhắc nhở lịch học</Text>
-          <Text type="secondary" className="block text-xs">
-            2 giờ trước
-          </Text>
+      ) : notifications && notifications.length > 0 ? (
+        <>
+          <List
+            itemLayout="horizontal"
+            dataSource={notifications.slice(0, 5).map(formatNotification)}
+            renderItem={(item) => (
+              <Menu.Item key={item.link}>
+                <Link to={item.link}>
+                  <div className="flex items-start space-x-3 py-2">
+                    <div className="flex-shrink-0 mt-1">{item.icon}</div>
+                    <div className="flex-1 min-w-0">
+                      <Text strong className="block text-sm mb-1">
+                        {item.title}
+                      </Text>
+                      <Text className="block text-xs text-gray-500 mb-1 truncate max-w-[250px]">
+                        {item.description}
+                      </Text>
+                      <Text className="block text-xs text-gray-400">
+                        {item.time}
+                      </Text>
+                    </div>
+                  </div>
+                </Link>
+              </Menu.Item>
+            )}
+          />
+          <Menu.Divider />
+          <Menu.Item key="all" className="text-center">
+            <Link to="/notification">Xem tất cả thông báo</Link>
+          </Menu.Item>
+        </>
+      ) : (
+        <div className="p-4">
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description="Không có thông báo"
+          />
         </div>
-      </Menu.Item>
-      <Menu.Divider />
-      <Menu.Item key="all">
-        <Link to="/notifications">Xem tất cả thông báo</Link>
-      </Menu.Item>
+      )}
     </Menu>
   );
 
@@ -150,7 +236,7 @@ export default function AppLayout({ children }) {
               <Link to="/">Trang chủ</Link>
             </Menu.Item>
             <Menu.Item key="/home-allcourse" icon={<BookOutlined />}>
-              <Link to="/home-allcourse">Gói học online</Link>
+              <Link to="/home-allcourse">Khóa học online</Link>
             </Menu.Item>
             <Menu.Item key="/teacher-list" icon={<TeamOutlined />}>
               <Link to="/teacher-list">Giảng viên</Link>
@@ -183,8 +269,12 @@ export default function AppLayout({ children }) {
             <Spin size="small" className="mr-4" />
           ) : isLoggedIn && currentUser ? (
             <>
-              <Dropdown overlay={notificationMenu} trigger={["click"]}>
-                <Badge count={3} className="mr-4">
+              <Dropdown
+                overlay={notificationMenu}
+                trigger={["click"]}
+                placement="bottomRight"
+              >
+                <Badge count={notifications.length} className="mr-4">
                   <Button
                     type="text"
                     icon={<BellOutlined className="text-xl" />}
@@ -198,6 +288,7 @@ export default function AppLayout({ children }) {
                   <Avatar
                     size="default"
                     icon={<UserOutlined />}
+                    src={currentUser.avatar}
                     className="bg-purple-700"
                   />
                   <span className="ml-2 hidden md:inline">
@@ -375,6 +466,21 @@ export default function AppLayout({ children }) {
           </div>
         </div>
       </Footer>
+      <style jsx global>{`
+        .notification-menu {
+          width: 320px;
+          max-height: 400px;
+          overflow-y: auto;
+        }
+
+        .notification-menu .ant-dropdown-menu-item {
+          padding: 8px 12px;
+        }
+
+        .notification-menu .ant-list-item {
+          padding: 8px 0;
+        }
+      `}</style>
     </Layout>
   );
 }

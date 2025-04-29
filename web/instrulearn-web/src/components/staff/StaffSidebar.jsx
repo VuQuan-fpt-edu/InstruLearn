@@ -106,6 +106,9 @@ const StaffSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
       case "syllabus":
         navigate("/staff/syllabus");
         break;
+      case "feedback-management":
+        navigate("/staff/feedback-management");
+        break;
       default:
         break;
     }
@@ -120,12 +123,15 @@ const StaffSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
     {
       key: "course-management",
       icon: <BookOutlined />,
-      label: "Quản lý gói khóa học",
+      label: "Quản lý khóa học",
       children: [
-        { key: "course-management", label: "Quản lý gói khóa học" },
-        { key: "add-course", label: "Thêm gói khóa học" },
-        { key: "musical instrument-type", label: "Quản lý nhạc cụ của gói" },
-        { key: "item-type", label: "Quản lý nội dung gói" },
+        { key: "course-management", label: "Quản lý khóa học" },
+        { key: "add-course", label: "Thêm khóa học" },
+        {
+          key: "musical instrument-type",
+          label: "Quản lý nhạc cụ khóa học",
+        },
+        { key: "item-type", label: "Quản lý nội dung khóa học" },
       ],
     },
     {
@@ -151,7 +157,7 @@ const StaffSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
       icon: <BellOutlined />,
       label: "Yêu cầu",
       children: [
-        { key: "class-requests", label: "Tham gia lớp" },
+        { key: "teacher-schedule-changes", label: "Thay đổi giáo viên" },
         { key: "makeup-class-requests", label: "Yêu cầu học bù" },
         { key: "booking1-1-requests", label: "Học 1-1" },
         { key: "refund-requests", label: "Yêu cầu hoàn tiền" },
@@ -169,11 +175,11 @@ const StaffSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
       ],
     },
     {
-      key: "communication",
+      key: "feedback",
       icon: <MessageOutlined />,
-      label: "Liên lạc",
+      label: "Phản hồi và đánh giá",
       children: [
-        { key: "student-messages", label: "Tin nhắn học viên" },
+        { key: "feedback-management", label: "Quản lý phản hồi" },
         { key: "announcements", label: "Thông báo" },
       ],
     },

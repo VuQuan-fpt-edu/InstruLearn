@@ -58,7 +58,7 @@ const ManagerManagement = () => {
   const fetchManagers = async () => {
     try {
       const response = await axios.get(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Manager/get-all"
+        "https://instrulearnapplication.azurewebsites.net/api/Manager/get-all"
       );
       if (response.data.isSucceed) {
         setManagers(response.data.data);
@@ -97,7 +97,7 @@ const ManagerManagement = () => {
       } else {
         try {
           const response = await axios.post(
-            "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Manager/create",
+            "https://instrulearnapplication.azurewebsites.net/api/Manager/create",
             {
               email: values.email,
               username: values.username,
@@ -134,8 +134,8 @@ const ManagerManagement = () => {
     try {
       const endpoint =
         isActive === 0
-          ? `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Manager/unban/${managerId}`
-          : `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Manager/delete/${managerId}`;
+          ? `https://instrulearnapplication.azurewebsites.net/api/Manager/unban/${managerId}`
+          : `https://instrulearnapplication.azurewebsites.net/api/Manager/delete/${managerId}`;
 
       const response = await axios.delete(endpoint);
 

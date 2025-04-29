@@ -18,7 +18,7 @@ const InstrumentManagement = () => {
   const fetchInstruments = async () => {
     try {
       const response = await axios.get(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/CourseType/get-all"
+        "https://instrulearnapplication.azurewebsites.net/api/CourseType/get-all"
       );
       if (response.data.isSucceed) {
         setInstruments(response.data.data);
@@ -35,7 +35,7 @@ const InstrumentManagement = () => {
   const checkNameExists = async (name) => {
     try {
       const existingInstruments = await axios.get(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/CourseType/get-all"
+        "https://instrulearnapplication.azurewebsites.net/api/CourseType/get-all"
       );
 
       return existingInstruments.data.data.some(
@@ -66,7 +66,7 @@ const InstrumentManagement = () => {
 
       if (editingInstrument) {
         await axios.put(
-          `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/CourseType/update/${editingInstrument.courseTypeId}`,
+          `https://instrulearnapplication.azurewebsites.net/api/CourseType/update/${editingInstrument.courseTypeId}`,
           {
             courseTypeName: values.courseTypeName,
           }
@@ -74,7 +74,7 @@ const InstrumentManagement = () => {
         message.success("Cập nhật nhạc cụ thành công!");
       } else {
         await axios.post(
-          "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/CourseType/create",
+          "https://instrulearnapplication.azurewebsites.net/api/CourseType/create",
           {
             courseTypeName: values.courseTypeName,
           }
@@ -93,7 +93,7 @@ const InstrumentManagement = () => {
   const handleDelete = async (id) => {
     try {
       await axios.delete(
-        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/CourseType/delete/${id}`
+        `https://instrulearnapplication.azurewebsites.net/api/CourseType/delete/${id}`
       );
       message.success("Xóa nhạc cụ thành công!");
       fetchInstruments();

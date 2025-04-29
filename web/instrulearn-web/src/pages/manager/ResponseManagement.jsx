@@ -51,7 +51,7 @@ const ResponseManagement = () => {
     try {
       setLoading(true);
       const response = await axios.get(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Response/get-all"
+        "https://instrulearnapplication.azurewebsites.net/api/Response/get-all"
       );
 
       if (response.data) {
@@ -74,7 +74,7 @@ const ResponseManagement = () => {
   const fetchResponseTypes = async () => {
     try {
       const response = await axios.get(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/ResponseType/get-all"
+        "https://instrulearnapplication.azurewebsites.net/api/ResponseType/get-all"
       );
 
       if (response.data) {
@@ -107,7 +107,7 @@ const ResponseManagement = () => {
   const handleDelete = async (responseId) => {
     try {
       const response = await axios.delete(
-        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Response/delete/${responseId}`
+        `https://instrulearnapplication.azurewebsites.net/api/Response/delete/${responseId}`
       );
 
       if (response.data?.isSucceed) {
@@ -127,7 +127,7 @@ const ResponseManagement = () => {
       if (editingResponse) {
         // Cập nhật Response
         const response = await axios.put(
-          `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Response/update/${editingResponse.responseId}`,
+          `https://instrulearnapplication.azurewebsites.net/api/Response/update/${editingResponse.responseId}`,
           {
             responseDescription: values.responseDescription,
           }
@@ -145,7 +145,7 @@ const ResponseManagement = () => {
       } else {
         // Tạo mới Response
         const response = await axios.post(
-          "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Response/create",
+          "https://instrulearnapplication.azurewebsites.net/api/Response/create",
           {
             responseTypeId: values.responseTypeId,
             responseDescription: values.responseDescription,

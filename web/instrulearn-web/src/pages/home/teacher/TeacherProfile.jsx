@@ -47,7 +47,7 @@ const TeacherProfilePage = () => {
     try {
       setLoading(true);
       const response = await axios.get(
-        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Teacher/${id}`
+        `https://instrulearnapplication.azurewebsites.net/api/Teacher/${id}`
       );
 
       if (response.data?.isSucceed) {

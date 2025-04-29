@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import AppLayout from "./layout/Layout";
 import Login from "./pages/authentication/Login";
 import Register from "./pages/authentication/Register";
+import ForgotPassword from "./pages/authentication/ForgotPassword";
 import Home from "./pages/home/Home";
 import Page404 from "./pages/error/404";
 import AdminDashboard from "./pages/admin/AdminDashBoard";
@@ -72,6 +73,11 @@ import LevelManagement from "./pages/manager/LevelManagement";
 import ResponseManagement from "./pages/manager/ResponseManagement";
 import ResponseTypeManagement from "./pages/manager/ResponseTypeManagement";
 import PaymentManagement from "./pages/manager/PaymentManagement";
+import EmailVerification from "./pages/authentication/EmailVerification";
+import LearningPath from "./pages/teacher/LearningPath";
+import Notification from "./pages/home/Notification";
+import Syllabus11Management from "./pages/manager/Syllabus1-1Management";
+import FeedbackManagement from "./pages/staff/FeedbackManagement";
 export default function App() {
   return (
     <Router>
@@ -91,6 +97,7 @@ export default function App() {
           <Route path="/teacher-profile/:id" element={<TeacherInfo />} />
           <Route path="/package/:id" element={<PackageDetail />} />
           <Route path="/class-detail/:id" element={<ClassDetails />} />
+          <Route path="/notification" element={<Notification />} />
         </Route>
 
         {/* Admin Routes */}
@@ -171,6 +178,10 @@ export default function App() {
         <Route path="staff/class-detail/:id" element={<ClassDetail />} />
         <Route path="staff/add-teacher" element={<AddTeacher />} />
         <Route path="staff/syllabus" element={<Syllabus />} />
+        <Route
+          path="staff/feedback-management"
+          element={<FeedbackManagement />}
+        />
 
         {/* Teacher Routes */}
         <Route path="/teacher" element={<TeacherDashBoard />} />
@@ -190,6 +201,7 @@ export default function App() {
         />
         <Route path="/teacher/makeup-class" element={<MakeupClass />} />
         <Route path="/teacher/student-feedback" element={<ClassFeedbacks />} />
+        <Route path="/teacher/learning-path" element={<LearningPath />} />
 
         {/* Manager Routes */}
         <Route path="manager" element={<Dashboard />} />
@@ -232,11 +244,17 @@ export default function App() {
           path="manager/payment-management"
           element={<PaymentManagement />}
         />
+        <Route
+          path="manager/level-syllabus"
+          element={<Syllabus11Management />}
+        />
         {/* Auth Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/404" element={<Page404 />} />
         <Route path="/test" element={<TestFireBase />} />
+        <Route path="/email-verification" element={<EmailVerification />} />
       </Routes>
     </Router>
   );

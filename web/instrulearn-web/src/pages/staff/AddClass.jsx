@@ -65,7 +65,7 @@ const AddClass = () => {
   const fetchTeachers = async () => {
     try {
       const response = await fetch(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Teacher/get-all"
+        "https://instrulearnapplication.azurewebsites.net/api/Teacher/get-all"
       );
       const data = await response.json();
       const activeTeachers = data.filter(
@@ -81,7 +81,7 @@ const AddClass = () => {
   const fetchSyllabuses = async () => {
     try {
       const response = await fetch(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Syllabus/get-all"
+        "https://instrulearnapplication.azurewebsites.net/api/Syllabus/get-all"
       );
       const data = await response.json();
       setSyllabuses(data);
@@ -95,7 +95,7 @@ const AddClass = () => {
     try {
       setLoadingData(true);
       const response = await fetch(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Course/get-all"
+        "https://instrulearnapplication.azurewebsites.net/api/Course/get-all"
       );
       const data = await response.json();
       // Lọc chỉ hiển thị khóa học có coursePackageType là 1
@@ -118,7 +118,7 @@ const AddClass = () => {
       const classDays = selectedDays.map(Number).sort((a, b) => a - b);
 
       const response = await fetch(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Class/create",
+        "https://instrulearnapplication.azurewebsites.net/api/Class/create",
         {
           method: "POST",
           headers: {

@@ -71,7 +71,7 @@ const ClassDetail = () => {
 
     try {
       const response = await axios.get(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Auth/Profile",
+        "https://instrulearnapplication.azurewebsites.net/api/Auth/Profile",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -96,7 +96,7 @@ const ClassDetail = () => {
     try {
       const token = localStorage.getItem("authToken");
       const response = await axios.get(
-        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/wallet/${learnerId}`,
+        `https://instrulearnapplication.azurewebsites.net/api/wallet/${learnerId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -116,7 +116,7 @@ const ClassDetail = () => {
     try {
       setLoading(true);
       const classResponse = await axios.get(
-        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Class/${id}`
+        `https://instrulearnapplication.azurewebsites.net/api/Class/${id}`
       );
 
       if (classResponse.data.isSucceed) {
@@ -132,7 +132,7 @@ const ClassDetail = () => {
         // Fetch teacher data after getting class data
         if (classResponse.data.data.teacherId) {
           const teacherDetailResponse = await axios.get(
-            `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Teacher/${classResponse.data.data.teacherId}`
+            `https://instrulearnapplication.azurewebsites.net/api/Teacher/${classResponse.data.data.teacherId}`
           );
           if (teacherDetailResponse.data.isSucceed) {
             setTeacherData(teacherDetailResponse.data.data);
@@ -243,7 +243,7 @@ const ClassDetail = () => {
       setJoining(true);
       const token = localStorage.getItem("authToken");
       const response = await axios.post(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/LearningRegis/join-class",
+        "https://instrulearnapplication.azurewebsites.net/api/LearningRegis/join-class",
         {
           learnerId: userProfile.learnerId,
           classId: parseInt(id),

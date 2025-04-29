@@ -53,7 +53,7 @@ const StaffManagement = () => {
   const fetchStaffs = async () => {
     try {
       const response = await axios.get(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Staff/get-all"
+        "https://instrulearnapplication.azurewebsites.net/api/Staff/get-all"
       );
       if (response.data.isSucceed) {
         setStaffs(response.data.data);
@@ -80,8 +80,8 @@ const StaffManagement = () => {
     try {
       const endpoint =
         isActive === 0
-          ? `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Staff/unban/${staffId}`
-          : `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Staff/delete/${staffId}`;
+          ? `https://instrulearnapplication.azurewebsites.net/api/Staff/unban/${staffId}`
+          : `https://instrulearnapplication.azurewebsites.net/api/Staff/delete/${staffId}`;
 
       const response = await axios.delete(endpoint);
 
@@ -111,7 +111,7 @@ const StaffManagement = () => {
       } else {
         try {
           const response = await axios.post(
-            "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Staff/create",
+            "https://instrulearnapplication.azurewebsites.net/api/Staff/create",
             {
               email: values.email,
               username: values.username,

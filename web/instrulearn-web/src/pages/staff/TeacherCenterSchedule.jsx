@@ -81,7 +81,7 @@ const TeacherCenterSchedule = () => {
     try {
       setLoading(true);
       const teacherResponse = await fetch(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Teacher/get-all"
+        "https://instrulearnapplication.azurewebsites.net/api/Teacher/get-all"
       );
       const responseData = await teacherResponse.json();
       if (responseData) {
@@ -106,7 +106,7 @@ const TeacherCenterSchedule = () => {
     try {
       setLoading(true);
       const scheduleResponse = await fetch(
-        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Schedules/teacher/${teacherId}/classs`
+        `https://instrulearnapplication.azurewebsites.net/api/Schedules/teacher/${teacherId}/classs`
       );
       const data = await scheduleResponse.json();
 

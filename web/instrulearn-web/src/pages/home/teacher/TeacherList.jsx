@@ -30,7 +30,7 @@ export default function MusicTeachersList() {
     try {
       setLoading(true);
       const response = await axios.get(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/TeacherMajor/get-all"
+        "https://instrulearnapplication.azurewebsites.net/api/TeacherMajor/get-all"
       );
 
       if (response.data && Array.isArray(response.data)) {

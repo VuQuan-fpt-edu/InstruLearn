@@ -13,6 +13,7 @@ import {
   Row,
   Col,
   Statistic,
+  Steps,
 } from "antd";
 import {
   ClockCircleOutlined,
@@ -59,6 +60,8 @@ const MyRegistrations = () => {
     rejected: 0,
     completed: 0,
   });
+  const [learningPathSessions, setLearningPathSessions] = useState([]);
+  const [loadingPathSessions, setLoadingPathSessions] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -76,7 +79,7 @@ const MyRegistrations = () => {
       }
 
       const response = await axios.get(
-        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/LearningRegis/status/${learnerId}`,
+        `https://instrulearnapplication.azurewebsites.net/api/LearningRegis/status/${learnerId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -128,6 +131,32 @@ const MyRegistrations = () => {
       message.error("Không thể tải danh sách đăng ký");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchLearningPathSessions = async (learningRegisId) => {
+    try {
+      setLoadingPathSessions(true);
+      const token = localStorage.getItem("authToken");
+      const response = await axios.get(
+        `https://instrulearnapplication.azurewebsites.net/api/LearningPathSession/${learningRegisId}/learning-path-sessions`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data?.isSucceed) {
+        setLearningPathSessions(response.data.data);
+      } else {
+        throw new Error(response.data?.message || "Không thể tải lộ trình học");
+      }
+    } catch (error) {
+      console.error("Error fetching learning path sessions:", error);
+      message.error("Không thể tải lộ trình học");
+    } finally {
+      setLoadingPathSessions(false);
     }
   };
 
@@ -206,6 +235,26 @@ const MyRegistrations = () => {
             Đã thanh toán đầy đủ
           </Tag>
         );
+      case "FourtyFeedbackDone":
+        return (
+          <Tag
+            icon={<CheckCircleOutlined />}
+            color="processing"
+            className="px-3 py-1 text-base"
+          >
+            Đã phản hồi
+          </Tag>
+        );
+      case "Cancelled":
+        return (
+          <Tag
+            icon={<CloseCircleOutlined />}
+            color="error"
+            className="px-3 py-1 text-base"
+          >
+            Đã hủy
+          </Tag>
+        );
       default:
         return (
           <Tag color="default" className="px-3 py-1 text-base">
@@ -218,6 +267,9 @@ const MyRegistrations = () => {
   const handleView = (record) => {
     setSelectedRegistration(record);
     setViewModalVisible(true);
+    if (record.status !== "Pending") {
+      fetchLearningPathSessions(record.learningRegisId);
+    }
   };
 
   const handleViewVideo = (videoUrl) => {
@@ -237,7 +289,7 @@ const MyRegistrations = () => {
 
       // Kiểm tra số dư ví
       const walletResponse = await axios.get(
-        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/wallet/${learnerId}`,
+        `https://instrulearnapplication.azurewebsites.net/api/wallet/${learnerId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -277,7 +329,7 @@ const MyRegistrations = () => {
 
       // Kiểm tra số dư ví
       const walletResponse = await axios.get(
-        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/wallet/${learnerId}`,
+        `https://instrulearnapplication.azurewebsites.net/api/wallet/${learnerId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -318,7 +370,7 @@ const MyRegistrations = () => {
 
       const response = await axios({
         method: "post",
-        url: "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Payment/process-learning-payment",
+        url: "https://instrulearnapplication.azurewebsites.net/api/Payment/process-learning-payment",
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -355,7 +407,7 @@ const MyRegistrations = () => {
 
       const response = await axios({
         method: "post",
-        url: `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Payment/process-remaining-payment/${regisId}`,
+        url: `https://instrulearnapplication.azurewebsites.net/api/Payment/process-remaining-payment/${regisId}`,
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -558,7 +610,7 @@ const MyRegistrations = () => {
               Thanh toán 40% học phí
             </Button>
           ),
-          selectedRegistration?.status === "Fourty" && (
+          selectedRegistration?.status === "FourtyFeedbackDone" && (
             <Button
               key="remainingPayment"
               type="primary"
@@ -649,12 +701,34 @@ const MyRegistrations = () => {
                 </div>
               </div>
 
+              {/* Nguyên nhân hủy đơn hoặc Yêu cầu học */}
               {selectedRegistration.learningRequest && (
                 <div className="mt-6">
-                  <Text type="secondary">Yêu cầu học</Text>
-                  <div className="text-lg font-medium mt-1">
-                    {selectedRegistration.learningRequest}
-                  </div>
+                  {selectedRegistration.status === "Cancelled" &&
+                  (selectedRegistration.learningRequest ===
+                    "Quá hạn thanh toán" ||
+                    selectedRegistration.learningRequest ===
+                      "Quá hạn thanh toán 60%") ? (
+                    <>
+                      <Text
+                        type="danger"
+                        strong
+                        style={{ color: "#e53935", fontWeight: 600 }}
+                      >
+                        Nguyên nhân hủy đơn
+                      </Text>
+                      <div className="text-lg font-bold mt-1 text-red-600">
+                        {selectedRegistration.learningRequest}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <Text type="secondary">Yêu cầu học</Text>
+                      <div className="text-lg font-medium mt-1">
+                        {selectedRegistration.learningRequest}
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
             </div>
@@ -767,35 +841,299 @@ const MyRegistrations = () => {
                               </Text>
                             )}
                           </div>
-                          {selectedRegistration.status === "Fourty" && (
-                            <div className="text-base text-blue-600 mt-2">
-                              Số tiền còn phải thanh toán (60% tổng học phí):{" "}
-                              {(
-                                selectedRegistration.price * 0.6
-                              ).toLocaleString("vi-VN")}{" "}
-                              VNĐ
-                            </div>
-                          )}
                         </div>
                       </Col>
                     )}
 
-                    {selectedRegistration.learningPath && (
+                    {/* Lộ trình thanh toán */}
+                    <Col xs={24}>
+                      <div className="space-y-1">
+                        <Text type="secondary">Lộ trình thanh toán</Text>
+                        <div className="mt-4">
+                          <Steps
+                            direction="vertical"
+                            current={(() => {
+                              // Nếu Cancelled và learningRequest là 'Quá hạn thanh toán 60%' thì chỉ có 2 bước
+                              if (
+                                selectedRegistration.status === "Cancelled" &&
+                                selectedRegistration.learningRequest ===
+                                  "Quá hạn thanh toán 60%"
+                              ) {
+                                return 2;
+                              }
+                              return selectedRegistration.status === "Fourty" ||
+                                selectedRegistration.status ===
+                                  "FourtyFeedbackDone"
+                                ? 2
+                                : selectedRegistration.status === "Sixty" ||
+                                  selectedRegistration.status === "Completed"
+                                ? 3
+                                : 1;
+                            })()}
+                            items={(() => {
+                              // Nếu bị từ chối hoặc hủy thì chỉ hiện bước đăng ký học
+                              if (
+                                selectedRegistration.status === "Rejected" ||
+                                (selectedRegistration.status === "Cancelled" &&
+                                  selectedRegistration.learningRequest !==
+                                    "Quá hạn thanh toán 60%")
+                              ) {
+                                return [
+                                  {
+                                    title: "Đăng ký học",
+                                    description: (
+                                      <div>
+                                        <div>
+                                          Ngày đăng ký:{" "}
+                                          {dayjs(
+                                            selectedRegistration.requestDate
+                                          ).format("DD/MM/YYYY HH:mm")}
+                                        </div>
+                                        <div>
+                                          Trạng thái:{" "}
+                                          {getStatusTag(
+                                            selectedRegistration.status
+                                          )}
+                                        </div>
+                                      </div>
+                                    ),
+                                    status: "finish",
+                                  },
+                                ];
+                              }
+                              // Nếu Cancelled và learningRequest là 'Quá hạn thanh toán 60%' thì chỉ có 2 bước
+                              if (
+                                selectedRegistration.status === "Cancelled" &&
+                                selectedRegistration.learningRequest ===
+                                  "Quá hạn thanh toán 60%"
+                              ) {
+                                return [
+                                  {
+                                    title: "Đăng ký học",
+                                    description: (
+                                      <div>
+                                        <div>
+                                          Ngày đăng ký:{" "}
+                                          {dayjs(
+                                            selectedRegistration.requestDate
+                                          ).format("DD/MM/YYYY HH:mm")}
+                                        </div>
+                                        <div>
+                                          Trạng thái: {getStatusTag("Accepted")}
+                                        </div>
+                                      </div>
+                                    ),
+                                    status: "finish",
+                                  },
+                                  {
+                                    title: "Thanh toán 40% học phí",
+                                    description: (
+                                      <div>
+                                        <div>
+                                          Số tiền:{" "}
+                                          {(
+                                            selectedRegistration.price * 0.4
+                                          ).toLocaleString("vi-VN")}{" "}
+                                          VNĐ
+                                        </div>
+                                        <div>
+                                          Trạng thái: {getStatusTag("Fourty")}
+                                        </div>
+                                      </div>
+                                    ),
+                                    status: "finish",
+                                  },
+                                ];
+                              }
+                              // Các trường hợp còn lại
+                              return [
+                                {
+                                  title: "Đăng ký học",
+                                  description: (
+                                    <div>
+                                      <div>
+                                        Ngày đăng ký:{" "}
+                                        {dayjs(
+                                          selectedRegistration.requestDate
+                                        ).format("DD/MM/YYYY HH:mm")}
+                                      </div>
+                                      <div>
+                                        Trạng thái:{" "}
+                                        {getStatusTag(
+                                          selectedRegistration.status ===
+                                            "Accepted" ||
+                                            selectedRegistration.status ===
+                                              "Fourty" ||
+                                            selectedRegistration.status ===
+                                              "FourtyFeedbackDone" ||
+                                            selectedRegistration.status ===
+                                              "Sixty" ||
+                                            selectedRegistration.status ===
+                                              "Completed"
+                                            ? "Accepted"
+                                            : selectedRegistration.status
+                                        )}
+                                      </div>
+                                    </div>
+                                  ),
+                                  status: "finish",
+                                },
+                                {
+                                  title: "Thanh toán 40% học phí",
+                                  description: (
+                                    <div>
+                                      <div>
+                                        Số tiền:{" "}
+                                        {(
+                                          selectedRegistration.price * 0.4
+                                        ).toLocaleString("vi-VN")}{" "}
+                                        VNĐ
+                                      </div>
+                                      <div>
+                                        Trạng thái:{" "}
+                                        {selectedRegistration.status ===
+                                          "Fourty" ||
+                                        selectedRegistration.status ===
+                                          "FourtyFeedbackDone" ||
+                                        selectedRegistration.status ===
+                                          "Sixty" ||
+                                        selectedRegistration.status ===
+                                          "Completed"
+                                          ? getStatusTag("Fourty")
+                                          : getStatusTag("Pending")}
+                                      </div>
+                                      {/* Hạn thanh toán chỉ hiện khi đã hoàn thành đăng ký học */}
+                                      {(selectedRegistration.status ===
+                                        "Accepted" ||
+                                        selectedRegistration.status ===
+                                          "Fourty" ||
+                                        selectedRegistration.status ===
+                                          "FourtyFeedbackDone" ||
+                                        selectedRegistration.status ===
+                                          "Sixty" ||
+                                        selectedRegistration.status ===
+                                          "Completed") &&
+                                        selectedRegistration.paymentDeadline && (
+                                          <div className="text-red-500">
+                                            Hạn thanh toán:{" "}
+                                            {dayjs(
+                                              selectedRegistration.paymentDeadline
+                                            ).format("DD/MM/YYYY")}
+                                          </div>
+                                        )}
+                                    </div>
+                                  ),
+                                  status:
+                                    selectedRegistration.status === "Fourty" ||
+                                    selectedRegistration.status ===
+                                      "FourtyFeedbackDone" ||
+                                    selectedRegistration.status === "Sixty" ||
+                                    selectedRegistration.status === "Completed"
+                                      ? "finish"
+                                      : "wait",
+                                },
+                                {
+                                  title: "Thanh toán 60% học phí còn lại",
+                                  description: (
+                                    <div>
+                                      <div>
+                                        Số tiền:{" "}
+                                        {(
+                                          selectedRegistration.price * 0.6
+                                        ).toLocaleString("vi-VN")}{" "}
+                                        VNĐ
+                                      </div>
+                                      <div>
+                                        Trạng thái:{" "}
+                                        {selectedRegistration.status ===
+                                          "Sixty" ||
+                                        selectedRegistration.status ===
+                                          "Completed"
+                                          ? getStatusTag("Sixty")
+                                          : getStatusTag("Pending")}
+                                      </div>
+                                      {/* Hạn thanh toán chỉ hiện khi đã hoàn thành 40% */}
+                                      {(selectedRegistration.status ===
+                                        "Fourty" ||
+                                        selectedRegistration.status ===
+                                          "FourtyFeedbackDone" ||
+                                        selectedRegistration.status ===
+                                          "Sixty" ||
+                                        selectedRegistration.status ===
+                                          "Completed") &&
+                                        selectedRegistration.paymentDeadline && (
+                                          <div className="text-red-500">
+                                            Hạn thanh toán:{" "}
+                                            {dayjs(
+                                              selectedRegistration.paymentDeadline
+                                            ).format("DD/MM/YYYY")}
+                                          </div>
+                                        )}
+                                    </div>
+                                  ),
+                                  status:
+                                    selectedRegistration.status === "Sixty" ||
+                                    selectedRegistration.status === "Completed"
+                                      ? "finish"
+                                      : "wait",
+                                },
+                              ];
+                            })()}
+                          />
+                        </div>
+                      </div>
+                    </Col>
+
+                    {/* Lộ trình học tập */}
+                    {[
+                      "Accepted",
+                      "Fourty",
+                      "FourtyFeedbackDone",
+                      "Sixty",
+                      "Completed",
+                    ].includes(selectedRegistration.status) && (
                       <Col xs={24}>
                         <div className="space-y-1">
-                          <Text type="secondary">Lộ trình học</Text>
-                          <div className="mt-2">
-                            <a
-                              href={selectedRegistration.learningPath}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center text-blue-600 hover:text-blue-800"
-                            >
-                              <PaperClipOutlined className="mr-2" />
-                              <span className="text-lg font-medium">
-                                Xem lộ trình học
-                              </span>
-                            </a>
+                          <Text type="secondary">Lộ trình học tập</Text>
+                          <div className="mt-4">
+                            {loadingPathSessions ? (
+                              <div className="text-center py-4">
+                                <Spin />
+                              </div>
+                            ) : (
+                              <>
+                                {!learningPathSessions.length ||
+                                !learningPathSessions.some(
+                                  (s) => s.isCompleted
+                                ) ? (
+                                  <div className="text-base text-gray-500 italic">
+                                    Lộ trình học tập của bạn đang được giáo viên
+                                    soạn, nếu giáo viên đã soạn xong lộ trình
+                                    bạn sẽ nhận được thông báo sớm nhất trong
+                                    Email
+                                  </div>
+                                ) : (
+                                  <Steps
+                                    direction="vertical"
+                                    current={
+                                      learningPathSessions.filter(
+                                        (s) => s.isCompleted
+                                      ).length
+                                    }
+                                    items={learningPathSessions
+                                      .filter((session) => session.isCompleted)
+                                      .map((session) => ({
+                                        title: (
+                                          <Text
+                                            strong
+                                          >{`Buổi ${session.sessionNumber}: ${session.title}`}</Text>
+                                        ),
+                                        description: session.description,
+                                      }))}
+                                  />
+                                )}
+                              </>
+                            )}
                           </div>
                         </div>
                       </Col>

@@ -18,6 +18,7 @@ import {
   Row,
   Col,
   Statistic,
+  Tabs,
 } from "antd";
 import {
   ClockCircleOutlined,
@@ -28,6 +29,7 @@ import {
   CloseCircleOutlined,
   QuestionCircleOutlined,
   HomeOutlined,
+  BookOutlined,
 } from "@ant-design/icons";
 import TeacherHeader from "../../components/teacher/TeacherHeader";
 import TeacherSidebar from "../../components/teacher/TeacherSidebar";
@@ -36,6 +38,7 @@ import axios from "axios";
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
+const { TabPane } = Tabs;
 
 const PrivateSchedule = () => {
   const [collapsed, setCollapsed] = useState(false);
@@ -47,6 +50,9 @@ const PrivateSchedule = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [popoverVisible, setPopoverVisible] = useState(false);
+  const [selectedTab, setSelectedTab] = useState("info");
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedSchedules, setSelectedSchedules] = useState([]);
 
   const fetchSchedules = async () => {
     try {
@@ -57,7 +63,7 @@ const PrivateSchedule = () => {
       }
 
       const profileResponse = await axios.get(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Auth/Profile",
+        "https://instrulearnapplication.azurewebsites.net/api/Auth/Profile",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -72,7 +78,7 @@ const PrivateSchedule = () => {
       const teacherId = profileResponse.data.data.teacherId;
 
       const response = await axios.get(
-        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Schedules/teacher/${teacherId}/register`,
+        `https://instrulearnapplication.azurewebsites.net/api/Schedules/teacher/${teacherId}/register`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -107,7 +113,7 @@ const PrivateSchedule = () => {
       const token = localStorage.getItem("authToken");
 
       const response = await axios.put(
-        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Schedules/update-attendance/${scheduleId}`,
+        `https://instrulearnapplication.azurewebsites.net/api/Schedules/update-attendance/${scheduleId}`,
         status,
         {
           headers: {
@@ -167,7 +173,47 @@ const PrivateSchedule = () => {
     today.setHours(0, 0, 0, 0);
     const classDate = new Date(startDay);
     classDate.setHours(0, 0, 0, 0);
-    return classDate <= today;
+
+    // Tính số ngày chênh lệch
+    const diffTime = Math.abs(today - classDate);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    // Chỉ cho phép điểm danh trong ngày học hoặc 1 ngày sau
+    return diffDays <= 1 && classDate <= today && !isPastDate(startDay);
+  };
+
+  const isPastDate = (startDay) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const classDate = new Date(startDay);
+    classDate.setHours(0, 0, 0, 0);
+    return classDate < today;
+  };
+
+  const getAttendanceMessage = (startDay) => {
+    if (isPastDate(startDay)) {
+      return (
+        <Tag color="error" icon={<ClockCircleOutlined />}>
+          Đã quá hạn điểm danh
+        </Tag>
+      );
+    }
+    return (
+      <Tag color="warning" icon={<ClockCircleOutlined />}>
+        Chưa đến ngày dạy
+      </Tag>
+    );
+  };
+
+  const getAttendanceStatus = (status) => {
+    switch (status) {
+      case 1:
+        return { color: "success", text: "Có mặt" };
+      case 2:
+        return { color: "error", text: "Vắng mặt" };
+      default:
+        return { color: "default", text: "Chưa điểm danh" };
+    }
   };
 
   const getAttendanceStatusTag = (status) => {
@@ -187,7 +233,9 @@ const PrivateSchedule = () => {
       default:
         return (
           <Tag icon={<QuestionCircleOutlined />} color="default">
-            Chưa điểm danh
+            {isPastDate(selectedSchedule?.startDay)
+              ? "Đã quá hạn điểm danh"
+              : "Chưa điểm danh"}
           </Tag>
         );
     }
@@ -207,9 +255,23 @@ const PrivateSchedule = () => {
 
     return (
       <div className="h-full">
-        <div className="bg-blue-50 rounded-lg p-2 text-center">
-          <div className="text-blue-600 font-medium">
-            {daySchedules.length} buổi học
+        <div className="bg-blue-50 rounded-lg p-2">
+          <div className="space-y-1">
+            {daySchedules.map((schedule, index) => (
+              <div key={index} className="text-xs">
+                <div className="flex items-center justify-between">
+                  <div className="font-medium text-gray-800 truncate">
+                    {schedule.learnerName}
+                  </div>
+                  <Tag color="blue" className="ml-1">
+                    Buổi {schedule.sessionNumber}
+                  </Tag>
+                </div>
+                <div className="text-gray-500">
+                  {schedule.timeStart} - {schedule.timeEnd}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -238,7 +300,8 @@ const PrivateSchedule = () => {
       (schedule) => schedule.startDay === dateStr
     );
     if (daySchedules.length > 0) {
-      setSelectedSchedule(daySchedules[0]);
+      setSelectedDate(date);
+      setSelectedSchedules(daySchedules);
       setModalVisible(true);
       setPopoverVisible(false);
     }
@@ -321,8 +384,6 @@ const PrivateSchedule = () => {
             <Calendar
               onSelect={handleDateSelect}
               mode={viewMode}
-              dateCellRender={dateCellRender}
-              className="custom-calendar"
               cellRender={(date) => {
                 const dateStr = date.format("YYYY-MM-DD");
                 const daySchedules = schedules.filter(
@@ -336,36 +397,109 @@ const PrivateSchedule = () => {
                     open={popoverVisible}
                     onOpenChange={(visible) => setPopoverVisible(visible)}
                     content={
-                      <div className="p-2">
-                        <div className="font-medium mb-2">
-                          Lịch dạy ngày {date.format("DD/MM/YYYY")}
+                      <div className="w-[500px]">
+                        <div className="flex items-center justify-between border-b pb-3 mb-4">
+                          <div>
+                            <div className="text-lg font-medium">
+                              Lịch dạy ngày {date.format("DD/MM/YYYY")}
+                            </div>
+                            <div className="text-gray-500 text-sm mt-1">
+                              {daySchedules.length} buổi học
+                            </div>
+                          </div>
+                          <Tag color="blue">
+                            {formatDayOfWeek(daySchedules[0]?.dayOfWeek)}
+                          </Tag>
                         </div>
-                        <div className="space-y-2">
-                          {daySchedules.map((schedule) => (
+
+                        <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                          {daySchedules.map((schedule, index) => (
                             <div
                               key={schedule.scheduleId}
-                              className="border rounded p-2"
+                              className={`bg-white rounded-lg border ${
+                                schedule.attendanceStatus === 1
+                                  ? "border-green-200 bg-green-50"
+                                  : schedule.attendanceStatus === 2
+                                  ? "border-red-200 bg-red-50"
+                                  : "border-gray-200"
+                              } p-4`}
                             >
-                              <div className="flex items-center mb-1">
-                                <Avatar
-                                  icon={<UserOutlined />}
-                                  className="mr-2"
-                                />
-                                <div className="font-medium">
-                                  {schedule.learnerName}
+                              {/* Header */}
+                              <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-3">
+                                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-500 text-white font-medium">
+                                    {schedule.sessionNumber}
+                                  </div>
+                                  <div className="flex-1">
+                                    <div className="font-medium text-gray-900">
+                                      {schedule.sessionTitle}
+                                    </div>
+                                    {schedule.sessionDescription && (
+                                      <div className="text-sm text-gray-600 mt-1">
+                                        {schedule.sessionDescription}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                                <Tag
+                                  color={
+                                    getAttendanceStatus(
+                                      schedule.attendanceStatus
+                                    ).color
+                                  }
+                                >
+                                  {
+                                    getAttendanceStatus(
+                                      schedule.attendanceStatus
+                                    ).text
+                                  }
+                                </Tag>
+                              </div>
+
+                              {/* Student Info */}
+                              <div className="flex items-center gap-3 mb-3 p-2 bg-white rounded border border-gray-100">
+                                <Avatar icon={<UserOutlined />} />
+                                <div>
+                                  <div className="font-medium">
+                                    {schedule.learnerName}
+                                  </div>
+                                  <div className="text-xs text-gray-500">
+                                    Học viên
+                                  </div>
                                 </div>
                               </div>
-                              <div className="text-sm text-gray-600">
-                                <ClockCircleOutlined className="mr-1" />
-                                {schedule.formattedTime}
-                              </div>
-                              <div className="text-sm text-gray-600">
-                                <EnvironmentOutlined className="mr-1" />
-                                {schedule.learnerAddress}
-                              </div>
-                              <div className="mt-1">
-                                {getAttendanceStatusTag(
-                                  schedule.attendanceStatus
+
+                              {/* Additional Info */}
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2 text-gray-600 text-sm">
+                                  <div className="flex items-center gap-2">
+                                    <ClockCircleOutlined />
+                                    <span>
+                                      {schedule.timeStart} - {schedule.timeEnd}
+                                    </span>
+                                  </div>
+                                  <Tag color="blue" icon={<HomeOutlined />}>
+                                    Học tại nhà
+                                  </Tag>
+                                </div>
+
+                                <div className="flex items-center text-sm text-gray-600">
+                                  <EnvironmentOutlined className="mr-2" />
+                                  <span>{schedule.learnerAddress}</span>
+                                </div>
+
+                                {schedule.isSessionCompleted !== null && (
+                                  <Tag
+                                    color={
+                                      schedule.isSessionCompleted
+                                        ? "success"
+                                        : "default"
+                                    }
+                                  >
+                                    {schedule.isSessionCompleted
+                                      ? "Đã hoàn thành"
+                                      : "Chưa hoàn thành"}
+                                  </Tag>
                                 )}
                               </div>
                             </div>
@@ -374,6 +508,8 @@ const PrivateSchedule = () => {
                       </div>
                     }
                     trigger="click"
+                    placement="right"
+                    overlayClassName="custom-popover"
                   >
                     <div style={getDateCellStyle(date)}>
                       {dateCellRender(date)}
@@ -393,92 +529,199 @@ const PrivateSchedule = () => {
               </Space>
             }
             open={modalVisible}
-            onCancel={() => setModalVisible(false)}
+            onCancel={() => {
+              setModalVisible(false);
+              setSelectedSchedules([]);
+              setSelectedDate(null);
+            }}
             footer={[
-              <Button key="back" onClick={() => setModalVisible(false)}>
+              <Button
+                key="back"
+                onClick={() => {
+                  setModalVisible(false);
+                  setSelectedSchedules([]);
+                  setSelectedDate(null);
+                }}
+              >
                 Đóng
               </Button>,
             ]}
-            width={600}
+            width={800}
           >
-            {selectedSchedule && (
+            {selectedDate && selectedSchedules.length > 0 && (
               <div>
                 <div className="mb-4">
-                  <Space direction="vertical" size="small" className="w-full">
-                    <div className="flex items-center">
-                      <Avatar icon={<UserOutlined />} className="mr-2" />
-                      <Title level={4} className="mb-0">
-                        {selectedSchedule.learnerName}
-                      </Title>
-                    </div>
-                    <Text>
-                      <ClockCircleOutlined className="mr-2" />
-                      {selectedSchedule.formattedTime}
-                    </Text>
-                    <Text>
-                      <CalendarOutlined className="mr-2" />
-                      {selectedSchedule.formattedDate} (
-                      {selectedSchedule.formattedDayOfWeek})
-                    </Text>
-                    <Text>
-                      <EnvironmentOutlined className="mr-2" />
-                      {selectedSchedule.learnerAddress}
-                    </Text>
-                    {!canTakeAttendance(selectedSchedule.startDay) && (
-                      <Tag color="warning" icon={<ClockCircleOutlined />}>
-                        Chưa đến ngày dạy
-                      </Tag>
-                    )}
-                  </Space>
-                </div>
+                  <Title level={4} className="mb-4">
+                    Lịch dạy ngày {selectedDate.format("DD/MM/YYYY")}
+                  </Title>
+                  <div className="grid grid-cols-1 gap-4">
+                    {selectedSchedules.map((schedule, index) => (
+                      <div
+                        key={schedule.scheduleId}
+                        className={`bg-white rounded-lg border ${
+                          schedule.attendanceStatus === 1
+                            ? "border-green-200 bg-green-50"
+                            : schedule.attendanceStatus === 2
+                            ? "border-red-200 bg-red-50"
+                            : "border-gray-200"
+                        } p-4`}
+                      >
+                        <Tabs defaultActiveKey="info">
+                          <TabPane
+                            tab={
+                              <span>
+                                <CalendarOutlined /> Thông tin buổi học
+                              </span>
+                            }
+                            key="info"
+                          >
+                            <div className="space-y-4">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <Avatar icon={<UserOutlined />} />
+                                  <div>
+                                    <div className="font-medium text-lg">
+                                      {schedule.learnerName}
+                                    </div>
+                                    <Tag color="blue">
+                                      Buổi {schedule.sessionNumber}
+                                    </Tag>
+                                  </div>
+                                </div>
+                                <div>
+                                  {getAttendanceStatusTag(
+                                    schedule.attendanceStatus
+                                  )}
+                                </div>
+                              </div>
 
-                <Divider />
+                              <div className="bg-gray-50 p-3 rounded-lg">
+                                <div className="font-medium text-lg mb-1">
+                                  {schedule.sessionTitle}
+                                </div>
+                                {schedule.sessionDescription && (
+                                  <Text type="secondary">
+                                    {schedule.sessionDescription}
+                                  </Text>
+                                )}
+                              </div>
 
-                <div className="mb-4">
-                  <Title level={5}>Điểm danh</Title>
-                  <div className="flex justify-center space-x-4">
-                    <Button
-                      type="primary"
-                      onClick={() =>
-                        handleAttendance(selectedSchedule.scheduleId, 1)
-                      }
-                      className="bg-green-500 hover:bg-green-600"
-                      loading={attendanceLoading}
-                      disabled={
-                        selectedSchedule.attendanceStatus === 1 ||
-                        !canTakeAttendance(selectedSchedule.startDay)
-                      }
-                      icon={<CheckCircleOutlined />}
-                    >
-                      Có mặt
-                    </Button>
-                    <Button
-                      danger
-                      onClick={() =>
-                        handleAttendance(selectedSchedule.scheduleId, 2)
-                      }
-                      loading={attendanceLoading}
-                      disabled={
-                        selectedSchedule.attendanceStatus === 2 ||
-                        !canTakeAttendance(selectedSchedule.startDay)
-                      }
-                      icon={<CloseCircleOutlined />}
-                    >
-                      Vắng mặt
-                    </Button>
-                  </div>
-                  <div className="text-center mt-4">
-                    <Space>
-                      <Text>Trạng thái:</Text>
-                      {getAttendanceStatusTag(
-                        selectedSchedule.attendanceStatus
-                      )}
-                    </Space>
-                    {!canTakeAttendance(selectedSchedule.startDay) && (
-                      <div className="mt-2">
-                        <Text type="warning">(Chưa thể điểm danh)</Text>
+                              <div className="space-y-2">
+                                <Text>
+                                  <ClockCircleOutlined className="mr-2" />
+                                  {schedule.timeStart} - {schedule.timeEnd}
+                                </Text>
+                                <Text>
+                                  <CalendarOutlined className="mr-2" />
+                                  {schedule.formattedDate} (
+                                  {schedule.formattedDayOfWeek})
+                                </Text>
+                                <Text>
+                                  <EnvironmentOutlined className="mr-2" />
+                                  {schedule.learnerAddress}
+                                </Text>
+                              </div>
+
+                              <Divider />
+
+                              <div>
+                                <Title level={5}>Điểm danh</Title>
+                                <div className="flex justify-center space-x-4">
+                                  <Button
+                                    type="primary"
+                                    onClick={() =>
+                                      handleAttendance(schedule.scheduleId, 1)
+                                    }
+                                    className="bg-green-500 hover:bg-green-600"
+                                    loading={attendanceLoading}
+                                    disabled={
+                                      schedule.attendanceStatus === 1 ||
+                                      !canTakeAttendance(schedule.startDay)
+                                    }
+                                    icon={<CheckCircleOutlined />}
+                                  >
+                                    Có mặt
+                                  </Button>
+                                  <Button
+                                    danger
+                                    onClick={() =>
+                                      handleAttendance(schedule.scheduleId, 2)
+                                    }
+                                    loading={attendanceLoading}
+                                    disabled={
+                                      schedule.attendanceStatus === 2 ||
+                                      !canTakeAttendance(schedule.startDay)
+                                    }
+                                    icon={<CloseCircleOutlined />}
+                                  >
+                                    Vắng mặt
+                                  </Button>
+                                </div>
+                                {!canTakeAttendance(schedule.startDay) && (
+                                  <div className="text-center mt-2">
+                                    <Text type="warning">
+                                      {isPastDate(schedule.startDay)
+                                        ? "Đã quá hạn điểm danh"
+                                        : "Chưa đến ngày dạy"}
+                                    </Text>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </TabPane>
+                          <TabPane
+                            tab={
+                              <span>
+                                <BookOutlined /> Lộ trình học
+                              </span>
+                            }
+                            key="path"
+                          >
+                            <div className="space-y-4">
+                              <div className="flex items-center justify-between">
+                                <Title level={5} className="mb-0">
+                                  Thông tin lộ trình
+                                </Title>
+                                <Tag
+                                  color={
+                                    schedule.isSessionCompleted
+                                      ? "success"
+                                      : "default"
+                                  }
+                                >
+                                  {schedule.isSessionCompleted
+                                    ? "Đã hoàn thành"
+                                    : "Chưa hoàn thành"}
+                                </Tag>
+                              </div>
+                              <div className="bg-gray-50 p-4 rounded-lg">
+                                <div className="flex items-center gap-3 mb-3">
+                                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-500 text-white font-medium">
+                                    {schedule.sessionNumber}
+                                  </div>
+                                  <div>
+                                    <div className="font-medium">
+                                      {schedule.sessionTitle}
+                                    </div>
+                                    {schedule.sessionDescription && (
+                                      <div className="text-gray-600 mt-1">
+                                        {schedule.sessionDescription}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="mt-4">
+                                  <Text type="secondary">
+                                    <CalendarOutlined className="mr-2" />
+                                    Ngày học: {schedule.formattedDate}
+                                  </Text>
+                                </div>
+                              </div>
+                            </div>
+                          </TabPane>
+                        </Tabs>
                       </div>
-                    )}
+                    ))}
                   </div>
                 </div>
               </div>

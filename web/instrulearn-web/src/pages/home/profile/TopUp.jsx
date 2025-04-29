@@ -66,7 +66,7 @@ const TopUp = () => {
           try {
             // Gọi API cập nhật trạng thái thanh toán
             const response = await axios.put(
-              `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/wallet/update-payment-status-by-ordercode`,
+              `https://instrulearnapplication.azurewebsites.net/api/wallet/update-payment-status-by-ordercode`,
               {
                 orderCode: parseInt(orderCode),
                 status: status,
@@ -156,7 +156,7 @@ const TopUp = () => {
       console.log("Return URL:", returnUrl);
 
       const response = await axios.post(
-        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/wallet/add-funds`,
+        `https://instrulearnapplication.azurewebsites.net/api/wallet/add-funds`,
         {
           learnerId: Number(learnerId),
           amount: topupAmount,
@@ -205,7 +205,7 @@ const TopUp = () => {
         // Xử lý thanh toán qua PayOS
         const returnUrl = `${window.location.origin}/topup`;
         response = await axios.post(
-          `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/wallet/add-funds`,
+          `https://instrulearnapplication.azurewebsites.net/api/wallet/add-funds`,
           {
             learnerId: Number(learnerId),
             amount: topupAmount,
@@ -220,7 +220,7 @@ const TopUp = () => {
       } else {
         // Xử lý thanh toán qua VNPay
         response = await axios.post(
-          `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/wallet/add-funds-vnpay`,
+          `https://instrulearnapplication.azurewebsites.net/api/wallet/add-funds-vnpay`,
           {
             learnerId: Number(learnerId),
             amount: topupAmount,

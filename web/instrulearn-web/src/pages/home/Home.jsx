@@ -52,7 +52,7 @@ export default function Home() {
   const fetchCourses = async () => {
     try {
       const response = await fetch(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Course/get-all"
+        "https://instrulearnapplication.azurewebsites.net/api/Course/get-all"
       );
       const data = await response.json();
       const processedCourses = data
@@ -82,7 +82,7 @@ export default function Home() {
     try {
       setLoadingClasses(true);
       const response = await fetch(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Class/get-all"
+        "https://instrulearnapplication.azurewebsites.net/api/Class/get-all"
       );
       const data = await response.json();
 
@@ -116,7 +116,7 @@ export default function Home() {
     try {
       const token = localStorage.getItem("authToken");
       const response = await axios.get(
-        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/wallet/${learnerId}`,
+        `https://instrulearnapplication.azurewebsites.net/api/wallet/${learnerId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -142,7 +142,7 @@ export default function Home() {
       if (!token) return;
 
       const response = await axios.get(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Auth/Profile",
+        "https://instrulearnapplication.azurewebsites.net/api/Auth/Profile",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -396,7 +396,7 @@ export default function Home() {
       setJoining(true);
       const token = localStorage.getItem("authToken");
       const response = await axios.post(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/LearningRegis/join-class",
+        "https://instrulearnapplication.azurewebsites.net/api/LearningRegis/join-class",
         {
           learnerId: userProfile.learnerId,
           classId: selectedClass.classId,
@@ -570,7 +570,7 @@ export default function Home() {
                     </p>
                     <div className="flex justify-between items-center mb-3">
                       <span className="text-lg font-bold text-red-600">
-                        {formatPrice(classItem.price)}
+                        {formatPrice(classItem.price)}/Buổi
                       </span>
                       <Tag color={getStatusColor(classItem.status)}>
                         {getStatusText(classItem.status)}
@@ -603,7 +603,7 @@ export default function Home() {
         </div>
 
         <div className="mb-16">
-          <h2 className="text-3xl font-bold mb-8">Gói học online</h2>
+          <h2 className="text-3xl font-bold mb-8">Khóa học online</h2>
 
           {loading ? (
             <div className="text-center py-12">Đang tải khóa học...</div>

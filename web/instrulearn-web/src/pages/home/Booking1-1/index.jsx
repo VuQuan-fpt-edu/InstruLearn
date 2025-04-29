@@ -8,10 +8,18 @@ import {
   Avatar,
   Form,
   Modal,
+  Button,
+  Alert,
+  Result,
 } from "antd";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import axios from "axios";
+import {
+  CloseCircleOutlined,
+  ClockCircleOutlined,
+  CalendarOutlined,
+} from "@ant-design/icons";
 
 // Import các components
 import BookingForm from "./components/BookingForm";
@@ -50,6 +58,8 @@ const StudentBookingForm = () => {
   const [loading, setLoading] = useState(false);
   const [confirmModalVisible, setConfirmModalVisible] = useState(false);
   const [formValues, setFormValues] = useState(null);
+  const [errorModalVisible, setErrorModalVisible] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const navigate = useNavigate();
 
@@ -76,7 +86,7 @@ const StudentBookingForm = () => {
 
       setLoading(true);
       const response = await axios.get(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Auth/Profile",
+        "https://instrulearnapplication.azurewebsites.net/api/Auth/Profile",
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -115,7 +125,7 @@ const StudentBookingForm = () => {
   const fetchMajors = async () => {
     try {
       const response = await axios.get(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Major/get-all"
+        "https://instrulearnapplication.azurewebsites.net/api/Major/get-all"
       );
       if (response.data?.isSucceed) {
         const activeMajors = response.data.data.filter(
@@ -166,23 +176,25 @@ const StudentBookingForm = () => {
     }
   };
 
-  const handleSubmit = async (values) => {
+  const handleFormSubmit = (values) => {
+    setFormValues(values);
+    setConfirmModalVisible(true);
+  };
+
+  const handleConfirmSubmit = async () => {
     try {
       setIsSubmitting(true);
-
-      if (!values.instrument || !values.teacherId) {
-        throw new Error("Vui lòng chọn nhạc cụ và giáo viên");
-      }
+      setConfirmModalVisible(false);
 
       const selectedTeacher = availableTeachers.find(
-        (t) => t.teacherId === values.teacherId
+        (t) => t.teacherId === formValues.teacherId
       );
       if (!selectedTeacher) {
         throw new Error("Không tìm thấy thông tin giáo viên");
       }
 
       const selectedMajor = majors.find(
-        (m) => m.majorName === values.instrument
+        (m) => m.majorName === formValues.instrument
       );
       if (!selectedMajor) {
         throw new Error("Không tìm thấy thông tin nhạc cụ");
@@ -190,24 +202,24 @@ const StudentBookingForm = () => {
 
       const bookingData = {
         learnerId: parseInt(userProfile?.id),
-        teacherId: parseInt(values.teacherId),
+        teacherId: parseInt(formValues.teacherId),
         regisTypeId: 1,
         majorId: parseInt(selectedMajor.majorId),
-        videoUrl: values.videoUrl || "",
-        startDay: dayjs(values.startDay).format("YYYY-MM-DD"),
-        timeStart: dayjs(values.bookingSlot).format("HH:mm:00"),
-        timeLearning: parseInt(values.timeLearning),
+        videoUrl: formValues.videoUrl || "",
+        startDay: dayjs(formValues.startDay).format("YYYY-MM-DD"),
+        timeStart: dayjs(formValues.bookingSlot).format("HH:mm:00"),
+        timeLearning: parseInt(formValues.timeLearning),
         requestDate: dayjs().format("YYYY-MM-DDTHH:mm:ss"),
-        numberOfSession: parseInt(values.numberOfSlots),
-        learningRequest: values.learningRequest || "",
-        learningDays: values.bookingDays.map((day) => parseInt(day)),
+        numberOfSession: parseInt(formValues.numberOfSlots),
+        learningRequest: formValues.learningRequest || "",
+        learningDays: formValues.bookingDays.map((day) => parseInt(day)),
       };
 
       console.log("Sending booking data:", bookingData);
 
       const token = localStorage.getItem("authToken");
       const response = await axios.post(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/LearningRegis/create",
+        "https://instrulearnapplication.azurewebsites.net/api/LearningRegis/create",
         bookingData,
         {
           headers: {
@@ -220,49 +232,55 @@ const StudentBookingForm = () => {
       if (response.data?.isSucceed) {
         message.success("Đăng ký khóa học thành công!");
         const bookingInfo = {
-          ...values,
+          ...formValues,
           teacherName: selectedTeacher?.fullname,
           bookingId:
             response.data.data?.learningRegisId ||
             `BK${Math.floor(1000 + Math.random() * 9000)}`,
           createdAt: dayjs().format(),
           status: "pending",
-          bookingDays: values.bookingDays
+          bookingDays: formValues.bookingDays
             .map((day) => days.find((d) => d.value === parseInt(day))?.label)
             .join(", "),
         };
         setBookingDetails(bookingInfo);
         setSuccessModalVisible(true);
       } else {
-        console.error("API returned error:", response.data);
-        throw new Error(response.data?.message || "Đăng ký không thành công");
+        // Xử lý trường hợp API trả về isSucceed: false
+        if (response.data?.message?.includes("Schedule conflict detected")) {
+          const conflictData = response.data.data;
+          setErrorMessage(
+            `Bạn đã đăng ký một buổi học từ ${conflictData.existingStart} đến ${conflictData.existingEnd} vào ngày này. Vui lòng chọn thời gian khác.`
+          );
+          setErrorModalVisible(true);
+        } else {
+          throw new Error(response.data?.message || "Đăng ký không thành công");
+        }
       }
     } catch (error) {
       console.error("Error submitting form:", error);
-      if (error.response) {
-        console.error("Error response:", error.response.data);
+      // Xử lý lỗi từ axios error response
+      if (
+        error.response?.data?.message?.includes("Schedule conflict detected")
+      ) {
+        const conflictData = error.response.data.data;
+        setErrorMessage(
+          `Bạn đã đăng ký một buổi học từ ${conflictData.existingStart} đến ${conflictData.existingEnd} vào ngày này. Vui lòng chọn thời gian khác.`
+        );
+        setErrorModalVisible(true);
+      } else {
+        message.error({
+          content: `Đăng ký thất bại: ${
+            error.response?.data?.message ||
+            error.message ||
+            "Vui lòng kiểm tra lại thông tin"
+          }`,
+          duration: 5,
+        });
       }
-      message.error({
-        content: `Đăng ký thất bại: ${
-          error.response?.data?.message ||
-          error.message ||
-          "Vui lòng kiểm tra lại thông tin"
-        }`,
-        duration: 5,
-      });
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleFormSubmit = (values) => {
-    setFormValues(values);
-    setConfirmModalVisible(true);
-  };
-
-  const handleConfirmSubmit = async () => {
-    setConfirmModalVisible(false);
-    await handleSubmit(formValues);
   };
 
   const steps = [
@@ -331,12 +349,73 @@ const StudentBookingForm = () => {
           {steps[current].content}
 
           <Modal
+            title={
+              <div className="text-center">
+                <CloseCircleOutlined className="text-red-500 text-3xl mb-3" />
+                <div className="text-xl font-medium">Lỗi Đăng Ký</div>
+              </div>
+            }
+            open={errorModalVisible}
+            onCancel={() => setErrorModalVisible(false)}
+            footer={[
+              <Button
+                key="back"
+                type="primary"
+                onClick={() => setErrorModalVisible(false)}
+                className="w-full h-10 bg-blue-600 hover:bg-blue-700"
+              >
+                Đã hiểu
+              </Button>,
+            ]}
+            width={480}
+            centered
+            className="custom-modal"
+          >
+            <div className="py-4">
+              <Result
+                status="error"
+                title="Trùng lịch học"
+                subTitle={
+                  <div className="text-center space-y-4 mt-4">
+                    <div className="text-gray-600">{errorMessage}</div>
+                    <div className="bg-red-50 p-4 rounded-lg border border-red-100">
+                      <div className="flex items-center text-red-600 mb-2">
+                        <ClockCircleOutlined className="mr-2" />
+                        <span>Thời gian trùng lịch</span>
+                      </div>
+                      <div className="text-gray-600 pl-6">
+                        {formValues?.bookingSlot && (
+                          <div>
+                            {dayjs(formValues.bookingSlot).format("HH:mm")} -{" "}
+                            {dayjs(formValues.bookingSlot)
+                              .add(formValues.timeLearning, "minutes")
+                              .format("HH:mm")}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center text-red-600 mt-3 mb-2">
+                        <CalendarOutlined className="mr-2" />
+                        <span>Ngày học</span>
+                      </div>
+                      <div className="text-gray-600 pl-6">
+                        {formValues?.startDay &&
+                          dayjs(formValues.startDay).format("DD/MM/YYYY")}
+                      </div>
+                    </div>
+                  </div>
+                }
+              />
+            </div>
+          </Modal>
+
+          <Modal
             title="Xác nhận phí đăng ký"
             open={confirmModalVisible}
             onOk={handleConfirmSubmit}
             onCancel={() => setConfirmModalVisible(false)}
             okText="Đồng ý"
             cancelText="Hủy"
+            confirmLoading={isSubmitting}
           >
             <div className="text-center py-4">
               <p className="text-lg mb-2">
