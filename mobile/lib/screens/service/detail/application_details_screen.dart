@@ -2,12 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
+import 'package:flutter_cached_pdfview/flutter_cached_pdfview.dart';
 import '../../../models/learning_registration.dart';
 import '../../../models/learning_path_session.dart';
 import '../../../services/learning_path_session_service.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 
 class ApplicationDetailsScreen extends StatefulWidget {
   final String status;
@@ -35,6 +39,9 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
   List<LearningPathSession> _learningPathSessions = [];
   bool _isLoadingSessions = true;
   String? _sessionError;
+  int _currentPage = 0;
+  int _totalPages = 0;
+  PDFViewController? _pdfController;
 
   String _getStatusText(String status) {
     switch (status.toLowerCase()) {
@@ -42,12 +49,16 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
         return 'Chờ thanh toán';
       case 'pending':
         return 'Đang chờ';
-      case 'declined':
+      case 'rejected':
         return 'Từ chối';
       case 'fourty':
         return 'Đã thanh toán 40% học phí';
+      case 'fourtyfeedbackdone':
+        return 'Đã phản hồi - Chờ thanh toán 60%';
       case 'sixty':
         return 'Đã hoàn tất thanh toán học phí';
+      case 'cancelled':
+        return 'Lịch học đã bị hủy';
       default:
         return status;
     }
@@ -211,6 +222,7 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              _buildStatusStepper(),
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(
@@ -232,31 +244,226 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildInfoSection(
-                        'Loại đơn: ${widget.registration.regisTypeName}'),
-                    _buildInfoSection(
-                        'Ngày bắt đầu: ${widget.registration.requestDate.split('T')[0]}'),
-                    const SizedBox(height: 16),
                     _buildTeacherInfo(),
                     const SizedBox(height: 16),
                     _buildLearningInfo(),
                     const SizedBox(height: 16),
-                    _buildLearningPathSessions(),
-                    const SizedBox(height: 16),
-                    if (widget.registration.score != null) ...[
-                      _buildAssessmentInfo(),
-                      const SizedBox(height: 16),
-                    ],
                     if (widget.registration.videoUrl.isNotEmpty) ...[
                       _buildAssessmentVideo(),
                       const SizedBox(height: 16),
                     ],
-                    if (widget.registration.feedback != null) ...[
-                      _buildFeedback(),
+                    if (widget.registration.learningRequest?.isNotEmpty ==
+                        true) ...[
+                      const Text(
+                        'Mục tiêu học tập:',
+                        style: TextStyle(
+                            fontSize: 15, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.blue[50],
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.blue[200]!),
+                        ),
+                        child: Text(
+                          widget.registration.learningRequest!,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
                       const SizedBox(height: 16),
                     ],
-                    if (widget.registration.price != null) ...[
+                    if (widget.registration.responseDescription != null) ...[
+                      const Text(
+                        'Phản hồi từ trung tâm:',
+                        style: TextStyle(
+                            fontSize: 15, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.blue[50],
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.blue[200]!),
+                        ),
+                        child: Text(
+                          widget.registration.responseDescription ?? '',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
                       const SizedBox(height: 16),
+                    ],
+                    if (widget.registration.syllabusLink != null &&
+                        widget.registration.syllabusLink!.isNotEmpty) ...[
+                      const Text(
+                        'Giáo trình trung tâm đề xuất:',
+                        style: TextStyle(
+                            fontSize: 15, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        width: double.infinity,
+                        height: 400,
+                        decoration: BoxDecoration(
+                          color: Colors.blue[50],
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.blue[200]!),
+                        ),
+                        child: Column(
+                          children: [
+                            Expanded(
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: PDF(
+                                  onViewCreated: (controller) {
+                                    setState(() {
+                                      _pdfController = controller;
+                                    });
+                                  },
+                                  onPageChanged: (page, total) {
+                                    setState(() {
+                                      _currentPage = page!;
+                                      _totalPages = total!;
+                                    });
+                                  },
+                                  enableSwipe: true,
+                                  swipeHorizontal: false,
+                                  autoSpacing: true,
+                                  pageFling: true,
+                                  defaultPage: 0,
+                                  fitPolicy: FitPolicy.BOTH,
+                                  fitEachPage: true,
+                                  pageSnap: true,
+                                ).fromUrl(
+                                  widget.registration.syllabusLink!,
+                                  placeholder: (progress) => Center(
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        CircularProgressIndicator(
+                                          value: progress / 100,
+                                        ),
+                                        SizedBox(height: 8),
+                                        Text('Đang tải PDF: $progress%'),
+                                      ],
+                                    ),
+                                  ),
+                                  errorWidget: (error) => Center(
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.error_outline,
+                                          color: Colors.red,
+                                          size: 32,
+                                        ),
+                                        SizedBox(height: 8),
+                                        Text(
+                                          'Không thể tải file PDF\n$error',
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(color: Colors.red),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Container(
+                              padding: EdgeInsets.symmetric(
+                                  vertical: 8, horizontal: 16),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.only(
+                                  bottomLeft: Radius.circular(8),
+                                  bottomRight: Radius.circular(8),
+                                ),
+                              ),
+                              child: SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    IconButton(
+                                      icon: Icon(Icons.first_page),
+                                      onPressed: _currentPage > 0 &&
+                                              _pdfController != null
+                                          ? () => _pdfController!.setPage(0)
+                                          : null,
+                                      tooltip: 'Trang đầu',
+                                    ),
+                                    IconButton(
+                                      icon: Icon(Icons.navigate_before),
+                                      onPressed: _currentPage > 0 &&
+                                              _pdfController != null
+                                          ? () => _pdfController!
+                                              .setPage(_currentPage - 1)
+                                          : null,
+                                      tooltip: 'Trang trước',
+                                    ),
+                                    Container(
+                                      constraints: BoxConstraints(minWidth: 80),
+                                      child: Text(
+                                        'Trang ${_currentPage + 1}/${_totalPages}',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
+                                    IconButton(
+                                      icon: Icon(Icons.navigate_next),
+                                      onPressed:
+                                          _currentPage < _totalPages - 1 &&
+                                                  _pdfController != null
+                                              ? () => _pdfController!
+                                                  .setPage(_currentPage + 1)
+                                              : null,
+                                      tooltip: 'Trang sau',
+                                    ),
+                                    IconButton(
+                                      icon: Icon(Icons.last_page),
+                                      onPressed:
+                                          _currentPage < _totalPages - 1 &&
+                                                  _pdfController != null
+                                              ? () => _pdfController!
+                                                  .setPage(_totalPages - 1)
+                                              : null,
+                                      tooltip: 'Trang cuối',
+                                    ),
+                                    const VerticalDivider(
+                                      width: 16,
+                                      thickness: 1,
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.fullscreen),
+                                      onPressed: _openFullScreen,
+                                      tooltip: 'Xem toàn màn hình',
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                    _buildLearningPathSessions(),
+                    const SizedBox(height: 16),
+                    if (widget.registration.price != null) ...[
                       const Text(
                         'Thông tin học phí:',
                         style: TextStyle(
@@ -267,7 +474,7 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
                           'Tổng học phí: ${_formatCurrency(widget.registration.price)} VNĐ'),
                       if (widget.registration.remainingAmount != null)
                         Text(
-                          'Số tiền còn lại cần thanh toán: ${_formatCurrency(widget.registration.remainingAmount)} VNĐ',
+                          'Số tiền còn lại cần thanh toán (60%): ${_formatCurrency(widget.registration.remainingAmount)} VNĐ',
                           style: const TextStyle(
                             color: Colors.red,
                             fontWeight: FontWeight.bold,
@@ -276,10 +483,12 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
                       if (widget.registration.acceptedDate != null)
                         Text(
                             'Ngày duyệt đơn: ${widget.registration.acceptedDate!.split('T')[0]}'),
-                      if (widget.registration.paymentDeadline != null)
+                      if (widget.registration.paymentDeadline != null &&
+                          widget.status != 'Fourty')
                         Text(
                             'Hạn thanh toán: ${widget.registration.paymentDeadline!.split('T')[0]}'),
-                      if (widget.registration.daysRemaining != null)
+                      if (widget.registration.daysRemaining != null &&
+                          widget.status != 'Fourty')
                         Container(
                           margin: const EdgeInsets.only(top: 8),
                           padding: const EdgeInsets.all(8),
@@ -332,7 +541,7 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
                             ),
                           ),
                         ],
-                        if (widget.status == 'Fourty') ...[
+                        if (widget.status == 'FourtyFeedbackDone') ...[
                           Text(
                             'Học phí cần thanh toán (60% còn lại): ${_formatCurrency((widget.registration.price ?? 0) ~/ 100 * 60)} VNĐ',
                             style: const TextStyle(
@@ -410,7 +619,9 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
                         ),
                       ],
                       if (widget.registration.regisTypeId == 1 &&
-                          widget.status == 'Accepted') ...[
+                          widget.status == 'Accepted' &&
+                          _learningPathSessions
+                              .any((s) => s.isCompleted == true)) ...[
                         const SizedBox(height: 16),
                         SizedBox(
                           width: double.infinity,
@@ -426,7 +637,7 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
                         ),
                       ],
                       if (widget.registration.regisTypeId == 1 &&
-                          widget.status == 'Fourty') ...[
+                          widget.status == 'FourtyFeedbackDone') ...[
                         const SizedBox(height: 16),
                         SizedBox(
                           width: double.infinity,
@@ -490,64 +701,6 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
         Text('Thời gian kết thúc: ${widget.registration.timeEnd}'),
         Text('Thời lượng học: ${widget.registration.timeLearning} phút'),
         Text('Tổng số buổi: ${widget.registration.numberOfSession}'),
-        if (widget.registration.responseName != null) ...[
-          const SizedBox(height: 16),
-          const Text(
-            'Thông báo từ trung tâm:',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.green[50],
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.green[200]!),
-            ),
-            child: RichText(
-              text: TextSpan(
-                children: [
-                  const TextSpan(
-                    text: '[Trung Tâm InstruLearn]: ',
-                    style: TextStyle(
-                      color: Colors.blue,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  TextSpan(
-                    text: widget.registration.responseName ?? '',
-                    style: const TextStyle(color: Colors.black87),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-        if (widget.registration.learningRequest?.isNotEmpty == true) ...[
-          const SizedBox(height: 16),
-          const Text(
-            'Mục tiêu học tập:',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.blue[50],
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.blue[200]!),
-            ),
-            child: Text(
-              widget.registration.learningRequest!,
-              style: const TextStyle(
-                fontSize: 14,
-                color: Colors.black87,
-              ),
-            ),
-          ),
-        ],
       ],
     );
   }
@@ -1163,6 +1316,11 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
   }
 
   Widget _buildLearningPathSessions() {
+    // Nếu trạng thái là pending thì không hiển thị lộ trình học tập
+    if (widget.status.toLowerCase() == 'pending') {
+      return const SizedBox.shrink();
+    }
+
     if (_isLoadingSessions) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -1187,20 +1345,45 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
       );
     }
 
-    if (_learningPathSessions.isEmpty) {
-      return const Center(
-        child: Text(
-          'Chưa có thông tin về các buổi học',
-          style: TextStyle(color: Colors.grey),
-        ),
-      );
+    // Ẩn hoàn toàn nếu tất cả session đều isCompleted == false
+    if (_learningPathSessions.isEmpty ||
+        _learningPathSessions.every((s) => s.isCompleted == false)) {
+      if (widget.status.toLowerCase() == 'accepted') {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Lộ trình học tập:',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.blue[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blue[200]!),
+              ),
+              child: const Text(
+                'Lộ trình học tập của học viên đang được giáo viên soạn, nếu giáo viên đã soạn xong lộ trình học viên sẽ nhận được thông báo sớm nhất trong Email',
+                style: TextStyle(
+                  color: Colors.black87,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ],
+        );
+      } else {
+        return const SizedBox.shrink();
+      }
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Giáo trình học tập:',
+          'Lộ trình học tập:',
           style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
@@ -1240,6 +1423,197 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
           },
         ),
       ],
+    );
+  }
+
+  void _openFullScreen() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          appBar: AppBar(
+            backgroundColor: const Color(0xFF8C9EFF),
+            title: const Text('Xem PDF'),
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ),
+          body: PDF(
+            enableSwipe: true,
+            swipeHorizontal: false,
+            autoSpacing: true,
+            pageFling: true,
+            defaultPage: _currentPage,
+            fitPolicy: FitPolicy.BOTH,
+            fitEachPage: true,
+            pageSnap: true,
+            onPageChanged: (page, total) {
+              setState(() {
+                _currentPage = page!;
+                _totalPages = total!;
+              });
+            },
+          ).fromUrl(
+            widget.registration.syllabusLink!,
+            placeholder: (progress) => Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(
+                    value: progress / 100,
+                  ),
+                  const SizedBox(height: 8),
+                  Text('Đang tải PDF: $progress%'),
+                ],
+              ),
+            ),
+            errorWidget: (error) => Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.error_outline,
+                    color: Colors.red,
+                    size: 32,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Không thể tải file PDF\n$error',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusStepper() {
+    // Xác định các bước
+    final List<Map<String, String>> steps = [
+      {'key': 'pending', 'label': 'Chờ duyệt'},
+      {'key': 'accepted', 'label': 'Chờ giáo viên tạo lộ trình'},
+      {'key': 'accepted_path', 'label': 'Đã có lộ trình học'},
+      {'key': 'fourty', 'label': 'Đã thanh toán 40%'},
+      {'key': 'fourtyfeedbackdone', 'label': 'Chờ thanh toán 60%'},
+      {'key': 'sixty', 'label': 'Hoàn tất học phí'},
+    ];
+
+    // Xác định trạng thái hiện tại
+    String status = widget.status.toLowerCase();
+    bool hasLearningPath =
+        _learningPathSessions.any((s) => s.isCompleted == true);
+
+    int currentStep = 0;
+    if (status == 'pending') {
+      currentStep = 0;
+    } else if (status == 'rejected') {
+      // Nếu bị từ chối thì chỉ hiện rejected
+      return Container(
+        margin: const EdgeInsets.symmetric(vertical: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.red[50],
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.red),
+        ),
+        child: Row(
+          children: const [
+            Icon(Icons.cancel, color: Colors.red),
+            SizedBox(width: 8),
+            Text('Đơn đã bị từ chối bởi trung tâm',
+                style:
+                    TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+          ],
+        ),
+      );
+    } else if (status == 'cancelled') {
+      return Container(
+        margin: const EdgeInsets.symmetric(vertical: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.red[50],
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.red),
+        ),
+        child: Row(
+          children: const [
+            Icon(Icons.cancel, color: Colors.red),
+            SizedBox(width: 8),
+            Text('Lịch học đã bị hủy',
+                style:
+                    TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+          ],
+        ),
+      );
+    } else if (status == 'accepted') {
+      currentStep = hasLearningPath ? 2 : 1;
+    } else if (status == 'fourty') {
+      currentStep = 3;
+    } else if (status == 'fourtyfeedbackdone') {
+      currentStep = 4;
+    } else if (status == 'sixty') {
+      currentStep = 5;
+    }
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: List.generate(steps.length, (index) {
+          final isActive = index == currentStep;
+          final isDone = index < currentStep;
+          // Ẩn bước "Đã có lộ trình học" nếu chưa có lộ trình
+          if (steps[index]['key'] == 'accepted_path' && !hasLearningPath) {
+            return const SizedBox.shrink();
+          }
+          // Ẩn bước "Chờ giáo viên tạo lộ trình" nếu đã có lộ trình
+          if (steps[index]['key'] == 'accepted' && hasLearningPath) {
+            return const SizedBox.shrink();
+          }
+          return Expanded(
+            child: Column(
+              children: [
+                CircleAvatar(
+                  radius: 16,
+                  backgroundColor: isActive
+                      ? Colors.blue
+                      : isDone
+                          ? Colors.green
+                          : Colors.grey[300],
+                  child: isDone
+                      ? const Icon(Icons.check, color: Colors.white, size: 18)
+                      : Text(
+                          '${index + 1}',
+                          style: TextStyle(
+                            color: isActive ? Colors.white : Colors.black,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  steps[index]['label']!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isActive
+                        ? Colors.blue
+                        : isDone
+                            ? Colors.green
+                            : Colors.grey,
+                    fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+      ),
     );
   }
 }

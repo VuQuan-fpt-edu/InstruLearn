@@ -652,8 +652,24 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['isSucceed'] == true) {
-          _showSuccess('Đăng ký thành công!');
-          Navigator.pop(context);
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Text('Thành công'),
+                content: const Text('Đăng ký học theo yêu cầu thành công!'),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop(); // Đóng dialog
+                      Navigator.pop(context); // Quay lại màn hình trước
+                    },
+                    child: const Text('Đóng'),
+                  ),
+                ],
+              );
+            },
+          );
         } else {
           _showError(data['message'] ?? 'Đăng ký thất bại');
         }
@@ -1511,27 +1527,6 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
-              },
-              child: const Text('Đóng'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showSuccess(String message) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Thành công'),
-          content: Text(message),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                Navigator.pop(context); // Quay lại màn hình trước
               },
               child: const Text('Đóng'),
             ),

@@ -1,4 +1,4 @@
-class LearningRegistration {
+class TeacherLearningRegistration {
   final int learningRegisId;
   final int learnerId;
   final String fullName;
@@ -9,13 +9,14 @@ class LearningRegistration {
   final String regisTypeName;
   final int majorId;
   final String majorName;
-  final int? responseId;
-  final String? responseName;
-  final String? responseDescription;
-  final int? levelId;
-  final String? levelName;
-  final int? levelPrice;
-  final String? syllabusLink;
+  final int responseTypeId;
+  final String responseTypeName;
+  final int responseId;
+  final String responseDescription;
+  final int levelId;
+  final String levelName;
+  final int levelPrice;
+  final String syllabusLink;
   final String startDay;
   final String timeStart;
   final int timeLearning;
@@ -23,19 +24,17 @@ class LearningRegistration {
   final String requestDate;
   final int numberOfSession;
   final String videoUrl;
-  final String? learningRequest;
+  final String learningRequest;
   final List<String> learningDays;
-  final int? price;
-  final String status;
-  final int? score;
-  final String? levelAssigned;
-  final String? feedback;
+  final int price;
   final int? remainingAmount;
+  final String status;
   final String? acceptedDate;
   final String? paymentDeadline;
   final int? daysRemaining;
+  final String paymentStatus;
 
-  LearningRegistration({
+  TeacherLearningRegistration({
     required this.learningRegisId,
     required this.learnerId,
     required this.fullName,
@@ -46,13 +45,14 @@ class LearningRegistration {
     required this.regisTypeName,
     required this.majorId,
     required this.majorName,
-    this.responseId,
-    this.responseName,
-    this.responseDescription,
-    this.levelId,
-    this.levelName,
-    this.levelPrice,
-    this.syllabusLink,
+    required this.responseTypeId,
+    required this.responseTypeName,
+    required this.responseId,
+    required this.responseDescription,
+    required this.levelId,
+    required this.levelName,
+    required this.levelPrice,
+    required this.syllabusLink,
     required this.startDay,
     required this.timeStart,
     required this.timeLearning,
@@ -60,21 +60,19 @@ class LearningRegistration {
     required this.requestDate,
     required this.numberOfSession,
     required this.videoUrl,
-    this.learningRequest,
+    required this.learningRequest,
     required this.learningDays,
-    this.price,
-    required this.status,
-    this.score,
-    this.levelAssigned,
-    this.feedback,
+    required this.price,
     this.remainingAmount,
+    required this.status,
     this.acceptedDate,
     this.paymentDeadline,
     this.daysRemaining,
+    required this.paymentStatus,
   });
 
-  factory LearningRegistration.fromJson(Map<String, dynamic> json) {
-    return LearningRegistration(
+  factory TeacherLearningRegistration.fromJson(Map<String, dynamic> json) {
+    return TeacherLearningRegistration(
       learningRegisId: _parseIntValue(json['learningRegisId']),
       learnerId: _parseIntValue(json['learnerId']),
       fullName: json['fullName'],
@@ -85,16 +83,13 @@ class LearningRegistration {
       regisTypeName: json['regisTypeName'],
       majorId: _parseIntValue(json['majorId']),
       majorName: json['majorName'],
-      responseId: json['responseId'] != null
-          ? _parseIntValue(json['responseId'])
-          : null,
-      responseName: json['responseName'],
+      responseTypeId: _parseIntValue(json['responseTypeId']),
+      responseTypeName: json['responseTypeName'],
+      responseId: _parseIntValue(json['responseId']),
       responseDescription: json['responseDescription'],
-      levelId: json['levelId'] != null ? _parseIntValue(json['levelId']) : null,
+      levelId: _parseIntValue(json['levelId']),
       levelName: json['levelName'],
-      levelPrice: json['levelPrice'] != null
-          ? _parseIntValue(json['levelPrice'])
-          : null,
+      levelPrice: _parseIntValue(json['levelPrice']),
       syllabusLink: json['syllabusLink'],
       startDay: json['startDay'],
       timeStart: json['timeStart'],
@@ -105,19 +100,17 @@ class LearningRegistration {
       videoUrl: json['videoUrl'],
       learningRequest: json['learningRequest'],
       learningDays: List<String>.from(json['learningDays']),
-      price: json['price'] != null ? _parseIntValue(json['price']) : null,
-      status: json['status'],
-      score: json['score'] != null ? _parseIntValue(json['score']) : null,
-      levelAssigned: json['levelAssigned'],
-      feedback: json['feedback'],
+      price: _parseIntValue(json['price']),
       remainingAmount: json['remainingAmount'] != null
           ? _parseIntValue(json['remainingAmount'])
           : null,
+      status: json['status'],
       acceptedDate: json['acceptedDate'],
       paymentDeadline: json['paymentDeadline'],
       daysRemaining: json['daysRemaining'] != null
           ? _parseIntValue(json['daysRemaining'])
           : null,
+      paymentStatus: json['paymentStatus'],
     );
   }
 

@@ -191,6 +191,7 @@ class _LoginScreenState extends State<LoginScreen> {
         },
         body: jsonEncode(<String, String>{
           'idToken': googleAuth.idToken ?? '',
+          'fullName': '',
         }),
       );
 

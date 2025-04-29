@@ -1,20 +1,214 @@
 import 'package:flutter/material.dart';
+import '../../../models/feedback_notification.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
-class NotificationDetailScreen extends StatelessWidget {
-  final String title;
-  final String date;
+class NotificationDetailScreen extends StatefulWidget {
+  final FeedbackNotification feedbackNotification;
 
   const NotificationDetailScreen({
     Key? key,
-    required this.title,
-    required this.date,
+    required this.feedbackNotification,
   }) : super(key: key);
+
+  @override
+  State<NotificationDetailScreen> createState() =>
+      _NotificationDetailScreenState();
+}
+
+class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
+  Map<int, int?> selectedOptions = {};
+  bool? continueStudying;
+
+  @override
+  void initState() {
+    super.initState();
+    for (var question in widget.feedbackNotification.questions) {
+      selectedOptions[question.questionId] = null;
+    }
+  }
+
+  Future<void> _submitFeedback() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      final learnerId = prefs.getInt('learnerId');
+
+      if (token == null || learnerId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Vui lòng đăng nhập lại')),
+        );
+        return;
+      }
+
+      if (continueStudying == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Vui lòng chọn lựa chọn về việc tiếp tục học')),
+        );
+        return;
+      }
+
+      // Hiển thị dialog xác nhận
+      final bool? confirm = await showDialog<bool>(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Xác nhận gửi đánh giá'),
+            content: const Text(
+                'Học viên có chắc sẽ gửi đánh giá này chứ? Sau khi gửi thì đánh giá không thể sửa.'),
+            actions: <Widget>[
+              TextButton(
+                child: const Text('Hủy'),
+                onPressed: () {
+                  Navigator.of(context).pop(false);
+                },
+              ),
+              TextButton(
+                child: const Text('Xác nhận'),
+                onPressed: () {
+                  Navigator.of(context).pop(true);
+                },
+              ),
+            ],
+          );
+        },
+      );
+
+      if (confirm != true) {
+        return;
+      }
+
+      final answers = selectedOptions.entries
+          .where((entry) => entry.value != null)
+          .map((entry) => {
+                "questionId": entry.key,
+                "selectedOptionId": entry.value,
+              })
+          .toList();
+
+      final requestBody = {
+        "learningRegistrationId": widget.feedbackNotification.learningRegisId,
+        "learnerId": learnerId,
+        "additionalComments": "", // Có thể thêm trường nhập comment nếu cần
+        "answers": answers,
+        "continueStudying": continueStudying,
+      };
+
+      final response = await http.post(
+        Uri.parse(
+            'https://instrulearnapplication.azurewebsites.net/api/LearningRegisFeedback/SubmitFeedback'),
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode(requestBody),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['isSucceed'] == true) {
+          // Hiển thị thông báo tương ứng với lựa chọn của học viên
+          String message = continueStudying == true
+              ? 'Cảm ơn vì đóng góp ý kiến của bạn. Bạn lưu ý trong phần "Đơn của học viên" để theo dõi và thanh toán phần học phí còn lại.'
+              : 'Cảm ơn bạn đã đồng hành cùng khóa học vừa qua!\nChúng tôi rất tiếc vì khóa học chưa mang lại trải nghiệm như mong đợi. Mọi phản hồi của bạn đều giúp chúng tôi cải thiện tốt hơn trong tương lai.';
+
+          await showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                title: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF8C9EFF),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(15),
+                      topRight: Radius.circular(15),
+                    ),
+                  ),
+                  child: const Text(
+                    'Gửi đánh giá thành công',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                content: Container(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.check_circle,
+                        color: Colors.green[600],
+                        size: 60,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        message,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          height: 1.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                actions: <Widget>[
+                  TextButton(
+                    child: const Text(
+                      'OK',
+                      style: TextStyle(
+                        color: Color(0xFF8C9EFF),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      Navigator.pop(context,
+                          true); // Trả về true để báo hiệu cần fetch lại
+                    },
+                  ),
+                ],
+              );
+            },
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text(data['message'] ?? 'Không thể gửi đánh giá')),
+          );
+        }
+      } else if (response.statusCode == 401) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content:
+                  Text('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi kết nối: ${response.statusCode}')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi: ${e.toString()}')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Details'),
+        title: const Text('Chi tiết đánh giá'),
         backgroundColor: const Color(0xFF8C9EFF),
       ),
       body: Container(
@@ -48,34 +242,37 @@ class NotificationDetailScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    RichText(
-                      text: TextSpan(
-                        children: [
-                          TextSpan(
-                            text: '[Trung tâm âm nhạc InstruLearn] ',
-                            style: TextStyle(
-                              color: Colors.red[700],
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          ),
-                          const TextSpan(
-                            text:
-                                'Thông báo về việc đóng học phí cho việc học kèm 1:1',
-                            style: TextStyle(color: Colors.black, fontSize: 14),
-                          ),
-                        ],
+                    Text(
+                      'Giáo viên: ${widget.feedbackNotification.teacherName}',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'date: $date',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                    ),
                     const SizedBox(height: 16),
-                    const Text(
-                      'THÔNG BÁO VỀ VIỆC YÊU CẦU HỌC KÈM 1:1 CỦA HỌC VIÊN ĐÃ CHẤP THUẬN HỌC VIÊN VUI LÒNG THANH TOÁN HỌC PHÍ, HỌC VIÊN CÓ THỂ XEM CHI TIẾT HƠN VỀ ĐƠN CỦA MÌNH THÔNG QUA MỤC [APPLICATION]',
-                      style: TextStyle(fontSize: 14),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Số buổi học:'),
+                        Text(
+                          '${widget.feedbackNotification.completedSessions}/${widget.feedbackNotification.totalSessions}',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Học phí cần thanh toán:'),
+                        Text(
+                          '${widget.feedbackNotification.remainingPayment} VND',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.red[700],
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -99,53 +296,79 @@ class NotificationDetailScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: const [
-                        Text('Số dư trong ví:', style: TextStyle(fontSize: 14)),
-                        Text(
-                          '100.000.000 VND',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
+                    const Text(
+                      'Đánh giá của bạn',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    ...widget.feedbackNotification.questions.map((question) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            question.questionText,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
-                        ),
-                      ],
+                          if (question.isRequired)
+                            Text(
+                              '(Bắt buộc)',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.red[700],
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          const SizedBox(height: 8),
+                          ...question.options.map((option) {
+                            return RadioListTile<int>(
+                              title: Text(option.optionText),
+                              value: option.optionId,
+                              groupValue: selectedOptions[question.questionId],
+                              onChanged: (value) {
+                                setState(() {
+                                  selectedOptions[question.questionId] = value;
+                                });
+                              },
+                            );
+                          }).toList(),
+                          const SizedBox(height: 16),
+                        ],
+                      );
+                    }).toList(),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Học viên có muốn tiếp tục học không?',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                     const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Học phí phải đóng (40%):',
-                          style: TextStyle(fontSize: 14),
-                        ),
-                        Text(
-                          '2.000.000 VND',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.red[700],
-                          ),
-                        ),
-                      ],
+                    RadioListTile<bool>(
+                      title: const Text('Tôi muốn tiếp tục học'),
+                      value: true,
+                      groupValue: continueStudying,
+                      onChanged: (value) {
+                        setState(() {
+                          continueStudying = value;
+                        });
+                      },
                     ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: const [
-                        Text(
-                          'Số dư sau khi thanh toán:',
-                          style: TextStyle(fontSize: 14),
-                        ),
-                        Text(
-                          '98.000.000 VND',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
+                    RadioListTile<bool>(
+                      title: const Text('Tôi không muốn học nữa'),
+                      value: false,
+                      groupValue: continueStudying,
+                      onChanged: (value) {
+                        setState(() {
+                          continueStudying = value;
+                        });
+                      },
                     ),
                     const SizedBox(height: 24),
                     Row(
@@ -159,7 +382,7 @@ class NotificationDetailScreen extends StatelessWidget {
                             onPressed: () {
                               Navigator.pop(context);
                             },
-                            child: const Text('Từ chối'),
+                            child: const Text('Hủy'),
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -169,38 +392,31 @@ class NotificationDetailScreen extends StatelessWidget {
                               backgroundColor: Colors.green,
                               padding: const EdgeInsets.symmetric(vertical: 12),
                             ),
-                            onPressed: () {},
-                            child: const Text('Thanh toán'),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.orange,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 24,
-                              vertical: 12,
-                            ),
-                          ),
-                          onPressed: () {},
-                          icon: const Icon(Icons.account_balance_wallet),
-                          label: const Text('Nạp tiền'),
-                        ),
-                        const SizedBox(width: 16),
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[200],
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Text(
-                            '15:00',
-                            style: TextStyle(fontWeight: FontWeight.bold),
+                            onPressed: () {
+                              bool allRequiredAnswered = true;
+                              for (var question
+                                  in widget.feedbackNotification.questions) {
+                                if (question.isRequired &&
+                                    selectedOptions[question.questionId] ==
+                                        null) {
+                                  allRequiredAnswered = false;
+                                  break;
+                                }
+                              }
+
+                              if (!allRequiredAnswered) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                        'Vui lòng trả lời tất cả các câu hỏi bắt buộc'),
+                                  ),
+                                );
+                                return;
+                              }
+
+                              _submitFeedback();
+                            },
+                            child: const Text('Gửi đánh giá'),
                           ),
                         ),
                       ],
@@ -208,50 +424,7 @@ class NotificationDetailScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              Container(
-                margin: const EdgeInsets.all(16),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.yellow[100],
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.yellow[700]!),
-                ),
-                child: RichText(
-                  text: TextSpan(
-                    style: const TextStyle(fontSize: 14),
-                    children: [
-                      const TextSpan(
-                        text:
-                            '***Lưu ý nếu học không thanh toán trước thời gian quy định được xem như học viên ',
-                        style: TextStyle(color: Colors.black87),
-                      ),
-                      TextSpan(
-                        text: 'từ chối ',
-                        style: TextStyle(
-                          color: Colors.red[700],
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const TextSpan(
-                        text:
-                            'thanh toán học phí đơn yêu cầu học kèm 1:1 của học viên sẽ bị hủy, ',
-                        style: TextStyle(color: Colors.black87),
-                      ),
-                      TextSpan(
-                        text: 'PHẦN TIỀN PHÍ XỬ LÝ ĐƠN SẼ BỊ MẤT',
-                        style: TextStyle(
-                          color: Colors.red[700],
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const TextSpan(
-                        text: '***',
-                        style: TextStyle(color: Colors.black87),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              const SizedBox(height: 16),
             ],
           ),
         ),

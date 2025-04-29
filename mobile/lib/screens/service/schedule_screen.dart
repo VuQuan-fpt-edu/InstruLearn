@@ -600,12 +600,11 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: cardColor, // Use the determined color
+              color: cardColor,
               borderRadius: BorderRadius.circular(8),
               boxShadow: [
                 BoxShadow(
-                  color: cardColor
-                      .withOpacity(0.3), // Use the determined color for shadow
+                  color: cardColor.withOpacity(0.3),
                   spreadRadius: 1,
                   blurRadius: 3,
                   offset: const Offset(0, 2),
@@ -631,6 +630,28 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     fontWeight: FontWeight.w400,
                   ),
                 ),
+                if (schedule.sessionTitle != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Buổi ${schedule.sessionNumber}: ${schedule.sessionTitle}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  if (schedule.sessionDescription != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      schedule.sessionDescription!,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ],
+                ],
               ],
             ),
           ),

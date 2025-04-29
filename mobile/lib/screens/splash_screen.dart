@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'auth/login_screen.dart';
+import 'preview_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({Key? key}) : super(key: key);
@@ -43,7 +43,7 @@ class _SplashScreenState extends State<SplashScreen>
 
     Future.delayed(const Duration(seconds: 4), () {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
+        MaterialPageRoute(builder: (context) => const PreviewScreen()),
       );
     });
   }

@@ -17,6 +17,11 @@ class Schedule {
   final int attendanceStatus;
   final List<ScheduleDay>? scheduleDays;
   final List<ClassDay>? classDayDTOs;
+  final int? learningPathSessionId;
+  final int? sessionNumber;
+  final String? sessionTitle;
+  final String? sessionDescription;
+  final bool? isSessionCompleted;
 
   Schedule({
     required this.scheduleId,
@@ -37,6 +42,11 @@ class Schedule {
     required this.attendanceStatus,
     this.scheduleDays,
     this.classDayDTOs,
+    this.learningPathSessionId,
+    this.sessionNumber,
+    this.sessionTitle,
+    this.sessionDescription,
+    this.isSessionCompleted,
   });
 
   factory Schedule.fromJson(Map<String, dynamic> json) {
@@ -67,6 +77,11 @@ class Schedule {
               .map((day) => ClassDay.fromJson(day))
               .toList()
           : null,
+      learningPathSessionId: json['learningPathSessionId'],
+      sessionNumber: json['sessionNumber'],
+      sessionTitle: json['sessionTitle'],
+      sessionDescription: json['sessionDescription'],
+      isSessionCompleted: json['isSessionCompleted'],
     );
   }
 }

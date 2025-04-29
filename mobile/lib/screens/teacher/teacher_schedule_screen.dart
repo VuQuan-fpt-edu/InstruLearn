@@ -166,42 +166,16 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
   }
 
   bool _hasScheduleOnDate(DateTime date) {
-    switch (_currentFilter) {
-      case FilterType.day:
-        return _selectedDate.year == date.year &&
-            _selectedDate.month == date.month &&
-            _selectedDate.day == date.day &&
-            _getSchedulesForDay().isNotEmpty;
-      case FilterType.week:
-        final startOfWeek = _getStartOfWeek(_selectedDate);
-        final endOfWeek = startOfWeek.add(const Duration(days: 6));
-        final isInSelectedWeek =
-            date.isAfter(startOfWeek.subtract(const Duration(days: 1))) &&
-                date.isBefore(endOfWeek.add(const Duration(days: 1)));
-
-        return isInSelectedWeek &&
-            _getFilteredSchedules().any((schedule) {
-              try {
-                final scheduleDate = DateTime.parse(schedule.startDate);
-                return scheduleDate.year == date.year &&
-                    scheduleDate.month == date.month &&
-                    scheduleDate.day == date.day;
-              } catch (e) {
-                return false;
-              }
-            });
-      case FilterType.month:
-        return _getFilteredSchedules().any((schedule) {
-          try {
-            final scheduleDate = DateTime.parse(schedule.startDate);
-            return scheduleDate.year == date.year &&
-                scheduleDate.month == date.month &&
-                scheduleDate.day == date.day;
-          } catch (e) {
-            return false;
-          }
-        });
-    }
+    return _getFilteredSchedules().any((schedule) {
+      try {
+        final scheduleDate = DateTime.parse(schedule.startDate);
+        return scheduleDate.year == date.year &&
+            scheduleDate.month == date.month &&
+            scheduleDate.day == date.day;
+      } catch (e) {
+        return false;
+      }
+    });
   }
 
   @override
@@ -599,24 +573,14 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
     final date = DateTime.parse(schedule.startDate);
     final dayName = _getVietnameseDayName(date.weekday);
 
-    // Determine card color based on attendance status and date
+    // Determine card color based on attendance status
     Color cardColor;
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final scheduleDate = DateTime(date.year, date.month, date.day);
-
     if (schedule.attendanceStatus == 1) {
       cardColor = Colors.green; // Present
     } else if (schedule.attendanceStatus == 2) {
       cardColor = Colors.red; // Absent
     } else {
-      // attendanceStatus == 0 (or null/other)
-      if (scheduleDate.isBefore(today)) {
-        cardColor = Colors.grey; // Past and not attended
-      } else {
-        cardColor = const Color(
-            0xFF536DFE); // Future or today, not attended (default blue)
-      }
+      cardColor = const Color(0xFF536DFE); // Not attended (default blue)
     }
 
     return Container(
@@ -643,12 +607,11 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: cardColor, // Use the determined color
+              color: cardColor,
               borderRadius: BorderRadius.circular(8),
               boxShadow: [
                 BoxShadow(
-                  color: cardColor
-                      .withOpacity(0.3), // Use the determined color for shadow
+                  color: cardColor.withOpacity(0.3),
                   spreadRadius: 1,
                   blurRadius: 3,
                   offset: const Offset(0, 2),
@@ -674,6 +637,29 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
                     fontWeight: FontWeight.w400,
                   ),
                 ),
+                const SizedBox(height: 4),
+                Text(
+                  'Buổi ${schedule.sessionNumber}: ${schedule.sessionTitle}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                if (schedule.sessionDescription != null &&
+                    schedule.sessionDescription!.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      schedule.sessionDescription!,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w400,
+                        fontSize: 12,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
                 const SizedBox(height: 4),
                 Row(
                   children: [
@@ -723,14 +709,6 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
   }
 
   void _showAttendanceBottomSheet(BuildContext context, Schedule schedule) {
-    final scheduleDate = DateTime.parse(schedule.startDate);
-    final now = DateTime.now();
-    // Compare dates only, ignoring time
-    final today = DateTime(now.year, now.month, now.day);
-    final scheduleDateOnly =
-        DateTime(scheduleDate.year, scheduleDate.month, scheduleDate.day);
-    final isFutureDate = scheduleDateOnly.isAfter(today);
-
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -764,18 +742,8 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
                     label: const Text('Có mặt',
                         style: TextStyle(color: Colors.white)),
                     onPressed: () {
-                      Navigator.pop(context); // Close bottom sheet first
-                      if (isFutureDate) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                                'Không thể điểm danh cho ngày trong tương lai.'),
-                            backgroundColor: Colors.orange,
-                          ),
-                        );
-                      } else {
-                        _updateAttendance(schedule.scheduleId, 1);
-                      }
+                      Navigator.pop(context);
+                      _updateAttendance(schedule.scheduleId, 1);
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
@@ -788,18 +756,8 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
                     label: const Text('Vắng mặt',
                         style: TextStyle(color: Colors.white)),
                     onPressed: () {
-                      Navigator.pop(context); // Close bottom sheet first
-                      if (isFutureDate) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                                'Không thể điểm danh cho ngày trong tương lai.'),
-                            backgroundColor: Colors.orange,
-                          ),
-                        );
-                      } else {
-                        _updateAttendance(schedule.scheduleId, 2);
-                      }
+                      Navigator.pop(context);
+                      _updateAttendance(schedule.scheduleId, 2);
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
