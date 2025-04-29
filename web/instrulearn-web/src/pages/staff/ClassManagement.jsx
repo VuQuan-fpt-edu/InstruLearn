@@ -93,7 +93,7 @@ const ClassManagement = () => {
     try {
       setLoadingData(true);
       const response = await fetch(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Course/get-all"
+        "https://instrulearnapplication.azurewebsites.net/api/Course/get-all"
       );
       const data = await response.json();
       // Lọc chỉ hiển thị khóa học có coursePackageType là 1
@@ -112,7 +112,7 @@ const ClassManagement = () => {
   const fetchSyllabuses = async () => {
     try {
       const response = await fetch(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Syllabus/get-all"
+        "https://instrulearnapplication.azurewebsites.net/api/Syllabus/get-all"
       );
       const data = await response.json();
       setSyllabuses(data);
@@ -126,7 +126,7 @@ const ClassManagement = () => {
     try {
       setLoadingData(true);
       const response = await fetch(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Class/get-all"
+        "https://instrulearnapplication.azurewebsites.net/api/Class/get-all"
       );
       const data = await response.json();
       setClasses(data);
@@ -143,7 +143,7 @@ const ClassManagement = () => {
   const fetchMajors = async () => {
     try {
       const response = await fetch(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Major/get-all"
+        "https://instrulearnapplication.azurewebsites.net/api/Major/get-all"
       );
       const data = await response.json();
       if (data.isSucceed) {
@@ -164,7 +164,7 @@ const ClassManagement = () => {
       setIsLoadingTeachers(true);
       // Chuyển từ POST method sang GET method và truyền tham số qua query parameters
       const url = new URL(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Schedules/available-teachers"
+        "https://instrulearnapplication.azurewebsites.net/api/Schedules/available-teachers"
       );
 
       // Thêm query parameters
@@ -240,7 +240,7 @@ const ClassManagement = () => {
       console.log("Request data:", requestData);
 
       const response = await fetch(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Class/create",
+        "https://instrulearnapplication.azurewebsites.net/api/Class/create",
         {
           method: "POST",
           headers: {
@@ -494,7 +494,7 @@ const ClassManagement = () => {
     setIsCheckingClassName(true);
     try {
       const response = await fetch(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Class/get-all"
+        "https://instrulearnapplication.azurewebsites.net/api/Class/get-all"
       );
       const data = await response.json();
       const existingNames = data.map((c) => c.className.toLowerCase());
@@ -786,7 +786,7 @@ const ClassManagement = () => {
 
             <Form.Item
               name="price"
-              label="Giá"
+              label="Giá/buổi"
               rules={[{ required: true, message: "Vui lòng nhập giá" }]}
             >
               <InputNumber

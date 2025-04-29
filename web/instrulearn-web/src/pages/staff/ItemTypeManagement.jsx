@@ -46,7 +46,7 @@ const ItemTypeManagement = () => {
     setLoading(true);
     try {
       const response = await axios.get(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/ItemType/get-all"
+        "https://instrulearnapplication.azurewebsites.net/api/ItemType/get-all"
       );
 
       if (response.data?.isSucceed && response.data.data) {
@@ -77,7 +77,7 @@ const ItemTypeManagement = () => {
       };
 
       const response = await axios.post(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/ItemType/create",
+        "https://instrulearnapplication.azurewebsites.net/api/ItemType/create",
         newItemType
       );
 
@@ -118,7 +118,7 @@ const ItemTypeManagement = () => {
       };
 
       const response = await axios.put(
-        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/ItemType/update/${selectedItemType.itemTypeId}`,
+        `https://instrulearnapplication.azurewebsites.net/api/ItemType/update/${selectedItemType.itemTypeId}`,
         updatedItemType
       );
 
@@ -147,7 +147,7 @@ const ItemTypeManagement = () => {
     try {
       setLoading(true);
       const response = await axios.delete(
-        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/ItemType/delete/${id}`
+        `https://instrulearnapplication.azurewebsites.net/api/ItemType/delete/${id}`
       );
 
       if (response.data?.isSucceed) {

@@ -48,7 +48,7 @@ const SyllabusManagement = () => {
     try {
       setLoading(true);
       const response = await axios.get(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Syllabus/get-all"
+        "https://instrulearnapplication.azurewebsites.net/api/Syllabus/get-all"
       );
 
       if (Array.isArray(response.data) && response.data.length > 0) {
@@ -68,7 +68,7 @@ const SyllabusManagement = () => {
   const handleCreate = async (values) => {
     try {
       const response = await axios.post(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Syllabus/create",
+        "https://instrulearnapplication.azurewebsites.net/api/Syllabus/create",
         values
       );
       if (response.data?.isSucceed) {
@@ -88,7 +88,7 @@ const SyllabusManagement = () => {
   const handleUpdate = async (values) => {
     try {
       const response = await axios.put(
-        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Syllabus/${editingSyllabus.syllabusId}/`,
+        `https://instrulearnapplication.azurewebsites.net/api/Syllabus/${editingSyllabus.syllabusId}/`,
         values,
         {
           headers: {
@@ -120,7 +120,7 @@ const SyllabusManagement = () => {
   const handleDelete = async (syllabusId) => {
     try {
       const response = await axios.delete(
-        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Syllabus/${syllabusId}`
+        `https://instrulearnapplication.azurewebsites.net/api/Syllabus/${syllabusId}`
       );
       if (response.data?.isSucceed) {
         message.success("Xóa giáo trình thành công");

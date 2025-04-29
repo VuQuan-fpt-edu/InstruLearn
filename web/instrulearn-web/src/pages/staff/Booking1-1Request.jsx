@@ -23,6 +23,8 @@ import {
   Popover,
   Avatar,
   Progress,
+  Switch,
+  Empty,
 } from "antd";
 import {
   SearchOutlined,
@@ -41,6 +43,8 @@ import {
   EnvironmentOutlined,
   PaperClipOutlined,
   UploadOutlined,
+  FileOutlined,
+  DownloadOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import StaffSidebar from "../../components/staff/StaffSidebar";
@@ -211,6 +215,7 @@ const convertBookingDataToVietnamese = (booking) => {
 
 const Booking11Management = () => {
   const [form] = Form.useForm();
+  const [rejectForm] = Form.useForm();
   const [collapsed, setCollapsed] = useState(false);
   const [selectedMenu, setSelectedMenu] = useState("booking-management");
   const [bookings, setBookings] = useState([]);
@@ -219,6 +224,7 @@ const Booking11Management = () => {
   const [viewModalVisible, setViewModalVisible] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [statusModalVisible, setStatusModalVisible] = useState(false);
+  const [rejectModalVisible, setRejectModalVisible] = useState(false);
   const [dateRange, setDateRange] = useState(null);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [videoModalVisible, setVideoModalVisible] = useState(false);
@@ -244,6 +250,8 @@ const Booking11Management = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [fileURL, setFileURL] = useState("");
+  const [learningPathSessions, setLearningPathSessions] = useState([]);
+  const [loadingPathSessions, setLoadingPathSessions] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -255,7 +263,7 @@ const Booking11Management = () => {
   const fetchResponses = async () => {
     try {
       const response = await axios.get(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Response/get-all"
+        "https://instrulearnapplication.azurewebsites.net/api/Response/get-all"
       );
       console.log("Response data:", response.data);
       if (Array.isArray(response.data)) {
@@ -271,7 +279,7 @@ const Booking11Management = () => {
   const fetchLevels = async () => {
     try {
       const response = await axios.get(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/LevelAssigned/get-all"
+        "https://instrulearnapplication.azurewebsites.net/api/LevelAssigned/get-all"
       );
       console.log("Levels data:", response.data);
       if (Array.isArray(response.data)) {
@@ -288,7 +296,7 @@ const Booking11Management = () => {
     setLoading(true);
     try {
       const response = await axios.get(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/LearningRegis/get-all"
+        "https://instrulearnapplication.azurewebsites.net/api/LearningRegis/get-all"
       );
       if (response.data?.isSucceed) {
         const bookings = response.data.data.map((booking) => ({
@@ -313,53 +321,34 @@ const Booking11Management = () => {
 
   const handleStatusChange = async (booking) => {
     try {
-      await form.validateFields();
+      const values = await form.validateFields();
       setLoading(true);
-      const values = form.getFieldsValue();
 
       if (!values.levelId) {
         message.error("Vui lòng chọn cấp độ trước khi cập nhật");
         return;
       }
 
-      let learningPathUrl = "";
-      if (file) {
-        try {
-          learningPathUrl = await uploadFileToFirebase();
-          if (!learningPathUrl) {
-            message.error("Không thể tải file lên");
-            return;
-          }
-        } catch (uploadError) {
-          console.error("Error uploading file:", uploadError);
-          message.error("Lỗi khi tải file lên Firebase");
-          return;
-        }
-      }
-
       const updateData = {
         learningRegisId: booking.learningRegisId,
-        teacherId: values.teacherId,
+        teacherId: values.teacherId || booking.teacherId,
         levelId: values.levelId,
         responseId: values.responseId,
-        learningPath: learningPathUrl || "string",
       };
 
+      console.log("Update data:", updateData);
+
       const response = await axios.put(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/LearningRegis/update-status",
+        "https://instrulearnapplication.azurewebsites.net/api/LearningRegis/update-status",
         updateData
       );
 
       if (response.data?.isSucceed) {
         message.success("Cập nhật trạng thái thành công");
         setStatusModalVisible(false);
+        form.resetFields();
+        setSelectedBooking(null);
         fetchBookings();
-
-        // Reset file state
-        setFile(null);
-        setFileType("");
-        setFileURL("");
-        setUploadProgress(0);
       } else {
         throw new Error(response.data?.message || "Cập nhật thất bại");
       }
@@ -394,7 +383,7 @@ const Booking11Management = () => {
 
       // Sau đó mới kiểm tra các giáo viên có lịch trống
       const response = await axios.get(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Schedules/available-teachers",
+        "https://instrulearnapplication.azurewebsites.net/api/Schedules/available-teachers",
         {
           params: {
             majorId: booking.majorId,
@@ -428,11 +417,11 @@ const Booking11Management = () => {
     console.log("Selected booking:", record);
     setSelectedBooking(record);
 
-    // Set default values for the form TRƯỚC KHI kiểm tra giáo viên có lịch trống
+    // Set default values for the form
     form.setFieldsValue({
       teacherId: record.teacherId,
       responseId: record.responseId,
-      // Không đặt giá trị mặc định cho levelId để người dùng bắt buộc phải chọn
+      levelId: record.levelId,
     });
 
     // Kiểm tra giáo viên có lịch trống
@@ -444,6 +433,7 @@ const Booking11Management = () => {
   const handleView = (record) => {
     setSelectedBooking(record);
     setViewModalVisible(true);
+    fetchLearningPathSessions(record.learningRegisId);
   };
 
   const handleViewVideo = (videoUrl) => {
@@ -451,7 +441,7 @@ const Booking11Management = () => {
     setVideoModalVisible(true);
   };
 
-  const getStatusTag = (status) => {
+  const getStatusTag = (status, paymentStatus) => {
     switch (status) {
       case "Pending":
         return (
@@ -487,6 +477,18 @@ const Booking11Management = () => {
         return (
           <Tag icon={<CheckCircleOutlined />} color="success">
             Đã thanh toán đầy đủ
+          </Tag>
+        );
+      case "Cancelled":
+        return (
+          <Tag icon={<CloseCircleOutlined />} color="error">
+            Đã hủy
+          </Tag>
+        );
+      case "FourtyFeedbackDone":
+        return (
+          <Tag icon={<CheckCircleOutlined />} color="blue">
+            Đã phản hồi
           </Tag>
         );
       default:
@@ -563,6 +565,63 @@ const Booking11Management = () => {
     }
   };
 
+  const getFileTypeInfo = (url) => {
+    if (!url) return { icon: null, color: "", text: "", type: "" };
+
+    // Xử lý URL từ Firebase
+    if (url.includes("firebasestorage.googleapis.com")) {
+      // Lấy tên file từ URL Firebase (nằm giữa /o/ và ?)
+      const fileNameMatch = url.match(/\/o\/([^?]+)/);
+      if (fileNameMatch) {
+        const fileName = decodeURIComponent(
+          fileNameMatch[1].replace("syllabus%2F", "")
+        );
+        const extension = fileName.split(".").pop().toLowerCase();
+
+        if (extension === "pdf") {
+          return {
+            icon: <FileOutlined style={{ fontSize: "16px" }} />,
+            color: "#ff4d4f",
+            text: "PDF",
+            type: "pdf",
+          };
+        } else if (["doc", "docx"].includes(extension)) {
+          return {
+            icon: <FileOutlined style={{ fontSize: "16px" }} />,
+            color: "#1890ff",
+            text: "Word",
+            type: "word",
+          };
+        }
+      }
+    }
+
+    // Xử lý đường dẫn thông thường
+    const extension = url.split(".").pop().toLowerCase();
+    if (extension === "pdf") {
+      return {
+        icon: <FileOutlined style={{ fontSize: "16px" }} />,
+        color: "#ff4d4f",
+        text: "PDF",
+        type: "pdf",
+      };
+    } else if (["doc", "docx"].includes(extension)) {
+      return {
+        icon: <FileOutlined style={{ fontSize: "16px" }} />,
+        color: "#1890ff",
+        text: "Word",
+        type: "word",
+      };
+    }
+
+    return {
+      icon: <FileOutlined style={{ fontSize: "16px" }} />,
+      color: "default",
+      text: "Tệp",
+      type: "other",
+    };
+  };
+
   const getSelectedLevelContent = () => {
     if (!selectedLevel || !levels) return null;
     const selectedLevelData = levels.find(
@@ -571,11 +630,59 @@ const Booking11Management = () => {
     if (!selectedLevelData) return null;
 
     return (
-      <div className="space-y-2">
-        <div className="font-medium">{selectedLevelData.levelName}</div>
-        <div className="text-gray-600">
-          Học phí: {selectedLevelData.levelPrice.toLocaleString("vi-VN")} VNĐ
+      <div className="space-y-4">
+        <div>
+          <div className="font-medium text-lg mb-2">
+            {selectedLevelData.levelName}
+          </div>
+          <div className="text-gray-600 text-lg">
+            Học phí: {selectedLevelData.levelPrice.toLocaleString("vi-VN")}{" "}
+            VNĐ/Buổi
+          </div>
         </div>
+
+        {selectedLevelData.syllabusLink ? (
+          <div className="mt-4">
+            <div className="font-medium mb-2">Giáo trình:</div>
+            {selectedLevelData.syllabusLink.startsWith("https://") ? (
+              <div className="flex items-center gap-2">
+                {(() => {
+                  const fileInfo = getFileTypeInfo(
+                    selectedLevelData.syllabusLink
+                  );
+                  return (
+                    <div className="flex items-center gap-2">
+                      <Tag color={fileInfo.color} icon={fileInfo.icon}>
+                        {fileInfo.text}
+                      </Tag>
+                      <Button
+                        type="primary"
+                        size="small"
+                        icon={<DownloadOutlined />}
+                        onClick={() =>
+                          window.open(selectedLevelData.syllabusLink, "_blank")
+                        }
+                        style={{
+                          background: fileInfo.color,
+                          borderColor: fileInfo.color,
+                        }}
+                      >
+                        Tải xuống
+                      </Button>
+                    </div>
+                  );
+                })()}
+              </div>
+            ) : (
+              <Tag color="error">Link không hợp lệ</Tag>
+            )}
+          </div>
+        ) : (
+          <div className="mt-4">
+            <div className="font-medium mb-2">Giáo trình:</div>
+            <Tag color="warning">Chưa có</Tag>
+          </div>
+        )}
       </div>
     );
   };
@@ -584,7 +691,7 @@ const Booking11Management = () => {
     try {
       setScheduleLoading(true);
       const response = await axios.get(
-        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Schedules/teacher/${teacherId}/register`
+        `https://instrulearnapplication.azurewebsites.net/api/Schedules/teacher/${teacherId}/register`
       );
       console.log("Teacher schedule:", response.data);
       if (response.data?.isSucceed && Array.isArray(response.data.data)) {
@@ -686,6 +793,11 @@ const Booking11Management = () => {
 
   const filteredBookings = bookings
     .filter((booking) => {
+      // Lọc theo regisTypeName
+      if (booking.regisTypeName !== "Đăng ký học theo yêu cầu") {
+        return false;
+      }
+
       // Lọc theo text tìm kiếm
       const searchMatches =
         booking.fullName?.toLowerCase().includes(searchText.toLowerCase()) ||
@@ -738,8 +850,13 @@ const Booking11Management = () => {
     {
       title: "Thời gian học",
       key: "schedule",
-      render: (_, record) => <span>{record.timeLearning} phút</span>,
-      width: 100,
+      render: (_, record) => (
+        <span>
+          {record.timeStart?.substring(0, 5)} -{" "}
+          {record.timeEnd?.substring(0, 5)} ({record.timeLearning} phút)
+        </span>
+      ),
+      width: 150,
     },
     {
       title: "Số buổi",
@@ -751,12 +868,15 @@ const Booking11Management = () => {
       title: "Trạng thái",
       dataIndex: "status",
       key: "status",
-      render: (status) => getStatusTag(status),
+      render: (status, record) => getStatusTag(status, record.paymentStatus),
       filters: [
         { text: "Chờ xác nhận", value: "Pending" },
         { text: "Đã chấp nhận", value: "Accepted" },
         { text: "Từ chối", value: "Rejected" },
         { text: "Đã thanh toán", value: "Completed" },
+        { text: "Đã thanh toán 40%", value: "Fourty" },
+        { text: "Đã thanh toán đầy đủ", value: "Sixty" },
+        { text: "Đã hủy", value: "Cancelled" },
       ],
       onFilter: (value, record) => record.status === value,
       width: 150,
@@ -776,18 +896,29 @@ const Booking11Management = () => {
             />
           </Tooltip>
           {record.status === "Pending" && (
-            <Tooltip title="Cập nhật trạng thái">
-              <Button
-                type="primary"
-                icon={<CheckCircleOutlined />}
-                size="small"
-                onClick={() => showStatusModal(record)}
-              />
-            </Tooltip>
+            <>
+              <Tooltip title="Cập nhật trạng thái">
+                <Button
+                  type="primary"
+                  icon={<CheckCircleOutlined />}
+                  size="small"
+                  onClick={() => showStatusModal(record)}
+                />
+              </Tooltip>
+              <Tooltip title="Từ chối yêu cầu">
+                <Button
+                  type="primary"
+                  danger
+                  icon={<CloseCircleOutlined />}
+                  size="small"
+                  onClick={() => showRejectModal(record)}
+                />
+              </Tooltip>
+            </>
           )}
         </Space>
       ),
-      width: 120,
+      width: 140,
     },
   ];
 
@@ -863,6 +994,69 @@ const Booking11Management = () => {
         }
       );
     });
+  };
+
+  const fetchLearningPathSessions = async (learningRegisId) => {
+    setLoadingPathSessions(true);
+    try {
+      const response = await axios.get(
+        `https://instrulearnapplication.azurewebsites.net/api/LearningPathSession/${learningRegisId}/learning-path-sessions`
+      );
+      if (response.data?.isSucceed) {
+        setLearningPathSessions(response.data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching learning path sessions:", error);
+      message.error("Không thể tải thông tin lộ trình học");
+    } finally {
+      setLoadingPathSessions(false);
+    }
+  };
+
+  const showRejectModal = (record) => {
+    console.log("Selected booking for rejection:", record);
+    setSelectedBooking(record);
+    // Reset form
+    rejectForm.resetFields();
+    setRejectModalVisible(true);
+  };
+
+  const handleReject = async () => {
+    try {
+      const values = await rejectForm.validateFields();
+      setLoading(true);
+
+      if (!values.responseId) {
+        message.error("Vui lòng chọn phản hồi trước khi từ chối");
+        return;
+      }
+
+      const response = await axios.post(
+        `https://instrulearnapplication.azurewebsites.net/api/LearningRegis/reject/${selectedBooking.learningRegisId}`,
+        {
+          responseId: values.responseId,
+        }
+      );
+
+      if (response.data?.isSucceed) {
+        message.success("Đã từ chối yêu cầu thành công");
+        setRejectModalVisible(false);
+        rejectForm.resetFields();
+        setSelectedBooking(null);
+        fetchBookings();
+      } else {
+        throw new Error(response.data?.message || "Từ chối thất bại");
+      }
+    } catch (error) {
+      if (error.errorFields) {
+        message.error("Vui lòng điền đầy đủ thông tin");
+      } else {
+        message.error("Lỗi khi từ chối yêu cầu: " + (error.message || error));
+        console.error("Error rejecting request:", error);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -953,11 +1147,40 @@ const Booking11Management = () => {
       >
         {selectedBooking && (
           <div className="space-y-6">
-            {/* Phần trạng thái */}
+            {/* Phần trạng thái và thời gian */}
             <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-              <div className="flex items-center space-x-2">
-                <span className="font-medium">Trạng thái:</span>
-                {getStatusTag(selectedBooking.status)}
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <span className="font-medium">Trạng thái:</span>
+                  {getStatusTag(
+                    selectedBooking.status,
+                    selectedBooking.paymentStatus
+                  )}
+                </div>
+                {selectedBooking.paymentStatus && (
+                  <div className="flex items-center space-x-2">
+                    <span className="font-medium">Thanh toán:</span>
+                    <Tag
+                      color={
+                        selectedBooking.paymentStatus === "Pending"
+                          ? "warning"
+                          : selectedBooking.paymentStatus === "40% payment"
+                          ? "processing"
+                          : selectedBooking.paymentStatus === "Overdue"
+                          ? "error"
+                          : "success"
+                      }
+                    >
+                      {selectedBooking.paymentStatus === "Pending"
+                        ? "Chưa thanh toán"
+                        : selectedBooking.paymentStatus === "40% payment"
+                        ? "Đã thanh toán 40%"
+                        : selectedBooking.paymentStatus === "Overdue"
+                        ? "Quá hạn"
+                        : selectedBooking.paymentStatus}
+                    </Tag>
+                  </div>
+                )}
               </div>
               <div className="text-gray-500">
                 {dayjs(selectedBooking.requestDate).format("DD/MM/YYYY HH:mm")}
@@ -978,6 +1201,10 @@ const Booking11Management = () => {
                 <div>
                   <p className="text-gray-500">Số điện thoại</p>
                   <p className="font-medium">{selectedBooking.phoneNumber}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Mã học viên</p>
+                  <p className="font-medium">{selectedBooking.learnerId}</p>
                 </div>
               </div>
             </div>
@@ -1008,8 +1235,14 @@ const Booking11Management = () => {
                   </p>
                 </div>
                 <div>
-                  <p className="text-gray-500">Học phí</p>
+                  <p className="text-gray-500">Học phí/buổi</p>
                   <p className="font-medium text-blue-600">
+                    {selectedBooking.levelPrice?.toLocaleString("vi-VN")} VNĐ
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Tổng học phí</p>
+                  <p className="font-medium text-red-600">
                     {selectedBooking.price?.toLocaleString("vi-VN")} VNĐ
                   </p>
                 </div>
@@ -1019,12 +1252,65 @@ const Booking11Management = () => {
                     {selectedBooking.numberOfSession} buổi
                   </p>
                 </div>
+                {selectedBooking.remainingAmount !== null && (
+                  <div>
+                    <p className="text-gray-500">Số tiền còn lại</p>
+                    <p className="font-medium text-orange-500">
+                      {selectedBooking.remainingAmount?.toLocaleString("vi-VN")}{" "}
+                      VNĐ
+                    </p>
+                  </div>
+                )}
               </div>
+
+              {/* Thông tin thanh toán */}
+              {(selectedBooking.paymentDeadline ||
+                selectedBooking.acceptedDate) && (
+                <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                  <div className="grid grid-cols-2 gap-4">
+                    {selectedBooking.acceptedDate && (
+                      <div>
+                        <p className="text-gray-500">Ngày chấp nhận</p>
+                        <p className="font-medium">
+                          {dayjs(selectedBooking.acceptedDate).format(
+                            "DD/MM/YYYY HH:mm"
+                          )}
+                        </p>
+                      </div>
+                    )}
+                    {selectedBooking.paymentDeadline && (
+                      <div>
+                        <p className="text-gray-500">Hạn thanh toán</p>
+                        <div className="flex items-center space-x-2">
+                          <p className="font-medium">
+                            {dayjs(selectedBooking.paymentDeadline).format(
+                              "DD/MM/YYYY HH:mm"
+                            )}
+                          </p>
+                          {selectedBooking.daysRemaining !== null && (
+                            <Tag
+                              color={
+                                selectedBooking.daysRemaining > 0
+                                  ? "warning"
+                                  : "error"
+                              }
+                            >
+                              {selectedBooking.daysRemaining > 0
+                                ? `Còn ${selectedBooking.daysRemaining} ngày`
+                                : "Đã quá hạn"}
+                            </Tag>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {selectedBooking.learningRequest && (
                 <div className="mt-4">
                   <p className="text-gray-500">Yêu cầu học</p>
-                  <p className="font-medium">
+                  <p className="font-medium whitespace-pre-wrap">
                     {selectedBooking.learningRequest}
                   </p>
                 </div>
@@ -1050,19 +1336,86 @@ const Booking11Management = () => {
                   </div>
                 )}
 
-              {selectedBooking.learningPath && (
+              {selectedBooking.syllabusLink && (
                 <div className="mt-4">
-                  <p className="text-gray-500 mb-2">Lộ trình học</p>
-                  <a
-                    href={selectedBooking.learningPath}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:text-blue-800"
-                  >
-                    <PaperClipOutlined /> Xem lộ trình học
-                  </a>
+                  <p className="text-gray-500 mb-2">Giáo trình</p>
+                  <div className="flex items-center gap-2">
+                    {(() => {
+                      const fileInfo = getFileTypeInfo(
+                        selectedBooking.syllabusLink
+                      );
+                      return (
+                        <>
+                          <Tag color={fileInfo.color} icon={fileInfo.icon}>
+                            {fileInfo.text}
+                          </Tag>
+                          <Button
+                            type="primary"
+                            size="small"
+                            icon={<DownloadOutlined />}
+                            onClick={() =>
+                              window.open(
+                                selectedBooking.syllabusLink,
+                                "_blank"
+                              )
+                            }
+                            style={{
+                              background: fileInfo.color,
+                              borderColor: fileInfo.color,
+                            }}
+                          >
+                            Tải xuống
+                          </Button>
+                        </>
+                      );
+                    })()}
+                  </div>
                 </div>
               )}
+            </div>
+
+            {/* Thông tin lộ trình học */}
+            <div className="bg-white p-4 rounded-lg border">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-2">
+                  <BookOutlined className="text-blue-500" />
+                  <h3 className="text-lg font-semibold">Lộ trình học</h3>
+                </div>
+                {loadingPathSessions && <Spin size="small" />}
+              </div>
+
+              {learningPathSessions.length > 0 &&
+              learningPathSessions.every((session) => session.isCompleted) ? (
+                <div className="space-y-4">
+                  {learningPathSessions.map((session) => (
+                    <div
+                      key={session.learningPathSessionId}
+                      className={`p-4 rounded-lg border bg-green-50 border-green-200`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-green-500 text-white">
+                            {session.sessionNumber}
+                          </div>
+                          <div>
+                            <h4 className="font-medium">
+                              Buổi {session.sessionNumber}
+                            </h4>
+                            <p className="text-gray-600">
+                              {session.description}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : !loadingPathSessions ? (
+                <Empty
+                  description="Chưa có thông tin lộ trình học hoặc lộ trình chưa được xác nhận"
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                />
+              ) : null}
             </div>
 
             {/* Lịch học */}
@@ -1389,49 +1742,6 @@ const Booking11Management = () => {
               </div>
             </Form.Item>
           )}
-
-          <Form.Item label="Tải lên lộ trình học">
-            <input
-              type="file"
-              onChange={handleFileSelect}
-              className="block w-full text-sm border border-gray-300 rounded p-2"
-            />
-            {file && (
-              <div className="mt-4 p-4 border rounded">
-                <div className="flex items-center mb-2">
-                  <PaperClipOutlined />
-                  <span className="ml-2 font-medium">{file.name}</span>
-                </div>
-                <div className="text-sm text-gray-500">
-                  {(file.size / 1024 / 1024).toFixed(2)} MB
-                </div>
-                {isUploading && (
-                  <Progress
-                    percent={uploadProgress}
-                    size="small"
-                    className="mt-2"
-                  />
-                )}
-                {fileURL && (
-                  <div className="mt-2 text-green-600 text-sm">
-                    Tệp đã được tải lên thành công!
-                  </div>
-                )}
-              </div>
-            )}
-            {!fileURL && file && (
-              <Button
-                type="primary"
-                onClick={uploadFileToFirebase}
-                disabled={!file || isUploading}
-                loading={isUploading}
-                icon={<UploadOutlined />}
-                className="mt-2"
-              >
-                Tải lên Firebase
-              </Button>
-            )}
-          </Form.Item>
         </Form>
       </Modal>
 
@@ -1520,6 +1830,118 @@ const Booking11Management = () => {
             }}
           />
         </Spin>
+      </Modal>
+
+      {/* Modal từ chối đơn */}
+      <Modal
+        title={
+          <div className="flex items-center text-red-500">
+            <CloseCircleOutlined className="mr-2" /> Từ chối yêu cầu đăng ký
+          </div>
+        }
+        open={rejectModalVisible}
+        onCancel={() => setRejectModalVisible(false)}
+        onOk={handleReject}
+        confirmLoading={loading}
+        okText="Từ chối yêu cầu"
+        okButtonProps={{ danger: true }}
+        cancelText="Hủy"
+        width={700}
+      >
+        {selectedBooking && (
+          <Form form={rejectForm} layout="vertical">
+            <div className="p-4 bg-red-50 rounded-lg mb-4 border border-red-200">
+              <div className="flex items-center mb-2">
+                <InfoCircleOutlined className="text-red-500 mr-2" />
+                <span className="font-medium">
+                  Bạn đang từ chối yêu cầu đăng ký của{" "}
+                  <span className="text-red-600">
+                    {selectedBooking.fullName}
+                  </span>
+                </span>
+              </div>
+              <p className="text-gray-600">
+                Khi từ chối, học viên sẽ không thể tiếp tục quá trình đăng ký
+                này và sẽ nhận được thông báo từ chối.
+              </p>
+            </div>
+
+            <Form.Item
+              name="responseTypeId"
+              label="Loại phản hồi"
+              rules={[
+                { required: true, message: "Vui lòng chọn loại phản hồi" },
+              ]}
+            >
+              <Select
+                placeholder="Chọn loại phản hồi"
+                onChange={handleResponseTypeChange}
+                className="w-full"
+              >
+                {getResponseTypes().map((type) => (
+                  <Option key={type.responseTypeId} value={type.responseTypeId}>
+                    {type.responseName}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+
+            {selectedResponseType && (
+              <>
+                <Form.Item
+                  name="responseId"
+                  label="Nội dung phản hồi"
+                  rules={[
+                    {
+                      required: true,
+                      message: "Vui lòng chọn nội dung phản hồi",
+                    },
+                  ]}
+                >
+                  <Select
+                    placeholder="Chọn nội dung phản hồi"
+                    onChange={handleResponseChange}
+                    className="w-full"
+                    optionLabelProp="label"
+                  >
+                    {getResponsesByType(selectedResponseType).map(
+                      (response) => (
+                        <Option
+                          key={response.responseId}
+                          value={response.responseId}
+                          label={`Phản hồi #${response.responseId}`}
+                        >
+                          <div className="flex items-center py-1">
+                            <FileTextOutlined className="mr-2 text-red-500" />
+                            <div className="truncate max-w-[400px]">
+                              {response.responseDescription}
+                            </div>
+                          </div>
+                        </Option>
+                      )
+                    )}
+                  </Select>
+                </Form.Item>
+
+                {selectedResponse && (
+                  <div className="mb-4">
+                    <div className="p-4 bg-gray-50 rounded-lg border">
+                      <div className="flex items-center mb-2">
+                        <FileTextOutlined className="text-red-500 mr-2" />
+                        <span className="font-medium">
+                          Chi tiết nội dung phản hồi
+                        </span>
+                      </div>
+                      <div className="text-gray-800 whitespace-pre-wrap">
+                        {selectedResponse.responseDescription}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </Form>
+        )}
       </Modal>
     </Layout>
   );

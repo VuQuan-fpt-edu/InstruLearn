@@ -123,7 +123,7 @@ const Profile = () => {
 
       setLoading(true);
       const response = await axios.get(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Auth/Profile",
+        "https://instrulearnapplication.azurewebsites.net/api/Auth/Profile",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -198,7 +198,7 @@ const Profile = () => {
           try {
             // Gọi API cập nhật trạng thái thanh toán
             const response = await axios.put(
-              `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/wallet/update-payment-status-by-ordercode`,
+              `https://instrulearnapplication.azurewebsites.net/api/wallet/update-payment-status-by-ordercode`,
               {
                 orderCode: parseInt(orderCode),
                 status: status,
@@ -380,6 +380,7 @@ const Profile = () => {
     if (!profile) return;
 
     form.setFieldsValue({
+      fullName: profile?.fullName || localStorage.getItem("fullName"),
       phoneNumber: profile?.phoneNumber || "",
       gender: profile?.gender || undefined,
       address: profile?.address || "",
@@ -407,7 +408,7 @@ const Profile = () => {
       };
 
       const response = await axios.put(
-        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Learner/update/${profile.learnerId}`,
+        `https://instrulearnapplication.azurewebsites.net/api/Learner/update/${profile.learnerId}`,
         updateData,
         {
           headers: {
@@ -442,6 +443,7 @@ const Profile = () => {
 
       // Sử dụng dữ liệu hiện tại cho avatar
       const updateData = {
+        fullName: values.fullName,
         phoneNumber: values.phoneNumber || "",
         gender: values.gender || "",
         address: values.address || "",
@@ -449,7 +451,7 @@ const Profile = () => {
       };
 
       const response = await axios.put(
-        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Learner/update/${profile.learnerId}`,
+        `https://instrulearnapplication.azurewebsites.net/api/Learner/update/${profile.learnerId}`,
         updateData,
         {
           headers: {
@@ -461,6 +463,8 @@ const Profile = () => {
       if (response.data.isSucceed) {
         message.success("Cập nhật thông tin thành công!");
         setIsEditInfoModalVisible(false);
+        // Cập nhật lại localStorage
+        localStorage.setItem("fullName", values.fullName);
         fetchProfile();
       } else {
         throw new Error(response.data.message || "Cập nhật thất bại");
@@ -495,7 +499,9 @@ const Profile = () => {
                       </Text>
                       <div>
                         <Text strong className="text-lg">
-                          {profile?.fullName || "Chưa cập nhật"}
+                          {profile?.fullName ||
+                            localStorage.getItem("fullName") ||
+                            "Chưa cập nhật"}
                         </Text>
                       </div>
                     </div>
@@ -631,7 +637,7 @@ const Profile = () => {
     {
       key: "library",
       icon: <ReadOutlined className="text-lg" />,
-      label: "Thư viện gói học online",
+      label: "Thư viện khóa học online",
     },
     {
       key: "courses",
@@ -723,7 +729,9 @@ const Profile = () => {
             </Col>
             <Col xs={24} md={18} className="text-center md:text-left">
               <Title level={2} className="text-white mb-1">
-                {profile?.fullName || "Chưa cập nhật"}
+                {profile?.fullName ||
+                  localStorage.getItem("fullName") ||
+                  "Chưa cập nhật"}
               </Title>
               <Text className="text-purple-200 text-lg block mb-2">
                 @{profile?.username || ""}
@@ -897,6 +905,19 @@ const Profile = () => {
           width={600}
         >
           <Form form={form} layout="vertical" onFinish={handleUpdateInfo}>
+            <Form.Item
+              name="fullName"
+              label="Họ và tên"
+              rules={[
+                {
+                  required: true,
+                  message: "Vui lòng nhập họ và tên!",
+                },
+              ]}
+            >
+              <Input prefix={<UserOutlined />} />
+            </Form.Item>
+
             <Form.Item
               name="phoneNumber"
               label="Số điện thoại"

@@ -39,7 +39,7 @@ const CourseContent = ({ courseId }) => {
     setContentLoading(true);
     try {
       const contentResponse = await axios.get(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/CourseContent/get-all"
+        "https://instrulearnapplication.azurewebsites.net/api/CourseContent/get-all"
       );
 
       if (contentResponse.data?.isSucceed && contentResponse.data.data) {
@@ -64,7 +64,7 @@ const CourseContent = ({ courseId }) => {
       };
 
       const response = await axios.post(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/CourseContent/create",
+        "https://instrulearnapplication.azurewebsites.net/api/CourseContent/create",
         contentData
       );
 
@@ -94,7 +94,7 @@ const CourseContent = ({ courseId }) => {
       };
 
       const response = await axios.put(
-        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/CourseContent/update/${selectedContent.contentId}`,
+        `https://instrulearnapplication.azurewebsites.net/api/CourseContent/update/${selectedContent.contentId}`,
         updateData
       );
 
@@ -119,7 +119,7 @@ const CourseContent = ({ courseId }) => {
   const handleDeleteContent = async (contentId) => {
     try {
       const response = await axios.delete(
-        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/CourseContent/delete/${contentId}`
+        `https://instrulearnapplication.azurewebsites.net/api/CourseContent/delete/${contentId}`
       );
 
       if (

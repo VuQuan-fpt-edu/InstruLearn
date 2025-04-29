@@ -26,6 +26,7 @@ import {
 } from "@ant-design/icons";
 import "antd/dist/reset.css";
 import { register } from "../../api/auth";
+import axios from "axios";
 
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
@@ -35,6 +36,25 @@ export default function Register() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [successModalVisible, setSuccessModalVisible] = useState(false);
+
+  const checkEmailExists = async (email) => {
+    try {
+      const response = await axios.get(
+        "https://instrulearnapplication.azurewebsites.net/api/Learner/get-all"
+      );
+
+      if (response.data?.isSucceed) {
+        const emailExists = response.data.data.some(
+          (learner) => learner.email === email
+        );
+        return emailExists;
+      }
+      return false;
+    } catch (error) {
+      console.error("Error checking email:", error);
+      return false;
+    }
+  };
 
   const handleRegister = async (values) => {
     try {
@@ -50,26 +70,51 @@ export default function Register() {
       const response = await register(userData);
 
       if (response?.isSucceed) {
-        setSuccessModalVisible(true);
+        message.success("Đăng ký thành công! Vui lòng xác minh email của bạn.");
         form.resetFields();
 
-        // Chuyển hướng sau 3 giây
-        setTimeout(() => {
-          navigate("/login");
-        }, 3000);
+        navigate("/email-verification", {
+          state: {
+            email: values.email,
+          },
+        });
       } else {
         throw new Error(response?.message || "Đăng ký không thành công");
       }
     } catch (error) {
-      if (error.response) {
+      console.log("Error response:", error.response);
+
+      // Xử lý lỗi từ API
+      if (error.response?.status === 400) {
+        const errorMessage = error.response.data.message;
+
+        // Kiểm tra lỗi email đã tồn tại
+        if (errorMessage.toLowerCase().includes("email")) {
+          form.setFields([
+            {
+              name: "email",
+              errors: ["Email này đã được sử dụng"],
+            },
+          ]);
+        }
+
+        // Kiểm tra lỗi username đã tồn tại
+        if (errorMessage.toLowerCase().includes("người dùng")) {
+          form.setFields([
+            {
+              name: "username",
+              errors: ["Tên đăng nhập này đã được sử dụng"],
+            },
+          ]);
+        }
+
+        // Hiển thị thông báo lỗi chung
         message.error({
-          content: `Đăng ký thất bại: ${
-            error.response.data.message ||
-            "Vui lòng kiểm tra thông tin và thử lại"
-          }`,
+          content: errorMessage,
           duration: 5,
         });
       } else {
+        // Xử lý các lỗi khác
         message.error({
           content: "Đăng ký thất bại: Không thể kết nối với máy chủ",
           duration: 5,
@@ -102,6 +147,7 @@ export default function Register() {
             onFinish={handleRegister}
             layout="vertical"
             size="large"
+            validateTrigger="onBlur"
           >
             <Form.Item
               name="username"
@@ -110,6 +156,10 @@ export default function Register() {
                 {
                   required: true,
                   message: "Vui lòng nhập tên đăng nhập của bạn",
+                },
+                {
+                  min: 3,
+                  message: "Tên đăng nhập phải có ít nhất 3 ký tự",
                 },
               ]}
               className="mb-4"
@@ -147,6 +197,7 @@ export default function Register() {
                 { type: "email", message: "Email không hợp lệ!" },
               ]}
               className="mb-4"
+              validateTrigger="onBlur"
             >
               <Input
                 prefix={<MailOutlined className="text-gray-400" />}

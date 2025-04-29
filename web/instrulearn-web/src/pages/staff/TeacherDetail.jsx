@@ -53,7 +53,7 @@ const TeacherDetail = () => {
     setLoading(true);
     try {
       const response = await axios.get(
-        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Teacher/${id}`
+        `https://instrulearnapplication.azurewebsites.net/api/Teacher/${id}`
       );
 
       if (response.data.isSucceed && response.data.data) {
@@ -73,7 +73,7 @@ const TeacherDetail = () => {
     try {
       setLoadingMajors(true);
       const response = await axios.get(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/TeacherMajor/get-all"
+        "https://instrulearnapplication.azurewebsites.net/api/TeacherMajor/get-all"
       );
 
       if (response.data && Array.isArray(response.data)) {
@@ -104,7 +104,7 @@ const TeacherDetail = () => {
         : `/api/TeacherMajor/update/${teacherMajorId}/Free`;
 
       const response = await axios.put(
-        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net${endpoint}`
+        `https://instrulearnapplication.azurewebsites.net${endpoint}`
       );
 
       if (response.data.isSucceed) {

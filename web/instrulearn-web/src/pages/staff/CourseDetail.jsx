@@ -98,10 +98,10 @@ const CourseDetail = () => {
       setLoading(true);
       const [courseResponse, typesResponse] = await Promise.all([
         axios.get(
-          `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Course/${courseId}`
+          `https://instrulearnapplication.azurewebsites.net/api/Course/${courseId}`
         ),
         axios.get(
-          "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/CourseType/get-all"
+          "https://instrulearnapplication.azurewebsites.net/api/CourseType/get-all"
         ),
       ]);
 
@@ -171,7 +171,7 @@ const CourseDetail = () => {
       console.log("Sending update with data:", updateData);
 
       const response = await axios.put(
-        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Course/update/${courseId}`,
+        `https://instrulearnapplication.azurewebsites.net/api/Course/update/${courseId}`,
         updateData
       );
 

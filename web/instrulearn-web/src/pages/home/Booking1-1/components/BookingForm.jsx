@@ -156,6 +156,45 @@ const BookingForm = ({
     return !isValidDay;
   };
 
+  // Thêm hàm kiểm tra ngày bắt đầu
+  const checkStartDate = (date) => {
+    const today = dayjs().startOf("day");
+    const selectedDate = dayjs(date).startOf("day");
+    const minStartDate = today.add(3, "days"); // Thêm 3 ngày buffer
+
+    if (selectedDate.isBefore(minStartDate)) {
+      Modal.warning({
+        title: "Cảnh báo ngày bắt đầu",
+        content: (
+          <div>
+            <p>Ngày bắt đầu học cần cách ngày hiện tại ít nhất 3 ngày để:</p>
+            <ul className="list-disc pl-4 mt-2">
+              <li>Nhân viên có đủ thời gian xử lý đơn đăng ký</li>
+              <li>Tránh trường hợp đơn bị từ chối</li>
+              <li>Đảm bảo chất lượng buổi học đầu tiên</li>
+            </ul>
+            <p className="mt-2 text-red-500">
+              Khuyến nghị: Chọn ngày bắt đầu từ ngày{" "}
+              {minStartDate.format("DD/MM/YYYY")} trở đi
+            </p>
+            <p className="mt-2">Bạn có chắc chắn muốn tiếp tục với ngày này?</p>
+          </div>
+        ),
+        okText: "Tiếp tục",
+        cancelText: "Chọn lại ngày",
+        onOk: () => {
+          form.setFieldsValue({ startDay: date });
+          handleDateChange(date);
+        },
+        onCancel: () => {
+          form.setFieldsValue({ startDay: null });
+        },
+      });
+      return false;
+    }
+    return true;
+  };
+
   const handleBookingDaysChange = (values) => {
     setSelectedDays(values);
     // Reset ngày bắt đầu khi thay đổi thứ
@@ -175,7 +214,7 @@ const BookingForm = ({
     try {
       setLoadingTest(true);
       const response = await axios.get(
-        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/MajorTest/by-major/${majorId}`
+        `https://instrulearnapplication.azurewebsites.net/api/MajorTest/by-major/${majorId}`
       );
 
       if (response.data?.isSucceed && response.data.data.length > 0) {
@@ -232,13 +271,13 @@ const BookingForm = ({
     checkAvailableTeachers();
   };
 
-  // Thêm hàm xử lý cho startDay
+  // Cập nhật hàm handleDateChange
   const handleDateChange = (date) => {
-    // Xóa giáo viên đã chọn khi thay đổi ngày bắt đầu
-    form.setFieldsValue({ teacherId: undefined });
-    handleTeacherChange(null);
-    // Gọi ngay lập tức nếu có đủ thông tin
-    if (date) {
+    if (date && checkStartDate(date)) {
+      // Xóa giáo viên đã chọn khi thay đổi ngày bắt đầu
+      form.setFieldsValue({ teacherId: undefined });
+      handleTeacherChange(null);
+      // Gọi ngay lập tức nếu có đủ thông tin
       checkAvailableTeachers();
     }
   };
@@ -374,7 +413,7 @@ const BookingForm = ({
         });
 
         const response = await axios.get(
-          "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Schedules/available-teachers",
+          "https://instrulearnapplication.azurewebsites.net/api/Schedules/available-teachers",
           {
             params: {
               majorId: selectedMajor.majorId,
@@ -609,7 +648,7 @@ const BookingForm = ({
                 placeholder="Chọn ngày bắt đầu"
                 style={{ width: "100%" }}
                 disabledDate={disabledDate}
-                onChange={() => handleFieldChange("startDay")}
+                onChange={handleDateChange}
               />
             </Form.Item>
           </Card>

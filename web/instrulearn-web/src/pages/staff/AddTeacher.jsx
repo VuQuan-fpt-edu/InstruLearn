@@ -46,7 +46,7 @@ const AddTeacher = () => {
     try {
       setLoading(true);
       const response = await fetch(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Major/get-all"
+        "https://instrulearnapplication.azurewebsites.net/api/Major/get-all"
       );
       const data = await response.json();
       if (data.isSucceed && data.data) {
@@ -76,7 +76,7 @@ const AddTeacher = () => {
       };
 
       const response = await fetch(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Teacher/create",
+        "https://instrulearnapplication.azurewebsites.net/api/Teacher/create",
         {
           method: "POST",
           headers: {

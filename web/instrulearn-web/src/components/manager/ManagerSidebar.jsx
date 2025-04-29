@@ -52,7 +52,7 @@ const ManagerSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
       case "promotions":
         navigate("/manager/promotions");
         break;
-      case "level-management":
+      case "One-on-one Level":
         navigate("/manager/level-management");
         break;
       case "response-management":
@@ -63,6 +63,9 @@ const ManagerSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
         break;
       case "payment-management":
         navigate("/manager/payment-management");
+        break;
+      case "level-syllabus":
+        navigate("/manager/level-syllabus");
         break;
       default:
         break;
@@ -96,8 +99,11 @@ const ManagerSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
     {
       key: "level",
       icon: <LineChartOutlined />,
-      label: "Báo cáo cấp độ",
-      children: [{ key: "level-management", label: "Quản lý cấp độ" }],
+      label: "Quản lý cấp độ",
+      children: [
+        { key: "One-on-one Level", label: "Cấp độ khóa học 1-1" },
+        { key: "level-syllabus", label: "Giáo trình cấp độ" },
+      ],
     },
     {
       key: "response",

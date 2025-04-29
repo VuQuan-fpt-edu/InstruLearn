@@ -47,7 +47,7 @@ const CourseManagement = () => {
     setLoading(true);
     try {
       const response = await axios.get(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Course/get-all"
+        "https://instrulearnapplication.azurewebsites.net/api/Course/get-all"
       );
 
       if (response.data) {
@@ -73,7 +73,7 @@ const CourseManagement = () => {
     e.stopPropagation();
     try {
       await axios.delete(
-        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Course/delete/${coursePackageId}`
+        `https://instrulearnapplication.azurewebsites.net/api/Course/delete/${coursePackageId}`
       );
       message.success("Xóa khóa học thành công");
       fetchCourses();

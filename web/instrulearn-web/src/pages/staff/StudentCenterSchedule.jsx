@@ -44,7 +44,7 @@ const StudentCenterSchedule = () => {
   const fetchStudents = async () => {
     try {
       const response = await axios.get(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Learner/get-all"
+        "https://instrulearnapplication.azurewebsites.net/api/Learner/get-all"
       );
       if (response.data?.isSucceed) {
         const activeStudents = response.data.data.filter(
@@ -70,7 +70,7 @@ const StudentCenterSchedule = () => {
       try {
         setLoading(true);
         const response = await axios.get(
-          `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Schedules/learner/${learnerId}/class`
+          `https://instrulearnapplication.azurewebsites.net/api/Schedules/learner/${learnerId}/class`
         );
 
         if (response.data?.isSucceed) {

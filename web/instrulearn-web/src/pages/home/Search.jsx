@@ -43,7 +43,7 @@ export default function Search() {
       try {
         setLoading(true);
         const response = await fetch(
-          "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Course/get-all"
+          "https://instrulearnapplication.azurewebsites.net/api/Course/get-all"
         );
         const data = await response.json();
         setCourses(data);

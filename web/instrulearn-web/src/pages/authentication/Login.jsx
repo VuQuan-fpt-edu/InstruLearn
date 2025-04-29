@@ -13,7 +13,6 @@ import {
 import {
   UserOutlined,
   LockOutlined,
-  FacebookOutlined,
   GoogleOutlined,
   ArrowRightOutlined,
   CustomerServiceOutlined,
@@ -22,7 +21,10 @@ import {
   PlayCircleOutlined,
 } from "@ant-design/icons";
 import "antd/dist/reset.css";
-import { login, getCurrentUser } from "../../api/auth";
+import { login, getCurrentUser, loginWithGoogle } from "../../api/auth";
+import { auth, googleProvider } from "../../firebase";
+import { signInWithPopup } from "firebase/auth";
+import { GoogleAuthProvider } from "firebase/auth";
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -30,6 +32,111 @@ export default function Login() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  const handleGoogleLogin = async () => {
+    try {
+      setGoogleLoading(true);
+      setErrorMessage("");
+
+      const result = await signInWithPopup(auth, googleProvider);
+      const credential = GoogleAuthProvider.credentialFromResult(result);
+      const idToken = credential.idToken;
+
+      // Log để kiểm tra thông tin token
+      console.log("Google Credential Info:", {
+        credential: credential,
+        accessToken: credential.accessToken,
+        idToken: credential.idToken,
+      });
+
+      // Lấy thông tin user từ Google
+      const googleUser = result.user;
+      console.log("Google User Info:", {
+        displayName: googleUser.displayName,
+        email: googleUser.email,
+        photoURL: googleUser.photoURL,
+        accessToken: googleUser.accessToken,
+        stsTokenManager: googleUser.stsTokenManager,
+      });
+
+      // Gọi API đăng nhập Google của backend với idToken và displayName
+      const response = await loginWithGoogle(idToken, googleUser.displayName);
+
+      console.log("Response from Google Login:", {
+        token: response.data.token,
+        fullResponse: response.data,
+        userInfo: response.data.user,
+      });
+
+      if (response.isSucceed && response.data) {
+        // Lấy thông tin user
+        const userProfile = await getCurrentUser();
+
+        console.log("User Profile from getCurrentUser:", userProfile);
+
+        // Lưu thông tin user
+        if (userProfile) {
+          localStorage.setItem("role", userProfile.role);
+          if (userProfile.learnerId) {
+            localStorage.setItem("learnerId", userProfile.learnerId);
+          }
+          if (userProfile.username) {
+            localStorage.setItem("username", userProfile.username);
+          }
+          // Lưu thông tin từ Google
+          localStorage.setItem("fullName", googleUser.displayName);
+          localStorage.setItem("email", googleUser.email);
+          localStorage.setItem("avatar", googleUser.photoURL);
+
+          message.success("Đăng nhập bằng Google thành công!");
+
+          // Điều hướng dựa vào role
+          switch (userProfile.role) {
+            case "Admin":
+              navigate("/admin");
+              break;
+            case "Staff":
+              navigate("/staff");
+              break;
+            case "Learner":
+              navigate("/");
+              break;
+            case "Teacher":
+              navigate("/teacher");
+              break;
+            case "Manager":
+              navigate("/manager");
+              break;
+            default:
+              navigate("/");
+          }
+        } else {
+          throw new Error("Không thể lấy thông tin người dùng");
+        }
+      } else {
+        throw new Error(response.message || "Đăng nhập thất bại");
+      }
+    } catch (error) {
+      console.error("Google login error:", error);
+      let errorMsg = "Đăng nhập bằng Google thất bại";
+
+      if (error.response) {
+        if (error.response.status === 404) {
+          errorMsg = "API không tồn tại. Vui lòng kiểm tra lại endpoint.";
+        } else {
+          errorMsg = error.response.data?.message || errorMsg;
+        }
+      } else if (error.message) {
+        errorMsg = error.message;
+      }
+
+      setErrorMessage(errorMsg);
+      message.error(errorMsg);
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
 
   const handleLogin = async (values) => {
     setLoading(true);
@@ -217,16 +324,11 @@ export default function Login() {
               shape="round"
               size="large"
               className="flex items-center justify-center px-4 py-1 h-auto shadow-sm"
+              onClick={handleGoogleLogin}
+              loading={googleLoading}
+              disabled={googleLoading}
             >
-              Google
-            </Button>
-            <Button
-              icon={<FacebookOutlined className="text-blue-600" />}
-              shape="round"
-              size="large"
-              className="flex items-center justify-center px-4 py-1 h-auto shadow-sm"
-            >
-              Facebook
+              {googleLoading ? "Đang đăng nhập..." : "Google"}
             </Button>
           </div>
 

@@ -54,7 +54,7 @@ const ClassDetail = () => {
     try {
       setLoading(true);
       const response = await fetch(
-        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Class/${id}`
+        `https://instrulearnapplication.azurewebsites.net/api/Class/${id}`
       );
       const data = await response.json();
       if (data.isSucceed) {
@@ -135,14 +135,14 @@ const ClassDetail = () => {
       // Ghi log để kiểm tra dữ liệu gửi đi
       console.log(`Cập nhật lớp học ID: ${id}, trạng thái mới: ${newStatus}`);
       console.log(
-        `URL: https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Class/update/${id}`
+        `URL: https://instrulearnapplication.azurewebsites.net/api/Class/update/${id}`
       );
       console.log(`Body: ${JSON.stringify({ status: newStatus })}`);
 
       // Thử sử dụng axios thay vì fetch
       try {
         const axiosResponse = await axios.put(
-          `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Class/update/${id}`,
+          `https://instrulearnapplication.azurewebsites.net/api/Class/update/${id}`,
           { status: newStatus },
           {
             headers: {
@@ -165,7 +165,7 @@ const ClassDetail = () => {
 
       // Sử dụng fetch như phương án dự phòng
       const response = await fetch(
-        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Class/update/${id}`,
+        `https://instrulearnapplication.azurewebsites.net/api/Class/update/${id}`,
         {
           method: "PUT",
           headers: {
@@ -220,7 +220,7 @@ const ClassDetail = () => {
       message.loading({ content: "Đang cập nhật...", key: "statusUpdate" });
 
       // Sử dụng API trực tiếp
-      const apiUrl = `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Class/update/${id}`;
+      const apiUrl = `https://instrulearnapplication.azurewebsites.net/api/Class/update/${id}`;
       const response = await fetch(apiUrl, {
         method: "PUT",
         headers: {

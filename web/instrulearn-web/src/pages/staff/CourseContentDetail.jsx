@@ -96,7 +96,7 @@ const CourseContentDetail = () => {
     setLoading(true);
     try {
       const response = await axios.get(
-        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/CourseContent/${contentId}`
+        `https://instrulearnapplication.azurewebsites.net/api/CourseContent/${contentId}`
       );
 
       if (response.data?.isSucceed && response.data.data) {
@@ -116,7 +116,7 @@ const CourseContentDetail = () => {
   const fetchItemTypes = async () => {
     try {
       const response = await axios.get(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/ItemType/get-all"
+        "https://instrulearnapplication.azurewebsites.net/api/ItemType/get-all"
       );
 
       if (response.data?.isSucceed && response.data.data) {
@@ -290,7 +290,7 @@ const CourseContentDetail = () => {
       console.log("Submitting new item:", newItem);
 
       const response = await axios.post(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/CourseContentItem/create",
+        "https://instrulearnapplication.azurewebsites.net/api/CourseContentItem/create",
         newItem
       );
 
@@ -392,7 +392,7 @@ const CourseContentDetail = () => {
       console.log("Updating item:", updatedItem);
 
       const response = await axios.put(
-        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/CourseContentItem/update/${selectedItem.itemId}`,
+        `https://instrulearnapplication.azurewebsites.net/api/CourseContentItem/update/${selectedItem.itemId}`,
         updatedItem
       );
 
@@ -431,7 +431,7 @@ const CourseContentDetail = () => {
     setDeleteLoading(true);
     try {
       const response = await axios.delete(
-        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/CourseContentItem/delete/${itemId}`
+        `https://instrulearnapplication.azurewebsites.net/api/CourseContentItem/delete/${itemId}`
       );
 
       if (response.data?.isSucceed) {

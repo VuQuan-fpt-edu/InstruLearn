@@ -98,7 +98,7 @@ const TeacherManagement = () => {
   const fetchTeachers = async () => {
     try {
       const response = await axios.get(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Teacher/get-all"
+        "https://instrulearnapplication.azurewebsites.net/api/Teacher/get-all"
       );
       if (response.data && Array.isArray(response.data)) {
         // Lọc các phản hồi thành công và map dữ liệu
@@ -134,7 +134,7 @@ const TeacherManagement = () => {
   const fetchMajors = async () => {
     try {
       const response = await axios.get(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Major/get-all"
+        "https://instrulearnapplication.azurewebsites.net/api/Major/get-all"
       );
       if (response.data.isSucceed) {
         setMajors(response.data.data);
@@ -183,7 +183,7 @@ const TeacherManagement = () => {
       if (editingTeacher) {
         try {
           const response = await axios.put(
-            `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Teacher/update/${editingTeacher.teacherId}`,
+            `https://instrulearnapplication.azurewebsites.net/api/Teacher/update/${editingTeacher.teacherId}`,
             {
               email: editingTeacher.email,
               heading: values.heading,
@@ -211,7 +211,7 @@ const TeacherManagement = () => {
       } else {
         try {
           const response = await axios.post(
-            "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Teacher/create",
+            "https://instrulearnapplication.azurewebsites.net/api/Teacher/create",
             {
               majorIds: values.majorIds,
               email: values.email,
@@ -268,8 +268,8 @@ const TeacherManagement = () => {
   const handleBanUnban = async (teacherId, isBanned) => {
     try {
       const endpoint = isBanned
-        ? `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Teacher/unban/${teacherId}`
-        : `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Teacher/ban/${teacherId}`;
+        ? `https://instrulearnapplication.azurewebsites.net/api/Teacher/unban/${teacherId}`
+        : `https://instrulearnapplication.azurewebsites.net/api/Teacher/ban/${teacherId}`;
 
       const response = await axios.put(endpoint);
 
@@ -295,7 +295,7 @@ const TeacherManagement = () => {
     try {
       const values = await majorForm.validateFields();
       const response = await axios.post(
-        "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Major/create",
+        "https://instrulearnapplication.azurewebsites.net/api/Major/create",
         {
           majorName: values.majorName,
           teacherId: selectedTeacher?.teacherId,
@@ -330,7 +330,7 @@ const TeacherManagement = () => {
         ? values.majorId
         : [values.majorId];
       const response = await axios.put(
-        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Teacher/update-major/${selectedTeacher.teacherId}`,
+        `https://instrulearnapplication.azurewebsites.net/api/Teacher/update-major/${selectedTeacher.teacherId}`,
         {
           majorIds: majorIds,
         }
@@ -852,19 +852,6 @@ const TeacherManagement = () => {
                         </Option>
                       ))}
                     </Select>
-                  </Form.Item>
-
-                  <Form.Item
-                    name="address"
-                    label="Địa chỉ"
-                    rules={[
-                      { required: true, message: "Vui lòng nhập địa chỉ!" },
-                    ]}
-                  >
-                    <Input.TextArea
-                      rows={2}
-                      placeholder="Nhập địa chỉ của giáo viên"
-                    />
                   </Form.Item>
 
                   <Form.Item

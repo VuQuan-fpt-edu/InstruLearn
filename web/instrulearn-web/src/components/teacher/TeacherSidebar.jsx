@@ -60,6 +60,9 @@ const TeacherSidebar = ({
       case "add-class":
         navigate("/staff/add-class");
         break;
+      case "learning-path":
+        navigate("/teacher/learning-path");
+        break;
       default:
         break;
     }
@@ -96,7 +99,7 @@ const TeacherSidebar = ({
       icon: <BookOutlined />,
       label: "Nội dung giảng dạy",
       children: [
-        { key: "courses", label: "Khóa học của tôi" },
+        { key: "learning-path", label: "Lộ trình học" },
         { key: "materials", label: "Tài liệu giảng dạy" },
         { key: "assignments", label: "Bài tập & Kiểm tra" },
       ],

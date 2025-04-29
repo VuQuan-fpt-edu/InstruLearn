@@ -41,7 +41,7 @@ export default function Courses() {
     const fetchCourses = async () => {
       try {
         const response = await fetch(
-          "https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/Course/get-all"
+          "https://instrulearnapplication.azurewebsites.net/api/Course/get-all"
         );
         const data = await response.json();
 
@@ -181,10 +181,10 @@ export default function Courses() {
       <div className="bg-gray-900 text-white p-6 md:p-10">
         <div className="max-w-6xl mx-auto">
           <h1 className="text-3xl md:text-4xl font-bold mb-4">
-            Tất cả gói học online
+            Tất cả khóa học online
           </h1>
           <p className="text-lg mb-6">
-            Khám phá tất cả các gói học online chất lượng cao từ các giáo viên
+            Khám phá tất cả các khóa học online chất lượng cao từ các giáo viên
             chuyên nghiệp
           </p>
         </div>
@@ -195,7 +195,7 @@ export default function Courses() {
           <div className="bg-white shadow-md rounded-lg p-4 mb-6">
             <div className="flex flex-col md:flex-row justify-between gap-4 mb-4">
               <Search
-                placeholder="Tìm kiếm gói học online hoặc giáo viên"
+                placeholder="Tìm kiếm khóa học online hoặc giáo viên"
                 allowClear
                 enterButton={<SearchOutlined />}
                 size="large"
@@ -296,13 +296,13 @@ export default function Courses() {
           {loading ? (
             <div className="text-center py-20">
               <Spin size="large" />
-              <div className="mt-4">Đang tải gói học online...</div>
+              <div className="mt-4">Đang tải khóa học online...</div>
             </div>
           ) : (
             <>
               <div className="mb-4">
                 <h2 className="text-xl font-bold">
-                  {filteredCourses.length} gói học online{" "}
+                  {filteredCourses.length} khóa học online{" "}
                   {filters.type !== "all" ? filters.type : ""}
                 </h2>
               </div>
@@ -310,7 +310,7 @@ export default function Courses() {
               {filteredCourses.length === 0 ? (
                 <div className="text-center py-12 bg-gray-50 rounded-lg">
                   <div className="text-gray-500 mb-2">
-                    Không tìm thấy gói học online phù hợp
+                    Không tìm thấy khóa học online phù hợp
                   </div>
                   <Button type="primary" onClick={resetFilters}>
                     Đặt lại bộ lọc
@@ -393,8 +393,8 @@ export default function Courses() {
                                 <span className="text-xs text-gray-500">
                                   Học phí
                                 </span>
-                                <span className="font-bold text-lg text-blue-600">
-                                  {formatPrice(course.price)}
+                                <span className="font-bold text-sm text-blue-600">
+                                  {formatPrice(course.price)}/Buổi
                                 </span>
                               </div>
                               <Button

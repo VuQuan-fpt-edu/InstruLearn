@@ -65,7 +65,7 @@ const TransactionHistory = () => {
       }
 
       const response = await axios.get(
-        `https://instrulearnapplication-h4dvbdgef2eaeufy.southeastasia-01.azurewebsites.net/api/WalletTransactions/wallet/${learnerId}`,
+        `https://instrulearnapplication.azurewebsites.net/api/WalletTransactions/wallet/${learnerId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -208,17 +208,6 @@ const TransactionHistory = () => {
       width: 120,
     },
     {
-      title: "Mã giao dịch",
-      dataIndex: "transactionId",
-      key: "transactionId",
-      render: (id) => (
-        <Text copyable className="text-gray-500">
-          {id.substring(0, 8)}...
-        </Text>
-      ),
-      width: 150,
-    },
-    {
       title: "Trạng thái",
       dataIndex: "status",
       key: "status",
@@ -254,6 +243,15 @@ const TransactionHistory = () => {
       sorter: (a, b) => a.signedAmount - b.signedAmount,
       align: "right",
       width: 150,
+    },
+    {
+      title: "Nội dung giao dịch",
+      dataIndex: "paymentType",
+      key: "paymentType",
+      render: (type) => (
+        <Text className="text-base">{type || "Không xác định"}</Text>
+      ),
+      width: 200,
     },
   ];
 
