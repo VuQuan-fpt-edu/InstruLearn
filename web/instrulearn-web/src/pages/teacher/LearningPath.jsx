@@ -347,6 +347,30 @@ const LearningPath = () => {
     }
   };
 
+  const handleConfirmLearningPath = async () => {
+    if (!selectedRegistration) return;
+    try {
+      setUpdateLoading(true);
+      const token = localStorage.getItem("authToken");
+      await axios.post(
+        `https://instrulearnapplication.azurewebsites.net/api/LearningPathSession/confirm-learning-path/${selectedRegistration.learningRegisId}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      message.success("Xác nhận lộ trình học thành công");
+      fetchLearningPathSessions(selectedRegistration.learningRegisId);
+      fetchRegistrations();
+    } catch (error) {
+      message.error("Không thể xác nhận lộ trình học");
+    } finally {
+      setUpdateLoading(false);
+    }
+  };
+
   const columns = [
     {
       title: "Học viên",
@@ -457,54 +481,73 @@ const LearningPath = () => {
                 <Spin />
               </div>
             ) : learningPathSessions.length > 0 ? (
-              <div className="space-y-4">
-                {learningPathSessions.map((session) => (
-                  <div
-                    key={session.learningPathSessionId}
-                    className={`p-4 rounded-lg border ${
-                      session.isCompleted
-                        ? "bg-green-50 border-green-200"
-                        : "bg-white border-gray-200"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div
-                          className={`flex items-center justify-center w-8 h-8 rounded-full ${
-                            session.isCompleted ? "bg-green-500" : "bg-gray-300"
-                          } text-white`}
-                        >
-                          {session.sessionNumber}
-                        </div>
-                        <div>
-                          <h4 className="font-medium">{session.title}</h4>
-                          <p className="text-gray-600">{session.description}</p>
-                          <div className="mt-2">
-                            <Tag
-                              color={
-                                session.isCompleted ? "success" : "default"
-                              }
-                            >
-                              {session.isCompleted
-                                ? "Đã hoàn thành"
-                                : "Chưa hoàn thành"}
-                            </Tag>
+              <>
+                <div className="space-y-4">
+                  {learningPathSessions.map((session) => (
+                    <div
+                      key={session.learningPathSessionId}
+                      className={`p-4 rounded-lg border ${
+                        session.isCompleted
+                          ? "bg-green-50 border-green-200"
+                          : "bg-white border-gray-200"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div
+                            className={`flex items-center justify-center w-8 h-8 rounded-full ${
+                              session.isCompleted
+                                ? "bg-green-500"
+                                : "bg-gray-300"
+                            } text-white`}
+                          >
+                            {session.sessionNumber}
+                          </div>
+                          <div>
+                            <h4 className="font-medium">{session.title}</h4>
+                            <p className="text-gray-600">
+                              {session.description}
+                            </p>
+                            <div className="mt-2">
+                              <Tag
+                                color={
+                                  session.isCompleted ? "success" : "default"
+                                }
+                              >
+                                {session.isCompleted
+                                  ? "Đã hoàn thành"
+                                  : "Chưa hoàn thành"}
+                              </Tag>
+                            </div>
                           </div>
                         </div>
+                        {!session.isCompleted && (
+                          <Button
+                            type="primary"
+                            icon={<EditOutlined />}
+                            onClick={() => handleEditSession(session)}
+                          >
+                            Chỉnh sửa
+                          </Button>
+                        )}
                       </div>
-                      {!session.isCompleted && (
-                        <Button
-                          type="primary"
-                          icon={<EditOutlined />}
-                          onClick={() => handleEditSession(session)}
-                        >
-                          Chỉnh sửa
-                        </Button>
-                      )}
                     </div>
+                  ))}
+                </div>
+                {/* Nút xác nhận lộ trình học */}
+                {learningPathSessions.some((s) => !s.isCompleted) && (
+                  <div className="flex justify-end mt-6">
+                    <Button
+                      type="primary"
+                      icon={<CheckCircleOutlined />}
+                      loading={updateLoading}
+                      onClick={handleConfirmLearningPath}
+                    >
+                      Xác nhận lộ trình học
+                    </Button>
                   </div>
-                ))}
-              </div>
+                )}
+              </>
             ) : (
               <Empty description="Chưa có lộ trình học" />
             )}

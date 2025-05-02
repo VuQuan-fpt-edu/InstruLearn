@@ -1107,10 +1107,10 @@ const MyRegistrations = () => {
                                   (s) => s.isCompleted
                                 ) ? (
                                   <div className="text-base text-gray-500 italic">
-                                    Lộ trình học tập của bạn đang được giáo viên
-                                    soạn, nếu giáo viên đã soạn xong lộ trình
-                                    bạn sẽ nhận được thông báo sớm nhất trong
-                                    Email
+                                    Lộ trình học tập của học viên đang được giáo
+                                    viên soạn, nếu giáo viên đã soạn xong lộ
+                                    trình học viên sẽ nhận được thông báo sớm
+                                    nhất trong Email
                                   </div>
                                 ) : (
                                   <Steps

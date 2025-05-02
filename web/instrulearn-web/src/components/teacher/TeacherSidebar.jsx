@@ -63,6 +63,9 @@ const TeacherSidebar = ({
       case "learning-path":
         navigate("/teacher/learning-path");
         break;
+      case "notification":
+        navigate("/teacher/notification");
+        break;
       default:
         break;
     }
@@ -123,6 +126,12 @@ const TeacherSidebar = ({
         { key: "announcements", label: "Thông báo lớp học" },
         { key: "parent-communication", label: "Liên hệ phụ huynh" },
       ],
+    },
+    {
+      key: "notification",
+      icon: <NotificationOutlined />,
+      label: "Thông báo",
+      children: [{ key: "notification", label: "Thông báo" }],
     },
     {
       key: "resources",

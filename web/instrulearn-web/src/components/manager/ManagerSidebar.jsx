@@ -101,8 +101,8 @@ const ManagerSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
       icon: <LineChartOutlined />,
       label: "Quản lý cấp độ",
       children: [
-        { key: "One-on-one Level", label: "Cấp độ khóa học 1-1" },
-        { key: "level-syllabus", label: "Giáo trình cấp độ" },
+        { key: "One-on-one Level", label: "Cấp độ khóa học (1-1)" },
+        { key: "level-syllabus", label: "Giáo trình (1-1)" },
       ],
     },
     {

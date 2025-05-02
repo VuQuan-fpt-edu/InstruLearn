@@ -16,6 +16,7 @@ import {
   Modal,
   Form,
   Empty,
+  Input,
 } from "antd";
 import {
   UserOutlined,
@@ -27,6 +28,7 @@ import {
   QuestionCircleOutlined,
   SwapOutlined,
   FilterOutlined,
+  EditOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
 import dayjs from "dayjs";
@@ -53,6 +55,10 @@ const StudentPersonalSchedule = () => {
   const [teachersFromSchedules, setTeachersFromSchedules] = useState([]);
   const [filteredTeachersForModal, setFilteredTeachersForModal] = useState([]);
   const [majors, setMajors] = useState([]);
+  const [availableTeachers, setAvailableTeachers] = useState([]);
+  const [makeupModalVisible, setMakeupModalVisible] = useState(false);
+  const [selectedMakeupSchedule, setSelectedMakeupSchedule] = useState(null);
+  const [makeupForm] = Form.useForm();
 
   useEffect(() => {
     fetchStudents();
@@ -205,6 +211,9 @@ const StudentPersonalSchedule = () => {
             formattedTime: `${schedule.timeStart} - ${schedule.timeEnd}`,
             formattedDate: dayjs(schedule.startDay).format("DD/MM/YYYY"),
             formattedDayOfWeek: convertDayToVietnamese(schedule.dayOfWeek),
+            isSessionCompleted: schedule.isSessionCompleted || false,
+            majorName: schedule.majorName || "N/A",
+            timeLearning: schedule.timeLearning || 45,
           }));
           setSchedules(processedSchedules);
         } else {
@@ -234,10 +243,40 @@ const StudentPersonalSchedule = () => {
     );
   };
 
-  const handleChangeTeacher = (schedule) => {
+  const handleChangeTeacher = async (schedule) => {
     setSelectedSchedule(schedule);
     changeTeacherForm.resetFields();
     setChangeTeacherModalVisible(true);
+
+    // Gọi API lấy danh sách giáo viên phù hợp
+    try {
+      setLoading(true);
+      const params = {
+        majorId: schedule.majorId,
+        timeStart: schedule.timeStart,
+        timeLearning: schedule.timeLearning,
+        startDay: schedule.startDay,
+      };
+      // Log tham số truyền vào API
+      console.log("Params gửi lên API available-teachers:", params);
+
+      const response = await axios.get(
+        "https://instrulearnapplication.azurewebsites.net/api/Schedules/available-teachers",
+        { params }
+      );
+      // Sửa logic xử lý response để nhận cả trường hợp trả về mảng hoặc object
+      if (Array.isArray(response.data)) {
+        setAvailableTeachers(response.data);
+      } else if (response.data?.isSucceed) {
+        setAvailableTeachers(response.data.data);
+      } else {
+        setAvailableTeachers([]);
+      }
+    } catch (error) {
+      setAvailableTeachers([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const submitChangeTeacher = async () => {
@@ -247,6 +286,7 @@ const StudentPersonalSchedule = () => {
 
       const payload = {
         teacherId: values.teacherId,
+        changeReason: values.changeReason,
       };
 
       const response = await axios.put(
@@ -401,6 +441,44 @@ const StudentPersonalSchedule = () => {
     );
   };
 
+  const handleMakeup = (schedule) => {
+    setSelectedMakeupSchedule(schedule);
+    makeupForm.resetFields();
+    setMakeupModalVisible(true);
+  };
+
+  const submitMakeup = async () => {
+    try {
+      const values = await makeupForm.validateFields();
+      setLoading(true);
+      const payload = {
+        newDate: values.newDate,
+        newTimeStart:
+          values.newTimeStart.length === 5
+            ? values.newTimeStart + ":00"
+            : values.newTimeStart,
+        timeLearning: selectedMakeupSchedule.timeLearning || 45,
+        changeReason: values.changeReason,
+      };
+      console.log("Payload gửi lên API makeup:", payload);
+      const response = await axios.put(
+        `https://instrulearnapplication.azurewebsites.net/api/Schedules/makeup/${selectedMakeupSchedule.scheduleId}`,
+        payload
+      );
+      if (response.data && response.data.isSucceed) {
+        message.success("Đã đổi ngày học bù thành công");
+        setMakeupModalVisible(false);
+        if (selectedStudent) handleStudentChange(selectedStudent.learnerId);
+      } else {
+        message.error(response.data?.message || "Không thể đổi ngày học bù");
+      }
+    } catch (error) {
+      message.error("Đã xảy ra lỗi khi đổi ngày học bù");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -500,8 +578,8 @@ const StudentPersonalSchedule = () => {
                     mode={viewMode}
                     fullscreen={false}
                     className="custom-calendar"
-                    cellRender={(date) => {
-                      const dateStr = date.format("YYYY-MM-DD");
+                    cellRender={(value) => {
+                      const dateStr = value.format("YYYY-MM-DD");
                       const filteredSchedules = getFilteredSchedules();
                       const daySchedules = filteredSchedules.filter(
                         (schedule) => schedule.startDay === dateStr
@@ -516,7 +594,7 @@ const StudentPersonalSchedule = () => {
                               <div className="flex items-center justify-between border-b pb-3 mb-4">
                                 <div>
                                   <div className="text-lg font-medium">
-                                    Lịch học ngày {date.format("DD/MM/YYYY")}
+                                    Lịch học ngày {value.format("DD/MM/YYYY")}
                                   </div>
                                   <div className="text-gray-500 text-sm mt-1">
                                     {daySchedules.length} buổi học
@@ -590,16 +668,30 @@ const StudentPersonalSchedule = () => {
                                           </div>
                                         </div>
                                       </div>
-                                      <Button
-                                        type="primary"
-                                        icon={<SwapOutlined />}
-                                        size="small"
-                                        onClick={() =>
-                                          handleChangeTeacher(schedule)
-                                        }
-                                      >
-                                        Đổi giáo viên
-                                      </Button>
+                                      <div className="flex gap-2">
+                                        <Button
+                                          type="primary"
+                                          icon={<SwapOutlined />}
+                                          size="small"
+                                          onClick={() =>
+                                            handleChangeTeacher(schedule)
+                                          }
+                                        >
+                                          Đổi giáo viên
+                                        </Button>
+                                        {schedule.attendanceStatus === 2 && (
+                                          <Button
+                                            type="default"
+                                            icon={<EditOutlined />}
+                                            size="small"
+                                            onClick={() =>
+                                              handleMakeup(schedule)
+                                            }
+                                          >
+                                            Đổi ngày học (học bù)
+                                          </Button>
+                                        )}
+                                      </div>
                                     </div>
 
                                     <div className="space-y-2">
@@ -643,7 +735,7 @@ const StudentPersonalSchedule = () => {
                           overlayClassName="custom-popover"
                         >
                           <div className="h-full cursor-pointer">
-                            {dateCellRender(date)}
+                            {dateCellRender(value)}
                           </div>
                         </Popover>
                       );
@@ -686,6 +778,14 @@ const StudentPersonalSchedule = () => {
                 </div>
               </div>
             )}
+            {selectedSchedule && (
+              <div className="mb-2 text-xs text-gray-400">
+                <div>majorId: {selectedSchedule.majorId}</div>
+                <div>timeStart: {selectedSchedule.timeStart}</div>
+                <div>timeLearning: {selectedSchedule.timeLearning}</div>
+                <div>startDay: {selectedSchedule.startDay}</div>
+              </div>
+            )}
             <Form form={changeTeacherForm} layout="vertical">
               <Form.Item
                 name="teacherId"
@@ -703,12 +803,12 @@ const StudentPersonalSchedule = () => {
                       />
                     </div>
                   }
-                  loading={filteredTeachersForModal.length === 0}
+                  loading={loading}
                 >
-                  {filteredTeachersForModal.map((teacher) => (
+                  {availableTeachers.map((teacher) => (
                     <Option key={teacher.teacherId} value={teacher.teacherId}>
                       <div className="flex items-center">
-                        <span>{teacher.fullName}</span>
+                        <span>{teacher.fullname || teacher.fullName}</span>
                         {teacher.majors && teacher.majors.length > 0 && (
                           <span className="ml-2 text-xs text-gray-400">
                             ({teacher.majors.map((m) => m.majorName).join(", ")}
@@ -719,6 +819,88 @@ const StudentPersonalSchedule = () => {
                     </Option>
                   ))}
                 </Select>
+              </Form.Item>
+              <Form.Item
+                name="changeReason"
+                label="Lý do thay đổi"
+                rules={[
+                  { required: true, message: "Vui lòng nhập lý do thay đổi" },
+                ]}
+              >
+                <Input.TextArea
+                  placeholder="Nhập lý do thay đổi giáo viên"
+                  rows={4}
+                />
+              </Form.Item>
+            </Form>
+          </Modal>
+
+          {/* Modal học bù */}
+          <Modal
+            title="Đổi ngày học (học bù)"
+            open={makeupModalVisible}
+            onOk={submitMakeup}
+            onCancel={() => setMakeupModalVisible(false)}
+            okText="Xác nhận"
+            cancelText="Hủy"
+            confirmLoading={loading}
+          >
+            {selectedMakeupSchedule && (
+              <div className="mb-4">
+                <div className="text-sm mb-2">Thông tin buổi học cũ:</div>
+                <div className="p-3 bg-gray-50 rounded-md">
+                  <div>
+                    <strong>Buổi học:</strong>{" "}
+                    {selectedMakeupSchedule.sessionTitle}
+                  </div>
+                  <div>
+                    <strong>Ngày cũ:</strong>{" "}
+                    {dayjs(selectedMakeupSchedule.startDay).format(
+                      "DD/MM/YYYY"
+                    )}
+                  </div>
+                  <div>
+                    <strong>Thời gian cũ:</strong>{" "}
+                    {selectedMakeupSchedule.timeStart} -{" "}
+                    {selectedMakeupSchedule.timeEnd}
+                  </div>
+                  <div>
+                    <strong>Giáo viên:</strong>{" "}
+                    {selectedMakeupSchedule.teacherName}
+                  </div>
+                </div>
+              </div>
+            )}
+            <Form form={makeupForm} layout="vertical">
+              <Form.Item
+                name="newDate"
+                label="Ngày học bù"
+                rules={[
+                  { required: true, message: "Vui lòng chọn ngày học bù" },
+                ]}
+              >
+                <Input type="date" />
+              </Form.Item>
+              <Form.Item
+                name="newTimeStart"
+                label="Giờ bắt đầu học bù"
+                rules={[
+                  {
+                    required: true,
+                    message: "Vui lòng nhập giờ bắt đầu học bù (hh:mm)",
+                  },
+                ]}
+              >
+                <Input placeholder="hh:mm" />
+              </Form.Item>
+              <Form.Item
+                name="changeReason"
+                label="Lý do học bù"
+                rules={[
+                  { required: true, message: "Vui lòng nhập lý do học bù" },
+                ]}
+              >
+                <Input.TextArea rows={3} placeholder="Nhập lý do học bù" />
               </Form.Item>
             </Form>
           </Modal>
