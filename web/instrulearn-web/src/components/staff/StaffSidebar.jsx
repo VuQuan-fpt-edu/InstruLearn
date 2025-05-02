@@ -70,9 +70,6 @@ const StaffSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
       case "student-messages":
         navigate("/staff/student-messages");
         break;
-      case "announcements":
-        navigate("/staff/announcements");
-        break;
       case "major-test":
         navigate("/staff/major-test");
         break;
@@ -108,6 +105,12 @@ const StaffSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
         break;
       case "feedback-management":
         navigate("/staff/feedback-management");
+        break;
+      case "response-management":
+        navigate("/staff/response-management");
+        break;
+      case "student-notification":
+        navigate("/staff/student-notification");
         break;
       default:
         break;
@@ -179,8 +182,9 @@ const StaffSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
       icon: <MessageOutlined />,
       label: "Phản hồi và đánh giá",
       children: [
-        { key: "feedback-management", label: "Quản lý phản hồi" },
-        { key: "announcements", label: "Thông báo" },
+        { key: "feedback-management", label: "Quản lý câu hỏi" },
+        { key: "response-management", label: "Quản lý phản hồi" },
+        { key: "student-notification", label: "Thông báo từ học viên" },
       ],
     },
     {

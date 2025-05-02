@@ -175,6 +175,8 @@ const Notification = () => {
         learnerId: currentUser.learnerId,
         additionalComments: values.overallComment || "",
         answers: answers,
+        continueStudying: values.continueStudying,
+        changeTeacher: values.changeTeacher,
       };
 
       // Gọi API gửi phản hồi mới
@@ -471,7 +473,52 @@ const Notification = () => {
                     </Form.Item>
                   </div>
                 ))}
+                <Form.Item
+                  label="Bạn có muốn tiếp tục học không?"
+                  name="continueStudying"
+                  rules={[
+                    { required: true, message: "Vui lòng chọn một lựa chọn" },
+                  ]}
+                >
+                  <Radio.Group>
+                    <Radio value={true}>Có</Radio>
+                    <Radio value={false}>Không</Radio>
+                  </Radio.Group>
+                </Form.Item>
 
+                <Form.Item
+                  shouldUpdate={(prev, curr) =>
+                    prev.continueStudying !== curr.continueStudying
+                  }
+                >
+                  {({ getFieldValue, setFieldsValue }) => {
+                    const continueStudying = getFieldValue("continueStudying");
+                    if (continueStudying !== true) {
+                      setTimeout(
+                        () => setFieldsValue({ changeTeacher: false }),
+                        0
+                      );
+                      return null;
+                    }
+                    return (
+                      <Form.Item
+                        label="Bạn có muốn đổi giáo viên không?"
+                        name="changeTeacher"
+                        rules={[
+                          {
+                            required: true,
+                            message: "Vui lòng chọn một lựa chọn",
+                          },
+                        ]}
+                      >
+                        <Radio.Group>
+                          <Radio value={true}>Có</Radio>
+                          <Radio value={false}>Không</Radio>
+                        </Radio.Group>
+                      </Form.Item>
+                    );
+                  }}
+                </Form.Item>
                 <Form.Item
                   label="Nhận xét chung về khóa học"
                   name="overallComment"

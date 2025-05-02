@@ -78,6 +78,9 @@ import LearningPath from "./pages/teacher/LearningPath";
 import Notification from "./pages/home/Notification";
 import Syllabus11Management from "./pages/manager/Syllabus1-1Management";
 import FeedbackManagement from "./pages/staff/FeedbackManagement";
+import StudentNotification from "./pages/staff/StudentNotification";
+import ResponsesManagement from "./pages/staff/ResponseManagement";
+import TeacherNotification from "./pages/teacher/Notification";
 export default function App() {
   return (
     <Router>
@@ -182,6 +185,14 @@ export default function App() {
           path="staff/feedback-management"
           element={<FeedbackManagement />}
         />
+        <Route
+          path="staff/student-notification"
+          element={<StudentNotification />}
+        />
+        <Route
+          path="staff/response-management"
+          element={<ResponsesManagement />}
+        />
 
         {/* Teacher Routes */}
         <Route path="/teacher" element={<TeacherDashBoard />} />
@@ -202,6 +213,7 @@ export default function App() {
         <Route path="/teacher/makeup-class" element={<MakeupClass />} />
         <Route path="/teacher/student-feedback" element={<ClassFeedbacks />} />
         <Route path="/teacher/learning-path" element={<LearningPath />} />
+        <Route path="/teacher/notification" element={<TeacherNotification />} />
 
         {/* Manager Routes */}
         <Route path="manager" element={<Dashboard />} />
