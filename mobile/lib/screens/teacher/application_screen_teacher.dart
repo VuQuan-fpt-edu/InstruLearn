@@ -76,6 +76,8 @@ class _ApplicationScreenTeacherState extends State<ApplicationScreenTeacher> {
   }
 
   String _getStatusText(String status) {
+    if (status == null) return 'Không xác định';
+
     switch (status.toLowerCase()) {
       case 'accepted':
         return 'Đang đợi giáo trình từ giảng viên';

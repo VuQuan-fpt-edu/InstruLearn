@@ -22,7 +22,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   List<Schedule> schedules = [];
   bool isLoading = true;
   String? errorMessage;
-  FilterType _currentFilter = FilterType.week; // Mặc định là lọc theo tuần
+  FilterType _currentFilter = FilterType.week;
 
   @override
   void initState() {
@@ -53,7 +53,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       });
     } catch (e) {
       setState(() {
-        schedules = []; // Khởi tạo danh sách rỗng nếu có lỗi
+        schedules = [];
         isLoading = false;
       });
     }
@@ -64,7 +64,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       return schedule.mode == "OneOnOne";
     }).toList();
 
-    // Sắp xếp theo ngày, tháng, năm và giờ từ bé đến lớn
     filteredSchedules.sort((a, b) {
       final dateA = DateTime.parse(a.startDate);
       final dateB = DateTime.parse(b.startDate);
@@ -397,16 +396,13 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   }
 
   Widget _buildMonthGrid() {
-    // Tính toán ngày đầu tiên và cuối cùng của grid
     final firstDayOfMonth =
         DateTime(_selectedDate.year, _selectedDate.month, 1);
     final lastDayOfMonth =
         DateTime(_selectedDate.year, _selectedDate.month + 1, 0);
 
-    // Tính số ngày cần hiển thị từ tháng trước
     final firstWeekday = firstDayOfMonth.weekday % 7;
 
-    // Tính tổng số ngày cần hiển thị (gồm cả ngày từ tháng trước và tháng sau)
     final daysInGrid = firstWeekday + lastDayOfMonth.day;
     final rowsRequired = (daysInGrid / 7).ceil();
     final totalDays = rowsRequired * 7;
@@ -420,21 +416,17 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       ),
       itemCount: totalDays,
       itemBuilder: (context, index) {
-        // Tính ngày tương ứng với index
         DateTime date;
         bool isCurrentMonth = true;
 
         if (index < firstWeekday) {
-          // Ngày từ tháng trước
           final daysToSubtract = firstWeekday - index;
           date = firstDayOfMonth.subtract(Duration(days: daysToSubtract));
           isCurrentMonth = false;
         } else if (index < firstWeekday + lastDayOfMonth.day) {
-          // Ngày trong tháng hiện tại
           final day = index - firstWeekday + 1;
           date = DateTime(_selectedDate.year, _selectedDate.month, day);
         } else {
-          // Ngày từ tháng sau
           final daysToAdd = index - firstWeekday - lastDayOfMonth.day + 1;
           date =
               DateTime(_selectedDate.year, _selectedDate.month + 1, daysToAdd);
@@ -556,23 +548,35 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     final date = DateTime.parse(schedule.startDate);
     final dayName = _getVietnameseDayName(date.weekday);
 
-    // Determine card color based on attendance status and date
     Color cardColor;
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final scheduleDate = DateTime(date.year, date.month, date.day);
 
     if (schedule.attendanceStatus == 1) {
-      cardColor = Colors.green; // Present
+      cardColor = Colors.green;
     } else if (schedule.attendanceStatus == 2) {
-      cardColor = Colors.red; // Absent
+      cardColor = Colors.red;
     } else {
-      // attendanceStatus == 0 (or null/other)
       if (scheduleDate.isBefore(today)) {
-        cardColor = Colors.grey; // Past and not attended
+        cardColor = Colors.grey;
       } else {
-        cardColor = const Color(
-            0xFF536DFE); // Future or today, not attended (default blue)
+        cardColor = const Color(0xFF536DFE);
+      }
+    }
+
+    String? preferenceText;
+    Color? preferenceColor;
+    if (schedule.attendanceStatus == 2) {
+      switch (schedule.preferenceStatus) {
+        case 1:
+          preferenceText = 'Yêu cầu đổi giáo viên';
+          preferenceColor = Colors.orange;
+          break;
+        case 2:
+          preferenceText = 'Yêu cầu học bù';
+          preferenceColor = Colors.purple;
+          break;
       }
     }
 
@@ -614,12 +618,44 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        schedule.teacherName,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    if (preferenceText != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: preferenceColor,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          preferenceText,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 4),
                 Text(
-                  schedule.teacherName,
+                  'Môn học: ${schedule.majorName}',
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w400,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -640,18 +676,45 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  if (schedule.sessionDescription != null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      schedule.sessionDescription!,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w400,
+                  if (schedule.sessionDescription != null &&
+                      schedule.sessionDescription!.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        schedule.sessionDescription!,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w400,
+                          fontSize: 12,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                ],
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.location_on,
+                      color: Colors.white,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        schedule.learnerAddress ?? 'Không có địa chỉ',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w400,
+                          fontSize: 12,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
-                ],
+                ),
               ],
             ),
           ),

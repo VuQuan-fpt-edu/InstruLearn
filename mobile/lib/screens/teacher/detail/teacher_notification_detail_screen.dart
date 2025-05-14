@@ -1,14 +1,38 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import '../../../models/teacher_notification.dart';
+import '../teacher_schedule_screen.dart';
+import '../application_screen_teacher.dart';
 
 class TeacherNotificationDetailScreen extends StatelessWidget {
-  final String title;
-  final String date;
+  final TeacherNotification notification;
 
   const TeacherNotificationDetailScreen({
     Key? key,
-    required this.title,
-    required this.date,
+    required this.notification,
   }) : super(key: key);
+
+  String _formatDate(DateTime date) {
+    return DateFormat('HH:mm - dd/MM/yyyy').format(date);
+  }
+
+  void _handleButtonPress(BuildContext context) {
+    if (notification.title == "Lịch trình đã tạo - Thanh toán đã nhận") {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const TeacherScheduleScreen(),
+        ),
+      );
+    } else if (notification.title == "Yêu cầu tạo lộ trình học tập") {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const ApplicationScreenTeacher(),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,46 +73,96 @@ class TeacherNotificationDetailScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      RichText(
-                        text: TextSpan(
-                          children: [
-                            TextSpan(
-                              text: '[Trung tâm âm nhạc InstruLearn]',
-                              style: TextStyle(
-                                color: Colors.red[700],
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
+                      Row(
+                        children: [
+                          Container(
+                            width: 50,
+                            height: 50,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF8C9EFF).withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(25),
                             ),
-                            TextSpan(
-                              text: title.substring(title.indexOf(']') + 1),
-                              style: const TextStyle(
-                                color: Colors.black,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                              ),
+                            child: const Icon(
+                              Icons.notifications,
+                              color: Color(0xFF8C9EFF),
+                              size: 30,
                             ),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  notification.title,
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _formatDate(notification.createdAt),
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 20),
                       Text(
-                        'Ngày: $date',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                          fontWeight: FontWeight.w500,
+                        notification.message,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          height: 1.5,
                         ),
                       ),
+                      const SizedBox(height: 20),
+                      const Divider(),
+                      const SizedBox(height: 16),
+                      _buildInfoRow('Mã đơn đăng ký:',
+                          '#${notification.learningRegisId}'),
+                      _buildInfoRow(
+                          'Mã học viên:', '#${notification.learnerId}'),
+                      _buildInfoRow('Tên học viên:', notification.learnerName),
+                      _buildInfoRow('Trạng thái:',
+                          notification.status == 0 ? 'Chưa đọc' : 'Đã đọc'),
+                      _buildInfoRow(
+                          'Loại thông báo:',
+                          notification.type == 1
+                              ? 'Yêu cầu tạo lộ trình'
+                              : 'Khác'),
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
-                if (title.contains('LỊCH DẠY')) ...[
-                  _buildScheduleSection(),
-                ] else if (title.contains('KIỂM TRA CHẤT LƯỢNG')) ...[
-                  _buildQualityCheckSection(),
-                ],
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => _handleButtonPress(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF8C9EFF),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      notification.title ==
+                              "Lịch trình đã tạo - Thanh toán đã nhận"
+                          ? 'Xem lịch dạy'
+                          : 'Tạo lộ trình học tập',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -97,129 +171,9 @@ class TeacherNotificationDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildScheduleSection() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
-            spreadRadius: 1,
-            blurRadius: 6,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Thông tin lịch dạy:',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF536DFE),
-            ),
-          ),
-          const SizedBox(height: 12),
-          _buildInfoRow('Ngày dạy:', '20/12/2025'),
-          _buildInfoRow('Thời gian:', '7:00 - 9:00'),
-          _buildInfoRow('Lớp:', 'Guitar cơ bản - Buổi 1'),
-          _buildInfoRow('Học viên:', 'Nguyễn Văn A'),
-          _buildInfoRow('Địa điểm:', 'Phòng 101, Cơ sở 1'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQualityCheckSection() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
-            spreadRadius: 1,
-            blurRadius: 6,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          RichText(
-            text: TextSpan(
-              children: [
-                TextSpan(
-                  text: '[Trung tâm âm nhạc InstruLearn]',
-                  style: TextStyle(
-                    color: Colors.red[700],
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                const TextSpan(
-                  text:
-                      ' Thông báo về việc kiểm tra chất lượng đầu vào lớp [GUITAR-NC-8.0-10.03.2025-17:00]',
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'date: 03/03/2025',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[600],
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 16),
-          RichText(
-            text: TextSpan(
-              style: const TextStyle(
-                fontSize: 14,
-                color: Colors.black87,
-                height: 1.5,
-              ),
-              children: [
-                const TextSpan(
-                  text:
-                      'THÔNG BÁO VỀ VIỆC KIỂM TRA CHẤT LƯỢNG ĐẦU VÀO CỦA HỌC VIÊN. GIÁO VIÊN PHỤ TRÁCH LỚP [',
-                ),
-                TextSpan(
-                  text: 'GUITAR-NC-8.0-10.03.2025-17:00',
-                  style: TextStyle(
-                    color: Colors.red[700],
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const TextSpan(text: '] VUI LÒNG CÓ MẶT ĐÚNG THỜI GIAN ĐÃ HẸN'),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          _buildInfoRow('Địa chỉ:', '123 Phan Văn Trị, Gò Vấp'),
-          _buildInfoRow('Ngày kiểm tra:', '06/03/2025 Vào lúc 10:00'),
-          _buildInfoRow('Số Phòng:', '600'),
-        ],
-      ),
-    );
-  }
-
   Widget _buildInfoRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

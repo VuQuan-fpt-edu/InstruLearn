@@ -165,10 +165,8 @@ class _LoginScreenState extends State<LoginScreen> {
         _isLoading = true;
       });
 
-      // Đăng xuất trước khi đăng nhập lại để hiển thị dialog chọn tài khoản
       await _googleSignIn.signOut();
 
-      // Bắt đầu quá trình đăng nhập với Google
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
 
       if (googleUser == null) {
@@ -178,11 +176,9 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
 
-      // Lấy thông tin xác thực
       final GoogleSignInAuthentication googleAuth =
           await googleUser.authentication;
 
-      // Gửi ID token đến API của bạn
       final response = await http.post(
         Uri.parse(
             'https://instrulearnapplication.azurewebsites.net/api/Auth/google-login'),
@@ -204,7 +200,6 @@ class _LoginScreenState extends State<LoginScreen> {
           await prefs.setString(
               'refreshToken', responseData['data']['refreshToken']);
 
-          // Lấy thông tin profile
           final profileResponse = await http.get(
             Uri.parse(
                 'https://instrulearnapplication.azurewebsites.net/api/Auth/Profile'),

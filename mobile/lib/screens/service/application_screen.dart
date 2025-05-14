@@ -56,8 +56,8 @@ class _ApplicationScreenState extends State<ApplicationScreen> {
     }
   }
 
-  Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
+  Color _getStatusColor(String? status) {
+    switch (status?.toLowerCase() ?? '') {
       case 'pending':
         return Colors.orange;
       case 'accepted':
@@ -77,8 +77,8 @@ class _ApplicationScreenState extends State<ApplicationScreen> {
     }
   }
 
-  String _getStatusText(String status) {
-    switch (status.toLowerCase()) {
+  String _getStatusText(String? status) {
+    switch (status?.toLowerCase() ?? '') {
       case 'accepted':
         return 'Chờ thanh toán';
       case 'pending':
@@ -94,7 +94,7 @@ class _ApplicationScreenState extends State<ApplicationScreen> {
       case 'cancelled':
         return 'Lịch học đã bị hủy';
       default:
-        return status;
+        return status ?? '';
     }
   }
 
@@ -212,7 +212,7 @@ class _ApplicationScreenState extends State<ApplicationScreen> {
           context,
           MaterialPageRoute(
             builder: (context) => ApplicationDetailsScreen(
-              status: registration.status,
+              status: registration.status ?? '',
               statusColor: headerColor,
               registration: registration,
             ),
@@ -295,7 +295,7 @@ class _ApplicationScreenState extends State<ApplicationScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Học vào thứ: ${registration.learningDays.join(", ")}',
+                    'Học vào thứ: ${registration.learningDays?.join(", ") ?? "Chưa xác định"}',
                     style: const TextStyle(color: Colors.black87),
                   ),
                 ],

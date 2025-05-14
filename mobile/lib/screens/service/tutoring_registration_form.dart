@@ -385,11 +385,9 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
           int.parse(timeParts[0]),
           int.parse(timeParts[1]),
         );
-        // Reset danh sách giáo viên khả dụng và giáo viên đã chọn
         availableTeachers = [];
         selectedTeacherId = null;
       });
-      // Kiểm tra và cập nhật giáo viên khả dụng nếu đã có đủ thông tin
       _checkAndFetchAvailableTeachers();
     }
   }
@@ -400,20 +398,16 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
       return;
     }
 
-    // Tính toán thời gian hợp lệ
     final DateTime now = DateTime.now();
 
-    // Tính ngày đầu tiên của tuần tiếp theo (Thứ 2 của tuần sau)
     final DateTime startOfNextWeek =
         now.add(Duration(days: (7 - now.weekday) + 1));
 
-    // Tính ngày cuối cùng của tháng kế tiếp
     final int nextMonth = now.month < 12 ? now.month + 1 : 1;
     final int yearOfNextMonth = now.month < 12 ? now.year : now.year + 1;
     final DateTime lastDayOfNextMonth =
         DateTime(yearOfNextMonth, nextMonth + 1, 0);
 
-    // Tạo danh sách ngày hợp lệ (chỉ những ngày thỏa mãn điều kiện ngày học và nằm trong khoảng thời gian)
     List<DateTime> availableDays = [];
     DateTime currentDate = startOfNextWeek;
 
@@ -424,14 +418,12 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
       currentDate = currentDate.add(const Duration(days: 1));
     }
 
-    // Hiển thị thông báo nếu không có ngày nào phù hợp
     if (availableDays.isEmpty) {
       _showError(
           'Không có ngày học nào phù hợp trong khoảng thời gian cho phép');
       return;
     }
 
-    // Hiển thị dialog chọn ngày
     final DateTime? selectedDate = await showDialog<DateTime>(
       context: context,
       builder: (BuildContext context) {
@@ -488,16 +480,13 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
     if (selectedDate != null) {
       setState(() {
         startDay = selectedDate;
-        // Reset danh sách giáo viên khả dụng và giáo viên đã chọn
         availableTeachers = [];
         selectedTeacherId = null;
       });
-      // Kiểm tra và cập nhật giáo viên khả dụng nếu đã có đủ thông tin
       _checkAndFetchAvailableTeachers();
     }
   }
 
-  // Hàm hỗ trợ định dạng ngày
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
   }
@@ -646,6 +635,7 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
                   .split('T')[0],
           'timeLearning': timeLearning,
           'learningRequest': learningGoalController.text.trim(),
+          'selfAssessment': selectedExperience ?? '',
         }),
       );
 
@@ -661,8 +651,8 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
                 actions: [
                   TextButton(
                     onPressed: () {
-                      Navigator.of(context).pop(); // Đóng dialog
-                      Navigator.pop(context); // Quay lại màn hình trước
+                      Navigator.of(context).pop();
+                      Navigator.pop(context);
                     },
                     child: const Text('Đóng'),
                   ),
@@ -705,11 +695,21 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
       final String formattedTime =
           '${selectedTimeStart!.hour.toString().padLeft(2, '0')}:${selectedTimeStart!.minute.toString().padLeft(2, '0')}:00';
 
-      final String formattedStartDay = startDay != null
-          ? '${startDay!.year}-${startDay!.month.toString().padLeft(2, '0')}-${startDay!.day.toString().padLeft(2, '0')}'
-          : '';
+      // Tính toán tất cả các ngày học
+      List<DateTime> learningDates = [];
+      DateTime currentDate = startDay!;
 
-      // Sử dụng Uri để đảm bảo các tham số được mã hóa đúng
+      for (int i = 0; i < numberOfWeeks; i++) {
+        learningDates.add(currentDate);
+        currentDate = currentDate.add(const Duration(days: 7));
+      }
+
+      // Chuyển đổi các ngày thành chuỗi định dạng yyyy-MM-dd và nối lại với nhau
+      final String formattedStartDay = learningDates
+          .map((date) =>
+              '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}')
+          .join(',');
+
       final uri = Uri.https(
         'instrulearnapplication.azurewebsites.net',
         '/api/Schedules/available-teachers',
@@ -739,8 +739,7 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
         final List<Teacher> fetchedTeachers = data.map<Teacher>((item) {
           return Teacher(
             teacherId: item['teacherId'] ?? 0,
-            accountId: (item['accountId'] ?? 0)
-                .toString(), // Chuyển đổi int thành String
+            accountId: (item['accountId'] ?? 0).toString(),
             fullname: item['fullname'] ?? '',
             isActive: 1,
             heading: null,
@@ -907,7 +906,6 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
               : (int? value) {
                   setState(() {
                     selectedTeacherId = value;
-                    // Reset các giá trị liên quan đến thời gian khi đổi giáo viên
                     selectedTimeStart = null;
                     selectedLearningDays.clear();
                     startDay = null;
@@ -919,7 +917,6 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
   }
 
   Widget _buildMajorSelector() {
-    // Lọc ra các major có giáo viên đảm nhận
     final availableMajors = majors.where((major) {
       return teachers.any((teacher) => teacher.majors
           .any((m) => m.majorId == major.majorId && m.status == 1));
@@ -947,10 +944,8 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
               : (int? value) {
                   setState(() {
                     selectedMajorId = value;
-                    // Reset giáo viên khi đổi major
                     selectedTeacherId = null;
                     majorTest = null;
-                    // Reset danh sách giáo viên khả dụng
                     availableTeachers = [];
                   });
                   if (selectedExperience != null &&
@@ -958,7 +953,6 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
                           "Tôi chưa chơi nhạc cụ này bao giờ") {
                     _fetchMajorTest();
                   }
-                  // Kiểm tra và cập nhật giáo viên khả dụng nếu đã có đủ thông tin
                   _checkAndFetchAvailableTeachers();
                 },
         ),
@@ -1190,12 +1184,10 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
                 setState(() {
                   if (selected) {
                     selectedLearningDays.add(index);
-                    // Tự động tính số buổi khi thêm ngày học
                     numberOfSession =
                         selectedLearningDays.length * numberOfWeeks;
                   } else {
                     selectedLearningDays.remove(index);
-                    // Tự động tính số buổi khi xóa ngày học
                     if (selectedLearningDays.isNotEmpty) {
                       numberOfSession =
                           selectedLearningDays.length * numberOfWeeks;
@@ -1203,10 +1195,8 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
                       numberOfSession = 1;
                     }
                   }
-                  // Reset danh sách giáo viên khả dụng và giáo viên đã chọn khi thay đổi ngày học
                   availableTeachers = [];
                   selectedTeacherId = null;
-                  // Reset ngày bắt đầu khi thay đổi ngày học trong tuần
                   startDay = null;
                 });
               },
@@ -1287,11 +1277,9 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
           onChanged: (int? value) {
             setState(() {
               timeLearning = value ?? 60;
-              // Reset danh sách giáo viên khả dụng và giáo viên đã chọn
               availableTeachers = [];
               selectedTeacherId = null;
             });
-            // Kiểm tra và cập nhật giáo viên khả dụng nếu đã có đủ thông tin
             _checkAndFetchAvailableTeachers();
           },
         ),
@@ -1300,7 +1288,6 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
   }
 
   Widget _buildSessionCountSelector() {
-    // Tự động tính số buổi dựa trên số ngày học và số tuần
     numberOfSession = selectedLearningDays.isEmpty
         ? 1
         : selectedLearningDays.length * numberOfWeeks;
@@ -1327,7 +1314,6 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
                       ? () {
                           setState(() {
                             numberOfWeeks--;
-                            // Tự động tính số buổi khi thay đổi số tuần
                             if (selectedLearningDays.isNotEmpty) {
                               numberOfSession =
                                   selectedLearningDays.length * numberOfWeeks;
@@ -1345,11 +1331,10 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
                 ),
                 IconButton(
                   icon: const Icon(Icons.add_circle_outline),
-                  onPressed: numberOfWeeks < 12 // Giới hạn tối đa 12 tuần
+                  onPressed: numberOfWeeks < 12
                       ? () {
                           setState(() {
                             numberOfWeeks++;
-                            // Tự động tính số buổi khi thay đổi số tuần
                             if (selectedLearningDays.isNotEmpty) {
                               numberOfSession =
                                   selectedLearningDays.length * numberOfWeeks;
@@ -1536,7 +1521,6 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
     );
   }
 
-  // Thêm lại phương thức để kiểm tra và tìm giáo viên khả dụng
   void _checkAndFetchAvailableTeachers() {
     if (selectedMajorId != null &&
         selectedTimeStart != null &&

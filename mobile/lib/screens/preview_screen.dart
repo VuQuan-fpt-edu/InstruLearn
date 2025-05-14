@@ -172,7 +172,6 @@ class _PreviewScreenState extends State<PreviewScreen>
                   _buildFeatureSection(),
                   _buildPopularCoursesSection(),
                   _buildTeachersSection(),
-                  _buildTestimonialSection(),
                   _buildStartLearningSection(),
                 ],
               ),
@@ -234,7 +233,6 @@ class _PreviewScreenState extends State<PreviewScreen>
                 LayoutBuilder(
                   builder: (context, constraints) {
                     if (constraints.maxWidth > 400) {
-                      // Màn hình rộng - hiển thị nút cạnh nhau
                       return Row(
                         children: [
                           ElevatedButton(
@@ -269,7 +267,6 @@ class _PreviewScreenState extends State<PreviewScreen>
                         ],
                       );
                     } else {
-                      // Màn hình hẹp - hiển thị nút dọc
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -702,69 +699,6 @@ class _PreviewScreenState extends State<PreviewScreen>
             },
           );
         },
-      ),
-    );
-  }
-
-  Widget _buildTestimonialSection() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      color: Colors.blue.withOpacity(0.05),
-      child: Column(
-        children: [
-          const Text(
-            'Học viên nói gì về chúng tôi',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 30),
-          Card(
-            elevation: 2,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(15),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  const CircleAvatar(
-                    radius: 40,
-                    backgroundImage: NetworkImage(
-                      'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=1350&q=80',
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    '"InstruLearn đã giúp tôi thực hiện ước mơ học đàn piano. Giáo viên rất tận tâm và chuyên nghiệp."',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontStyle: FontStyle.italic,
-                      height: 1.5,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Nguyễn Thị Hương',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  Text(
-                    'Học viên Piano',
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

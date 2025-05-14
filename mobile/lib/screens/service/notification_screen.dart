@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../../models/feedback_notification.dart';
 import 'detail/notification_detail_screen.dart';
+import 'learner_notification_screen.dart';
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({Key? key}) : super(key: key);
@@ -12,15 +13,18 @@ class NotificationScreen extends StatefulWidget {
   State<NotificationScreen> createState() => _NotificationScreenState();
 }
 
-class _NotificationScreenState extends State<NotificationScreen> {
+class _NotificationScreenState extends State<NotificationScreen>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
   List<FeedbackNotification> feedbackNotifications = [];
   List<FeedbackNotification> filteredNotifications = [];
   bool isLoading = true;
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     _fetchFeedbackNotifications();
   }
 
@@ -114,59 +118,77 @@ class _NotificationScreenState extends State<NotificationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Thông báo đánh giá'),
+        title: const Text('Thông báo'),
         backgroundColor: const Color(0xFF8C9EFF),
-      ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [const Color(0xFF8C9EFF).withOpacity(0.2), Colors.white],
-          ),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: 'Đánh giá'),
+            Tab(text: 'Lưu ý'),
+          ],
         ),
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey[200],
-                  borderRadius: BorderRadius.circular(25),
-                ),
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: _filterNotifications,
-                  decoration: InputDecoration(
-                    hintText: 'Tìm kiếm theo tên giáo viên...',
-                    prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 15,
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  const Color(0xFF8C9EFF).withOpacity(0.2),
+                  Colors.white
+                ],
+              ),
+            ),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey[200],
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: _filterNotifications,
+                      decoration: InputDecoration(
+                        hintText: 'Tìm kiếm theo tên giáo viên...',
+                        prefixIcon:
+                            const Icon(Icons.search, color: Colors.grey),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 15,
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
+                Expanded(
+                  child: isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : filteredNotifications.isEmpty
+                          ? const Center(
+                              child: Text('Không có thông báo đánh giá nào'),
+                            )
+                          : ListView.builder(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
+                              itemCount: filteredNotifications.length,
+                              itemBuilder: (context, index) {
+                                return _buildFeedbackCard(
+                                    filteredNotifications[index]);
+                              },
+                            ),
+                ),
+              ],
             ),
-            Expanded(
-              child: isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : filteredNotifications.isEmpty
-                      ? const Center(
-                          child: Text('Không có thông báo đánh giá nào'),
-                        )
-                      : ListView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          itemCount: filteredNotifications.length,
-                          itemBuilder: (context, index) {
-                            return _buildFeedbackCard(
-                                filteredNotifications[index]);
-                          },
-                        ),
-            ),
-          ],
-        ),
+          ),
+          const LearnerNotificationScreen(),
+        ],
       ),
     );
   }
@@ -183,7 +205,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
           ),
         );
 
-        // Nếu có kết quả trả về là true, fetch lại dữ liệu
         if (result == true) {
           _fetchFeedbackNotifications();
         }
@@ -257,6 +278,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
   @override
   void dispose() {
+    _tabController.dispose();
     _searchController.dispose();
     super.dispose();
   }

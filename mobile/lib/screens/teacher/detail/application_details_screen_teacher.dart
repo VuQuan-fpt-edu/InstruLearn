@@ -41,6 +41,8 @@ class _ApplicationDetailsScreenTeacherState
   PDFViewController? _pdfController;
 
   String _getStatusText(String status) {
+    if (status == null) return 'Không xác định';
+
     switch (status.toLowerCase()) {
       case 'accepted':
         return 'Đang đợi giáo trình từ giảng viên';
@@ -79,7 +81,6 @@ class _ApplicationDetailsScreenTeacherState
         final data = jsonDecode(response.body);
         if (data['isSucceed'] == true && data['data'] != null) {
           final sessions = List<Map<String, dynamic>>.from(data['data']);
-          // Chỉ coi là đã tạo giáo án khi mảng sessions không rỗng
           if (sessions.isNotEmpty) {
             setState(() {
               _existingSessions = sessions;
@@ -98,7 +99,6 @@ class _ApplicationDetailsScreenTeacherState
         _isLoadingExistingSessions = false;
       });
 
-      // Chỉ khởi tạo controllers nếu chưa có giáo án
       if (_existingSessions == null &&
           widget.registration.numberOfSession > 0) {
         _initializeSessionControllers();
@@ -107,7 +107,6 @@ class _ApplicationDetailsScreenTeacherState
   }
 
   void _initializeSessionControllers() {
-    // Xóa controllers cũ nếu có
     for (var controller in _titleControllers) {
       controller.dispose();
     }
@@ -117,7 +116,6 @@ class _ApplicationDetailsScreenTeacherState
     _titleControllers.clear();
     _descriptionControllers.clear();
 
-    // Khởi tạo controllers mới cho mỗi buổi học
     if (widget.registration.numberOfSession > 0) {
       for (int i = 0; i < widget.registration.numberOfSession; i++) {
         _titleControllers.add(TextEditingController());
@@ -127,7 +125,8 @@ class _ApplicationDetailsScreenTeacherState
   }
 
   Future<void> _initializeVideo() async {
-    if (widget.registration.videoUrl.isNotEmpty &&
+    if (widget.registration.videoUrl != null &&
+        widget.registration.videoUrl.isNotEmpty &&
         widget.registration.videoUrl.startsWith('http')) {
       try {
         _videoController =
@@ -256,7 +255,6 @@ class _ApplicationDetailsScreenTeacherState
   }
 
   Future<void> _createLearningPathSessions() async {
-    // Kiểm tra xem đã nhập đủ thông tin chưa
     bool isValid = true;
     String errorMessage = '';
     int emptyFields = 0;
@@ -289,7 +287,6 @@ class _ApplicationDetailsScreenTeacherState
         _isCreatingSession = true;
       });
 
-      // Tạo danh sách các buổi học
       List<Map<String, dynamic>> sessions = [];
       for (int i = 0; i < widget.registration.numberOfSession; i++) {
         sessions.add({
@@ -301,7 +298,6 @@ class _ApplicationDetailsScreenTeacherState
         });
       }
 
-      // Chuẩn bị dữ liệu để gửi lên API
       Map<String, dynamic> requestBody = {
         "learningRegisId": widget.registration.learningRegisId,
         "learningPathSessions": sessions
@@ -323,7 +319,6 @@ class _ApplicationDetailsScreenTeacherState
             backgroundColor: Colors.green,
           ),
         );
-        // Gọi lại hàm kiểm tra giáo án sau khi gửi thành công
         await _checkExistingSessions();
       } else {
         throw Exception('Không thể tạo giáo án: ${response.statusCode}');
@@ -343,6 +338,17 @@ class _ApplicationDetailsScreenTeacherState
   }
 
   void _openFullScreen() {
+    if (widget.registration.syllabusLink == null ||
+        widget.registration.syllabusLink.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Không tìm thấy file PDF để hiển thị'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -624,11 +630,13 @@ class _ApplicationDetailsScreenTeacherState
                     const SizedBox(height: 16),
                     _buildLearningInfo(),
                     const SizedBox(height: 16),
-                    if (widget.registration.videoUrl.isNotEmpty) ...[
+                    if (widget.registration.videoUrl != null &&
+                        widget.registration.videoUrl.isNotEmpty) ...[
                       _buildAssessmentVideo(),
                       const SizedBox(height: 16),
                     ],
-                    if (widget.registration.syllabusLink.isNotEmpty) ...[
+                    if (widget.registration.syllabusLink != null &&
+                        widget.registration.syllabusLink.isNotEmpty) ...[
                       const Text(
                         'Giáo trình mà trung tâm đề xuất:',
                         style: TextStyle(
@@ -1162,7 +1170,6 @@ class _ApplicationDetailsScreenTeacherState
                                         ),
                                         child: ElevatedButton.icon(
                                           onPressed: () {
-                                            // Kiểm tra xem đã điền đủ thông tin chưa
                                             bool isValid = true;
                                             String errorMessage = '';
                                             int emptyFields = 0;

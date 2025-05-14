@@ -124,10 +124,10 @@ class TeacherLearningRegistration {
         try {
           return double.parse(value).toInt();
         } catch (e) {
-          return 0; // Giá trị mặc định nếu không thể chuyển đổi
+          return 0;
         }
       }
     }
-    return 0; // Giá trị mặc định cho các trường hợp khác
+    return 0;
   }
 }

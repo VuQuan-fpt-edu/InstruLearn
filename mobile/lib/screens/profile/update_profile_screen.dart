@@ -121,7 +121,6 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
           return;
         }
 
-        // Upload ảnh lên Firebase nếu có
         final newAvatarUrl = await _uploadImageToFirebase();
 
         final response = await http.put(
