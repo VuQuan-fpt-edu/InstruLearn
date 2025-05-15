@@ -23,6 +23,7 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
   final _addressController = TextEditingController();
   final _phoneNumberController = TextEditingController();
   final _genderController = TextEditingController();
+  final _fullNameController = TextEditingController();
   bool _isLoading = false;
   File? _imageFile;
   String? _avatarUrl;
@@ -34,6 +35,7 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
     _addressController.text = widget.userData['address'] ?? '';
     _phoneNumberController.text = widget.userData['phoneNumber'] ?? '';
     _genderController.text = widget.userData['gender'] ?? '';
+    _fullNameController.text = widget.userData['fullName'] ?? '';
     _avatarUrl = widget.userData['avatar'];
   }
 
@@ -119,7 +121,6 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
           return;
         }
 
-        // Upload ảnh lên Firebase nếu có
         final newAvatarUrl = await _uploadImageToFirebase();
 
         final response = await http.put(
@@ -131,6 +132,7 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
             'Authorization': 'Bearer $token',
           },
           body: jsonEncode({
+            'fullName': _fullNameController.text,
             'phoneNumber': _phoneNumberController.text,
             'gender': _genderController.text,
             'address': _addressController.text,
@@ -289,6 +291,21 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                 ),
                 const SizedBox(height: 24),
                 TextFormField(
+                  controller: _fullNameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Họ và tên *',
+                    hintText: 'Nhập họ và tên của bạn',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Vui lòng nhập họ và tên';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
                   controller: _phoneNumberController,
                   decoration: const InputDecoration(
                     labelText: 'Số điện thoại *',
@@ -334,6 +351,7 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                   items: const [
                     DropdownMenuItem(value: 'Nam', child: Text('Nam')),
                     DropdownMenuItem(value: 'Nữ', child: Text('Nữ')),
+                    DropdownMenuItem(value: 'Khác', child: Text('Khác')),
                   ],
                   validator: (value) {
                     if (value == null || value.isEmpty) {

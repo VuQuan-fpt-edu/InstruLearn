@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/intl.dart';
+import '../../models/teacher_notification.dart';
 import 'detail/teacher_notification_detail_screen.dart';
 
 class TeacherNotificationScreen extends StatefulWidget {
@@ -11,24 +16,59 @@ class TeacherNotificationScreen extends StatefulWidget {
 
 class _TeacherNotificationScreenState extends State<TeacherNotificationScreen> {
   final TextEditingController _searchController = TextEditingController();
-  List<NotificationItem> notifications = [
-    NotificationItem(
-      title:
-          '[Trung tâm âm nhạc InstruLearn]_THÔNG BÁO VỀ VIỆC LỊCH DẠY CỦA GIÁO VIÊN ĐÃ ĐƯỢC CẬP NHẬT',
-      date: '12/12/2025',
-    ),
-    NotificationItem(
-      title:
-          '[Trung tâm âm nhạc InstruLearn]_THÔNG BÁO VỀ VIỆC KIỂM TRA CHẤT LƯỢNG ĐẦU VÀO LỚP [GUITAR-NC-8.0-10.03.2025-17:00]',
-      date: '13/12/2025',
-    ),
-  ];
-  List<NotificationItem> filteredNotifications = [];
+  List<TeacherNotification> notifications = [];
+  List<TeacherNotification> filteredNotifications = [];
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    filteredNotifications = notifications;
+    _fetchNotifications();
+  }
+
+  Future<void> _fetchNotifications() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      final teacherId = prefs.getInt('teacherId');
+
+      if (token == null || teacherId == null) {
+        _showErrorMessage('Không thể tải thông báo. Vui lòng đăng nhập lại.');
+        return;
+      }
+
+      final response = await http.get(
+        Uri.parse(
+            'https://instrulearnapplication.azurewebsites.net/api/StaffNotification/teacher/$teacherId'),
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['isSucceed'] == true) {
+          setState(() {
+            notifications = (data['data'] as List)
+                .map((item) => TeacherNotification.fromJson(item))
+                .toList();
+            filteredNotifications = notifications;
+            isLoading = false;
+          });
+        } else {
+          _showErrorMessage(data['message'] ?? 'Không thể tải thông báo');
+        }
+      } else {
+        _showErrorMessage('Lỗi kết nối: ${response.statusCode}');
+      }
+    } catch (e) {
+      _showErrorMessage('Lỗi: ${e.toString()}');
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
   }
 
   void _filterNotifications(String query) {
@@ -36,16 +76,41 @@ class _TeacherNotificationScreenState extends State<TeacherNotificationScreen> {
       if (query.isEmpty) {
         filteredNotifications = notifications;
       } else {
-        filteredNotifications =
-            notifications
-                .where(
-                  (notification) => notification.title.toLowerCase().contains(
-                    query.toLowerCase(),
-                  ),
-                )
-                .toList();
+        filteredNotifications = notifications
+            .where((notification) =>
+                notification.title
+                    .toLowerCase()
+                    .contains(query.toLowerCase()) ||
+                notification.message
+                    .toLowerCase()
+                    .contains(query.toLowerCase()))
+            .toList();
       }
     });
+  }
+
+  void _showErrorMessage(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    }
+  }
+
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final difference = now.difference(date);
+
+    if (difference.inDays == 0) {
+      if (difference.inHours == 0) {
+        return '${difference.inMinutes} phút trước';
+      }
+      return '${difference.inHours} giờ trước';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays} ngày trước';
+    } else {
+      return DateFormat('dd/MM/yyyy').format(date);
+    }
   }
 
   @override
@@ -88,13 +153,30 @@ class _TeacherNotificationScreenState extends State<TeacherNotificationScreen> {
               ),
             ),
             Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: filteredNotifications.length,
-                itemBuilder: (context, index) {
-                  return _buildNotificationCard(filteredNotifications[index]);
-                },
-              ),
+              child: isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : filteredNotifications.isEmpty
+                      ? const Center(
+                          child: Text(
+                            'Không có thông báo nào',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        )
+                      : RefreshIndicator(
+                          onRefresh: _fetchNotifications,
+                          child: ListView.builder(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            itemCount: filteredNotifications.length,
+                            itemBuilder: (context, index) {
+                              return _buildNotificationCard(
+                                filteredNotifications[index],
+                              );
+                            },
+                          ),
+                        ),
             ),
           ],
         ),
@@ -102,19 +184,20 @@ class _TeacherNotificationScreenState extends State<TeacherNotificationScreen> {
     );
   }
 
-  Widget _buildNotificationCard(NotificationItem notification) {
+  Widget _buildNotificationCard(TeacherNotification notification) {
     return GestureDetector(
-      onTap: () {
+      onTap: () async {
+        if (notification.status == 0) {
+          await _markAsRead(notification.notificationId);
+        }
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder:
-                (context) => TeacherNotificationDetailScreen(
-                  title: notification.title,
-                  date: notification.date,
-                ),
+            builder: (context) => TeacherNotificationDetailScreen(
+              notification: notification,
+            ),
           ),
-        );
+        ).then((_) => _fetchNotifications());
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
@@ -135,34 +218,78 @@ class _TeacherNotificationScreenState extends State<TeacherNotificationScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              RichText(
-                text: TextSpan(
-                  children: [
-                    TextSpan(
-                      text: '[Trung tâm âm nhạc InstruLearn]',
-                      style: TextStyle(
-                        color: Colors.red[700],
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
+              Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF8C9EFF).withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(20),
                     ),
-                    TextSpan(
-                      text: notification.title.substring(
-                        notification.title.indexOf(']') + 1,
-                      ),
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
+                    child: const Icon(
+                      Icons.notifications,
+                      color: Color(0xFF8C9EFF),
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          notification.title,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          notification.message,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
-              Text(
-                'date: ${notification.date}',
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    _formatDate(notification.createdAt),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  if (notification.status == 0)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Text(
+                        'Mới',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.red,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ],
           ),
@@ -171,16 +298,27 @@ class _TeacherNotificationScreenState extends State<TeacherNotificationScreen> {
     );
   }
 
+  Future<void> _markAsRead(int notificationId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      if (token == null) return;
+      final response = await http.put(
+        Uri.parse(
+            'https://instrulearnapplication.azurewebsites.net/api/StaffNotification/mark-as-read/$notificationId'),
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer $token',
+        },
+      );
+    } catch (e) {
+      // show lỗi
+    }
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
   }
-}
-
-class NotificationItem {
-  final String title;
-  final String date;
-
-  NotificationItem({required this.title, required this.date});
 }

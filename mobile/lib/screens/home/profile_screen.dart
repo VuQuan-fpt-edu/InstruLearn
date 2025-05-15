@@ -223,13 +223,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
         unselectedItemColor: Colors.grey,
         currentIndex: 1,
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Trang chủ'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Hồ sơ'),
           BottomNavigationBarItem(
             icon: Icon(Icons.support_agent),
-            label: 'Support',
+            label: 'CSKH',
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Setting'),
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Cài đặt'),
         ],
         onTap: (index) {
           if (index == 0) {

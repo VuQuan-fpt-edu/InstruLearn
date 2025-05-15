@@ -78,37 +78,36 @@ class ScheduleService {
     }
   }
 
-  Future<bool> updateAttendance(int scheduleId, int status) async {
-    final url = Uri.parse('$_baseUrl/Schedules/update-attendance/$scheduleId');
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
-
-    if (token == null) {
-      throw Exception('Không tìm thấy token');
-    }
-
+  Future<bool> updateAttendance(int scheduleId, int status,
+      {int preferenceStatus = 0}) async {
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      if (token == null) {
+        throw Exception('Không tìm thấy token');
+      }
+
       final response = await http.put(
-        url,
+        Uri.parse('$_baseUrl/Schedules/update-attendance/$scheduleId'),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
           'Authorization': 'Bearer $token',
         },
-        body: jsonEncode(status), // Send status as the request body
+        body: json.encode({
+          'status': status,
+          'preferenceStatus': preferenceStatus,
+        }),
       );
 
-      if (response.statusCode == 200 || response.statusCode == 204) {
-        final responseBody = jsonDecode(response.body);
-        return responseBody['isSucceed'] ?? false; // Check isSucceed field
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['isSucceed'] == true;
       } else {
-        print(
-            'Failed to update attendance. Status code: ${response.statusCode}');
-        print('Response body: ${response.body}');
-        return false;
+        throw Exception('Lỗi kết nối: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error updating attendance: $e');
-      return false;
+      throw Exception('Lỗi: $e');
     }
   }
 }

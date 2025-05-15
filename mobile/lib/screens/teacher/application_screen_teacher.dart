@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'detail/application_details_screen.dart';
-import '../../models/learning_registration.dart';
-import '../../services/learning_registration_service.dart';
+import '../../models/teacher_learning_registration.dart';
+import '../../services/teacher_learning_registration_service.dart';
+import 'detail/application_details_screen_teacher.dart';
 
-class ApplicationScreen extends StatefulWidget {
-  const ApplicationScreen({Key? key}) : super(key: key);
+class ApplicationScreenTeacher extends StatefulWidget {
+  const ApplicationScreenTeacher({Key? key}) : super(key: key);
 
   @override
-  State<ApplicationScreen> createState() => _ApplicationScreenState();
+  State<ApplicationScreenTeacher> createState() =>
+      _ApplicationScreenTeacherState();
 }
 
-class _ApplicationScreenState extends State<ApplicationScreen> {
-  final LearningRegistrationService _service = LearningRegistrationService();
-  List<LearningRegistration> _registrations = [];
+class _ApplicationScreenTeacherState extends State<ApplicationScreenTeacher> {
+  final TeacherLearningRegistrationService _service =
+      TeacherLearningRegistrationService();
+  List<TeacherLearningRegistration> _registrations = [];
   bool _isLoading = true;
   String? _error;
 
@@ -31,18 +33,18 @@ class _ApplicationScreenState extends State<ApplicationScreen> {
       });
 
       final prefs = await SharedPreferences.getInstance();
-      final learnerId = prefs.getInt('learnerId');
+      final teacherId = prefs.getInt('teacherId');
 
-      if (learnerId == null) {
+      if (teacherId == null) {
         setState(() {
-          _error = 'Không tìm thấy thông tin người dùng';
+          _error = 'Không tìm thấy thông tin giáo viên';
           _isLoading = false;
         });
         return;
       }
 
       final registrations =
-          await _service.getRegistrationsByLearnerId(learnerId);
+          await _service.getRegistrationsByTeacherId(teacherId);
 
       setState(() {
         _registrations = registrations;
@@ -56,67 +58,64 @@ class _ApplicationScreenState extends State<ApplicationScreen> {
     }
   }
 
-  Color _getStatusColor(String? status) {
-    switch (status?.toLowerCase() ?? '') {
-      case 'pending':
-        return Colors.orange;
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
       case 'accepted':
-        return Colors.blue;
-      case 'rejected':
+        return Colors.green;
+      case 'pending':
+        return Colors.pink;
+      case 'declined':
         return Colors.red;
       case 'fourty':
-        return Colors.purple;
-      case 'fourtyfeedbackdone':
-        return Colors.orange;
+        return Colors.blue;
       case 'sixty':
         return Colors.green;
-      case 'cancelled':
-        return Colors.red;
       default:
         return Colors.grey;
     }
   }
 
-  String _getStatusText(String? status) {
-    switch (status?.toLowerCase() ?? '') {
+  String _getStatusText(String status) {
+    if (status == null) return 'Không xác định';
+
+    switch (status.toLowerCase()) {
       case 'accepted':
-        return 'Chờ thanh toán';
+        return 'Đang đợi giáo trình từ giảng viên';
       case 'pending':
         return 'Đang chờ';
-      case 'rejected':
+      case 'declined':
         return 'Từ chối';
       case 'fourty':
         return 'Đã thanh toán 40% học phí';
-      case 'fourtyfeedbackdone':
-        return 'Đã phản hồi - Chờ thanh toán 60%';
       case 'sixty':
         return 'Đã hoàn tất thanh toán học phí';
-      case 'cancelled':
-        return 'Lịch học đã bị hủy';
       default:
-        return status ?? '';
+        return status;
     }
   }
 
-  String _formatCurrency(num? amount) {
+  String _formatCurrency(dynamic amount) {
     if (amount == null) return '0';
-    final formatted = amount.toStringAsFixed(0);
-    final chars = formatted.split('').reversed.toList();
-    final withCommas = <String>[];
-    for (var i = 0; i < chars.length; i++) {
-      if (i > 0 && i % 3 == 0) {
-        withCommas.add(',');
+    if (amount is int || amount is double) {
+      final formatted = amount.toStringAsFixed(0);
+      final chars = formatted.split('').reversed.toList();
+      final withCommas = <String>[];
+      for (var i = 0; i < chars.length; i++) {
+        if (i > 0 && i % 3 == 0) {
+          withCommas.add(',');
+        }
+        withCommas.add(chars[i]);
       }
-      withCommas.add(chars[i]);
+      return withCommas.reversed.join('');
     }
-    return withCommas.reversed.join('');
+    return '0';
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Đơn học'),
+        title: const Text('Đơn yêu cầu của học viên'),
         backgroundColor: const Color(0xFF8C9EFF),
       ),
       body: Container(
@@ -144,7 +143,7 @@ class _ApplicationScreenState extends State<ApplicationScreen> {
                           const SizedBox(height: 16),
                           ElevatedButton(
                             onPressed: _loadRegistrations,
-                            child: const Text('Retry'),
+                            child: const Text('Thử lại'),
                           ),
                         ],
                       ),
@@ -165,14 +164,6 @@ class _ApplicationScreenState extends State<ApplicationScreen> {
                                 style: TextStyle(
                                   fontSize: 16,
                                   color: Colors.grey,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Bạn có thể đăng ký học kèm 1:1 để tạo đơn',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey[600],
                                 ),
                               ),
                             ],
@@ -202,26 +193,22 @@ class _ApplicationScreenState extends State<ApplicationScreen> {
   }
 
   Widget _buildApplicationCard({
-    required LearningRegistration registration,
+    required TeacherLearningRegistration registration,
     required Color backgroundColor,
     required Color headerColor,
   }) {
     return GestureDetector(
-      onTap: () async {
-        final result = await Navigator.push<bool>(
+      onTap: () {
+        Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => ApplicationDetailsScreen(
-              status: registration.status ?? '',
+            builder: (context) => ApplicationDetailsScreenTeacher(
+              status: registration.status,
               statusColor: headerColor,
               registration: registration,
             ),
           ),
         );
-
-        if (result == true) {
-          _loadRegistrations();
-        }
       },
       child: Container(
         decoration: BoxDecoration(
@@ -264,7 +251,7 @@ class _ApplicationScreenState extends State<ApplicationScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Loại đơn: ${registration.regisTypeName}',
+                    'Học viên: ${registration.fullName}',
                     style: const TextStyle(
                       color: Colors.blue,
                       fontWeight: FontWeight.w500,
@@ -272,7 +259,7 @@ class _ApplicationScreenState extends State<ApplicationScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Ngày bắt đầu: ${registration.startDay}',
+                    'Số điện thoại: ${registration.phoneNumber}',
                     style: const TextStyle(
                       color: Colors.black87,
                       fontWeight: FontWeight.w500,
@@ -280,12 +267,12 @@ class _ApplicationScreenState extends State<ApplicationScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Giáo viên: ${registration.teacherName}',
+                    'Nhạc cụ: ${registration.majorName}',
                     style: const TextStyle(color: Colors.black87),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Nhạc cụ: ${registration.majorName}',
+                    'Trình độ: ${registration.levelName}',
                     style: const TextStyle(color: Colors.black87),
                   ),
                   const SizedBox(height: 8),
@@ -295,8 +282,16 @@ class _ApplicationScreenState extends State<ApplicationScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Học vào thứ: ${registration.learningDays?.join(", ") ?? "Chưa xác định"}',
+                    'Học vào thứ: ${registration.learningDays.join(", ")}',
                     style: const TextStyle(color: Colors.black87),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Học phí: ${_formatCurrency(registration.price)} VNĐ',
+                    style: const TextStyle(
+                      color: Colors.green,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ],
               ),

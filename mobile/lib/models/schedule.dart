@@ -15,8 +15,17 @@ class Schedule {
   final String registrationStartDay;
   final int learningRegisId;
   final int attendanceStatus;
+  final int preferenceStatus;
   final List<ScheduleDay>? scheduleDays;
   final List<ClassDay>? classDayDTOs;
+  final int? learningPathSessionId;
+  final int? sessionNumber;
+  final String? sessionTitle;
+  final String? sessionDescription;
+  final bool? isSessionCompleted;
+  final int? majorId;
+  final String? majorName;
+  final int? timeLearning;
 
   Schedule({
     required this.scheduleId,
@@ -35,8 +44,17 @@ class Schedule {
     required this.registrationStartDay,
     required this.learningRegisId,
     required this.attendanceStatus,
+    required this.preferenceStatus,
     this.scheduleDays,
     this.classDayDTOs,
+    this.learningPathSessionId,
+    this.sessionNumber,
+    this.sessionTitle,
+    this.sessionDescription,
+    this.isSessionCompleted,
+    this.majorId,
+    this.majorName,
+    this.timeLearning,
   });
 
   factory Schedule.fromJson(Map<String, dynamic> json) {
@@ -57,6 +75,7 @@ class Schedule {
       registrationStartDay: json['registrationStartDay'],
       learningRegisId: json['learningRegisId'],
       attendanceStatus: json['attendanceStatus'] ?? 0,
+      preferenceStatus: json['preferenceStatus'] ?? 0,
       scheduleDays: json['scheduleDays'] != null
           ? (json['scheduleDays'] as List)
               .map((day) => ScheduleDay.fromJson(day))
@@ -67,6 +86,14 @@ class Schedule {
               .map((day) => ClassDay.fromJson(day))
               .toList()
           : null,
+      learningPathSessionId: json['learningPathSessionId'],
+      sessionNumber: json['sessionNumber'],
+      sessionTitle: json['sessionTitle'],
+      sessionDescription: json['sessionDescription'],
+      isSessionCompleted: json['isSessionCompleted'],
+      majorId: json['majorId'],
+      majorName: json['majorName'],
+      timeLearning: json['timeLearning'],
     );
   }
 }

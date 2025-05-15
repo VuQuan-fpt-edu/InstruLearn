@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'detail/my_course.dart';
 import '../../models/course_package.dart';
+import '../../models/course_progress.dart';
 import '../../services/course_service.dart';
 
 class LibraryScreen extends StatefulWidget {
@@ -16,6 +17,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
   final CourseService _courseService = CourseService();
   List<CoursePackage> _courses = [];
   List<CoursePackage> _filteredCourses = [];
+  List<CourseProgress> _courseProgress = [];
   bool _isLoading = true;
   String? _error;
 
@@ -44,10 +46,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
       }
 
       final courses = await _courseService.getPurchasedCourses(learnerId);
+      final progress = await _courseService.getCourseProgress(learnerId);
 
       setState(() {
         _courses = courses;
         _filteredCourses = courses;
+        _courseProgress = progress;
         _isLoading = false;
       });
     } catch (e) {
@@ -180,6 +184,21 @@ class _LibraryScreenState extends State<LibraryScreen> {
   }
 
   Widget _buildCourseCard(CoursePackage course) {
+    final progress = _courseProgress.firstWhere(
+      (p) => p.coursePackageId == course.coursePackageId,
+      orElse: () => CourseProgress(
+        learnerCourseId: 0,
+        learnerId: 0,
+        learnerName: '',
+        coursePackageId: course.coursePackageId ?? 0,
+        courseName: course.courseName,
+        completionPercentage: 0,
+        enrollmentDate: DateTime.now(),
+        lastAccessDate: DateTime.now(),
+        totalContentItems: 0,
+      ),
+    );
+
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -244,6 +263,28 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       fontSize: 14,
                       color: Colors.grey[600],
                     ),
+                  ),
+                  const SizedBox(height: 8),
+                  LinearProgressIndicator(
+                    value: progress.completionPercentage / 100,
+                    backgroundColor: Colors.grey[200],
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      const Color(0xFF8C9EFF),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Tiến độ: ${progress.completionPercentage.toStringAsFixed(1)}%',
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                      Text(
+                        'Đã hoàn thành: ${progress.totalContentItems} bài',
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ],
                   ),
                 ],
               ),

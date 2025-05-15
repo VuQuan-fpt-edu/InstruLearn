@@ -1,30 +1,32 @@
 class LearningRegistration {
-  final int learningRegisId;
-  final int learnerId;
-  final String fullName;
-  final String phoneNumber;
-  final int teacherId;
-  final String teacherName;
-  final int regisTypeId;
-  final String regisTypeName;
-  final int majorId;
-  final String majorName;
+  final int? learningRegisId;
+  final int? learnerId;
+  final String? fullName;
+  final String? phoneNumber;
+  final int? teacherId;
+  final String? teacherName;
+  final int? regisTypeId;
+  final String? regisTypeName;
+  final int? majorId;
+  final String? majorName;
   final int? responseId;
   final String? responseName;
+  final String? responseDescription;
   final int? levelId;
   final String? levelName;
   final int? levelPrice;
-  final String startDay;
-  final String timeStart;
-  final int timeLearning;
-  final String timeEnd;
-  final String requestDate;
-  final int numberOfSession;
-  final String videoUrl;
+  final String? syllabusLink;
+  final String? startDay;
+  final String? timeStart;
+  final int? timeLearning;
+  final String? timeEnd;
+  final String? requestDate;
+  final int? numberOfSession;
+  final String? videoUrl;
   final String? learningRequest;
-  final List<String> learningDays;
+  final List<String>? learningDays;
   final int? price;
-  final String status;
+  final String? status;
   final int? score;
   final String? levelAssigned;
   final String? feedback;
@@ -32,34 +34,40 @@ class LearningRegistration {
   final String? acceptedDate;
   final String? paymentDeadline;
   final int? daysRemaining;
+  final String? paymentStatus;
+  final String? previousStatus;
+  final Map<String, dynamic>? firstPaymentPeriod;
+  final Map<String, dynamic>? secondPaymentPeriod;
 
   LearningRegistration({
-    required this.learningRegisId,
-    required this.learnerId,
-    required this.fullName,
-    required this.phoneNumber,
-    required this.teacherId,
-    required this.teacherName,
-    required this.regisTypeId,
-    required this.regisTypeName,
-    required this.majorId,
-    required this.majorName,
+    this.learningRegisId,
+    this.learnerId,
+    this.fullName,
+    this.phoneNumber,
+    this.teacherId,
+    this.teacherName,
+    this.regisTypeId,
+    this.regisTypeName,
+    this.majorId,
+    this.majorName,
     this.responseId,
     this.responseName,
+    this.responseDescription,
     this.levelId,
     this.levelName,
     this.levelPrice,
-    required this.startDay,
-    required this.timeStart,
-    required this.timeLearning,
-    required this.timeEnd,
-    required this.requestDate,
-    required this.numberOfSession,
-    required this.videoUrl,
+    this.syllabusLink,
+    this.startDay,
+    this.timeStart,
+    this.timeLearning,
+    this.timeEnd,
+    this.requestDate,
+    this.numberOfSession,
+    this.videoUrl,
     this.learningRequest,
-    required this.learningDays,
+    this.learningDays,
     this.price,
-    required this.status,
+    this.status,
     this.score,
     this.levelAssigned,
     this.feedback,
@@ -67,55 +75,84 @@ class LearningRegistration {
     this.acceptedDate,
     this.paymentDeadline,
     this.daysRemaining,
+    this.paymentStatus,
+    this.previousStatus,
+    this.firstPaymentPeriod,
+    this.secondPaymentPeriod,
   });
 
   factory LearningRegistration.fromJson(Map<String, dynamic> json) {
     return LearningRegistration(
-      learningRegisId: _parseIntValue(json['learningRegisId']),
-      learnerId: _parseIntValue(json['learnerId']),
-      fullName: json['fullName'],
-      phoneNumber: json['phoneNumber'],
-      teacherId: _parseIntValue(json['teacherId']),
-      teacherName: json['teacherName'],
-      regisTypeId: _parseIntValue(json['regisTypeId']),
-      regisTypeName: json['regisTypeName'],
-      majorId: _parseIntValue(json['majorId']),
-      majorName: json['majorName'],
-      responseId: json['responseId'] != null
-          ? _parseIntValue(json['responseId'])
+      learningRegisId:
+          _parseIntValue(json['LearningRegisId'] ?? json['learningRegisId']),
+      learnerId: _parseIntValue(json['LearnerId'] ?? json['learnerId']),
+      fullName: json['FullName'] ?? json['fullName'] as String?,
+      phoneNumber: json['PhoneNumber'] ?? json['phoneNumber'] as String?,
+      teacherId: _parseIntValue(json['TeacherId'] ?? json['teacherId']),
+      teacherName: json['TeacherName'] ?? json['teacherName'] as String?,
+      regisTypeId: _parseIntValue(json['RegisTypeId'] ?? json['regisTypeId']),
+      regisTypeName: json['RegisTypeName'] ?? json['regisTypeName'] as String?,
+      majorId: _parseIntValue(json['MajorId'] ?? json['majorId']),
+      majorName: json['MajorName'] ?? json['majorName'] as String?,
+      responseId: (json['ResponseId'] ?? json['responseId']) != null
+          ? _parseIntValue(json['ResponseId'] ?? json['responseId'])
           : null,
-      responseName: json['responseName'],
-      levelId: json['levelId'] != null ? _parseIntValue(json['levelId']) : null,
-      levelName: json['levelName'],
-      levelPrice: json['levelPrice'] != null
-          ? _parseIntValue(json['levelPrice'])
+      responseName: json['ResponseTypeName'] ?? json['responseName'] as String?,
+      responseDescription:
+          json['ResponseDescription'] ?? json['responseDescription'] as String?,
+      levelId: (json['LevelId'] ?? json['levelId']) != null
+          ? _parseIntValue(json['LevelId'] ?? json['levelId'])
           : null,
-      startDay: json['startDay'],
-      timeStart: json['timeStart'],
-      timeLearning: _parseIntValue(json['timeLearning']),
-      timeEnd: json['timeEnd'],
-      requestDate: json['requestDate'],
-      numberOfSession: _parseIntValue(json['numberOfSession']),
-      videoUrl: json['videoUrl'],
-      learningRequest: json['learningRequest'],
-      learningDays: List<String>.from(json['learningDays']),
-      price: json['price'] != null ? _parseIntValue(json['price']) : null,
-      status: json['status'],
-      score: json['score'] != null ? _parseIntValue(json['score']) : null,
-      levelAssigned: json['levelAssigned'],
-      feedback: json['feedback'],
-      remainingAmount: json['remainingAmount'] != null
-          ? _parseIntValue(json['remainingAmount'])
+      levelName: json['LevelName'] ?? json['levelName'] as String?,
+      levelPrice: (json['LevelPrice'] ?? json['levelPrice']) != null
+          ? _parseIntValue(json['LevelPrice'] ?? json['levelPrice'])
           : null,
-      acceptedDate: json['acceptedDate'],
-      paymentDeadline: json['paymentDeadline'],
-      daysRemaining: json['daysRemaining'] != null
-          ? _parseIntValue(json['daysRemaining'])
+      syllabusLink: json['SyllabusLink'] ?? json['syllabusLink'] as String?,
+      startDay: json['StartDay'] ?? json['startDay'] as String?,
+      timeStart: json['TimeStart'] ?? json['timeStart'] as String?,
+      timeLearning:
+          _parseIntValue(json['TimeLearning'] ?? json['timeLearning']),
+      timeEnd: json['TimeEnd'] ?? json['timeEnd'] as String?,
+      requestDate: json['RequestDate'] ?? json['requestDate'] as String?,
+      numberOfSession:
+          _parseIntValue(json['NumberOfSession'] ?? json['numberOfSession']),
+      videoUrl: json['VideoUrl'] ?? json['videoUrl'] as String?,
+      learningRequest:
+          json['LearningRequest'] ?? json['learningRequest'] as String?,
+      learningDays: (json['LearningDays'] ?? json['learningDays']) != null
+          ? List<String>.from(json['LearningDays'] ?? json['learningDays'])
           : null,
+      price: (json['Price'] ?? json['price']) != null
+          ? _parseIntValue(json['Price'] ?? json['price'])
+          : null,
+      status: json['Status'] ?? json['status'] as String?,
+      score: (json['Score'] ?? json['score']) != null
+          ? _parseIntValue(json['Score'] ?? json['score'])
+          : null,
+      levelAssigned: json['LevelAssigned'] ?? json['levelAssigned'] as String?,
+      feedback: json['Feedback'] ?? json['feedback'] as String?,
+      remainingAmount: (json['RemainingAmount'] ?? json['remainingAmount']) !=
+              null
+          ? _parseIntValue(json['RemainingAmount'] ?? json['remainingAmount'])
+          : null,
+      acceptedDate: json['AcceptedDate'] ?? json['acceptedDate'] as String?,
+      paymentDeadline:
+          json['PaymentDeadline'] ?? json['paymentDeadline'] as String?,
+      daysRemaining: (json['DaysRemaining'] ?? json['daysRemaining']) != null
+          ? _parseIntValue(json['DaysRemaining'] ?? json['daysRemaining'])
+          : null,
+      paymentStatus: json['PaymentStatus'] ?? json['paymentStatus'] as String?,
+      previousStatus:
+          json['PreviousStatus'] ?? json['previousStatus'] as String?,
+      firstPaymentPeriod: (json['firstPaymentPeriod'] ??
+          json['FirstPaymentPeriod']) as Map<String, dynamic>?,
+      secondPaymentPeriod: (json['secondPaymentPeriod'] ??
+          json['SecondPaymentPeriod']) as Map<String, dynamic>?,
     );
   }
 
-  static int _parseIntValue(dynamic value) {
+  static int? _parseIntValue(dynamic value) {
+    if (value == null) return null;
     if (value is int) return value;
     if (value is double) return value.toInt();
     if (value is String) {
@@ -125,10 +162,10 @@ class LearningRegistration {
         try {
           return double.parse(value).toInt();
         } catch (e) {
-          return 0; // Giá trị mặc định nếu không thể chuyển đổi
+          return null;
         }
       }
     }
-    return 0; // Giá trị mặc định cho các trường hợp khác
+    return null;
   }
 }

@@ -17,7 +17,6 @@ class TeacherClassAttendanceDetailScreen extends StatefulWidget {
 
 class _TeacherClassAttendanceDetailScreenState
     extends State<TeacherClassAttendanceDetailScreen> {
-  // Danh sách học viên mẫu với trạng thái điểm danh
   final List<StudentAttendance> students = [
     StudentAttendance(
       imageUrl: 'https://images.unsplash.com/photo-1633332755192-727a05c4013d',

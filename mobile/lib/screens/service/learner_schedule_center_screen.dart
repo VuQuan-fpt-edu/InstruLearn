@@ -55,11 +55,13 @@ class _LearnerScheduleCenterScreenState
           setState(() {
             schedules = data['data'];
             isLoading = false;
+            errorMessage = null;
           });
         } else {
           setState(() {
-            errorMessage = data['message'] ?? 'Không thể tải lịch học';
+            schedules = [];
             isLoading = false;
+            errorMessage = null;
           });
         }
       } else {
@@ -482,22 +484,22 @@ class _LearnerScheduleCenterScreenState
       String message;
       switch (_currentFilter) {
         case FilterType.day:
-          message =
-              'Không có lịch học vào ngày ${DateFormat('dd/MM/yyyy').format(_selectedDate)}';
+          message = DateFormat('dd/MM/yyyy').format(_selectedDate);
           break;
         case FilterType.week:
           final startOfWeek = _getStartOfWeek(_selectedDate);
           final endOfWeek = startOfWeek.add(const Duration(days: 6));
           message =
-              'Không có lịch học trong tuần từ ${DateFormat('dd/MM/yyyy').format(startOfWeek)} đến ${DateFormat('dd/MM/yyyy').format(endOfWeek)}';
+              '${DateFormat('dd/MM').format(startOfWeek)} - ${DateFormat('dd/MM/yyyy').format(endOfWeek)}';
           break;
         case FilterType.month:
-          message =
-              'Không có lịch học trong tháng ${_selectedDate.month}/${_selectedDate.year}';
+          message = 'Tháng ${_selectedDate.month}/${_selectedDate.year}';
           break;
       }
 
-      return Center(
+      return Container(
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -507,11 +509,21 @@ class _LearnerScheduleCenterScreenState
               color: Colors.grey,
             ),
             const SizedBox(height: 16),
+            const Text(
+              'Không có lịch học trong',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 4),
             Text(
               message,
               style: const TextStyle(
                 fontSize: 16,
                 color: Colors.grey,
+                fontWeight: FontWeight.bold,
               ),
               textAlign: TextAlign.center,
             ),
@@ -522,6 +534,7 @@ class _LearnerScheduleCenterScreenState
                 fontSize: 14,
                 color: Colors.grey[600],
               ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),

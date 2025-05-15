@@ -139,8 +139,7 @@ class _ClassRegistrationScreenState extends State<ClassRegistrationScreen> {
           setState(() {
             majors = (jsonResponse['data'] as List)
                 .map((json) => MajorModel.fromJson(json))
-                .where((major) =>
-                    major.status == 1) // Chỉ lấy các major có status = 1
+                .where((major) => major.status == 1)
                 .toList();
           });
         }
