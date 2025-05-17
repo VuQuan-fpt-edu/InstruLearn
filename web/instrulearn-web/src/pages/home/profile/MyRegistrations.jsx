@@ -88,21 +88,54 @@ const MyRegistrations = () => {
       );
 
       if (response.data?.isSucceed) {
-        // Lọc chỉ lấy các đăng ký có regisTypeName là "Đăng ký học theo yêu cầu"
         const filteredData = response.data.data.filter(
-          (reg) => reg.regisTypeName === "Đăng ký học theo yêu cầu"
+          (reg) => reg.RegisTypeName === "Đăng ký học theo yêu cầu"
         );
 
         const vietnameseData = filteredData
           .map((reg) => ({
-            ...reg,
-            learningDays: reg.learningDays.map((day) =>
-              convertDayToVietnamese(day)
-            ),
-            price: reg.price,
-            levelName: reg.levelName,
-            responseName: reg.responseName,
-            levelPrice: reg.levelPrice,
+            learningRegisId: reg.LearningRegisId,
+            learnerId: reg.LearnerId,
+            fullName: reg.FullName,
+            phoneNumber: reg.PhoneNumber,
+            teacherId: reg.TeacherId,
+            teacherName: reg.TeacherName,
+            regisTypeId: reg.RegisTypeId,
+            regisTypeName: reg.RegisTypeName,
+            majorId: reg.MajorId,
+            majorName: reg.MajorName,
+            responseTypeId: reg.ResponseTypeId,
+            responseTypeName: reg.ResponseTypeName,
+            responseId: reg.ResponseId,
+            responseDescription: reg.ResponseDescription,
+            levelId: reg.LevelId,
+            levelName: reg.LevelName,
+            levelPrice: reg.LevelPrice,
+            syllabusLink: reg.SyllabusLink,
+            startDay: reg.StartDay,
+            timeStart: reg.TimeStart,
+            timeLearning: reg.TimeLearning,
+            timeEnd: reg.TimeEnd,
+            requestDate: reg.RequestDate,
+            numberOfSession: reg.NumberOfSession,
+            selfAssessment: reg.SelfAssessment,
+            videoUrl: reg.VideoUrl,
+            learningRequest: reg.LearningRequest,
+            learningDays: Array.isArray(reg.LearningDays)
+              ? reg.LearningDays.map((day) => convertDayToVietnamese(day))
+              : [],
+            price: reg.Price,
+            remainingAmount: reg.RemainingAmount,
+            status: reg.Status,
+            acceptedDate: reg.AcceptedDate,
+            paymentDeadline: reg.PaymentDeadline,
+            daysRemaining: reg.DaysRemaining,
+            paymentStatus: reg.PaymentStatus,
+            firstPaymentPeriod: reg.firstPaymentPeriod,
+            secondPaymentPeriod: reg.secondPaymentPeriod,
+            currentStatus: reg.currentStatus,
+            isFirstPaymentPhase: reg.isFirstPaymentPhase,
+            isSecondPaymentPhase: reg.isSecondPaymentPhase,
           }))
           .sort((a, b) => new Date(b.requestDate) - new Date(a.requestDate));
 
@@ -498,7 +531,12 @@ const MyRegistrations = () => {
         <Button
           type="primary"
           icon={<EyeOutlined />}
-          onClick={() => handleView(record)}
+          onClick={() =>
+            window.open(
+              `/profile/registration-detail/${record.learningRegisId}`,
+              "_blank"
+            )
+          }
           className="bg-purple-600 hover:bg-purple-700 border-none shadow-md hover:shadow-lg transition-all duration-300"
         >
           Chi tiết
@@ -600,16 +638,17 @@ const MyRegistrations = () => {
         onCancel={() => setViewModalVisible(false)}
         width={700}
         footer={[
-          selectedRegistration?.status === "Accepted" && (
-            <Button
-              key="initialPayment"
-              type="primary"
-              onClick={handleInitialPaymentClick}
-              className="bg-green-600 hover:bg-green-700 border-none mr-2"
-            >
-              Thanh toán 40% học phí
-            </Button>
-          ),
+          selectedRegistration?.status === "Accepted" &&
+            learningPathSessions.some((s) => s.isCompleted) && (
+              <Button
+                key="initialPayment"
+                type="primary"
+                onClick={handleInitialPaymentClick}
+                className="bg-green-600 hover:bg-green-700 border-none mr-2"
+              >
+                Thanh toán 40% học phí
+              </Button>
+            ),
           selectedRegistration?.status === "FourtyFeedbackDone" && (
             <Button
               key="remainingPayment"
@@ -681,6 +720,14 @@ const MyRegistrations = () => {
                     <Text type="secondary">Số buổi học</Text>
                     <div className="text-lg font-medium">
                       {selectedRegistration.numberOfSession} buổi
+                    </div>
+                  </div>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <div className="space-y-1">
+                    <Text type="secondary">Trình độ của học viên</Text>
+                    <div className="text-lg font-medium">
+                      {selectedRegistration.selfAssessment || "Chưa cung cấp"}
                     </div>
                   </div>
                 </Col>
@@ -852,233 +899,124 @@ const MyRegistrations = () => {
                         <div className="mt-4">
                           <Steps
                             direction="vertical"
-                            current={(() => {
-                              // Nếu Cancelled và learningRequest là 'Quá hạn thanh toán 60%' thì chỉ có 2 bước
-                              if (
-                                selectedRegistration.status === "Cancelled" &&
-                                selectedRegistration.learningRequest ===
-                                  "Quá hạn thanh toán 60%"
-                              ) {
-                                return 2;
-                              }
-                              return selectedRegistration.status === "Fourty" ||
-                                selectedRegistration.status ===
-                                  "FourtyFeedbackDone"
+                            current={
+                              selectedRegistration.currentStatus === "Fourty" ||
+                              selectedRegistration.currentStatus ===
+                                "FourtyFeedbackDone"
                                 ? 2
-                                : selectedRegistration.status === "Sixty" ||
-                                  selectedRegistration.status === "Completed"
+                                : selectedRegistration.currentStatus ===
+                                    "Sixty" ||
+                                  selectedRegistration.currentStatus ===
+                                    "Completed"
                                 ? 3
-                                : 1;
-                            })()}
-                            items={(() => {
-                              // Nếu bị từ chối hoặc hủy thì chỉ hiện bước đăng ký học
-                              if (
-                                selectedRegistration.status === "Rejected" ||
-                                (selectedRegistration.status === "Cancelled" &&
-                                  selectedRegistration.learningRequest !==
-                                    "Quá hạn thanh toán 60%")
-                              ) {
-                                return [
-                                  {
-                                    title: "Đăng ký học",
-                                    description: (
-                                      <div>
-                                        <div>
-                                          Ngày đăng ký:{" "}
-                                          {dayjs(
-                                            selectedRegistration.requestDate
-                                          ).format("DD/MM/YYYY HH:mm")}
-                                        </div>
-                                        <div>
-                                          Trạng thái:{" "}
-                                          {getStatusTag(
-                                            selectedRegistration.status
-                                          )}
-                                        </div>
-                                      </div>
-                                    ),
-                                    status: "finish",
-                                  },
-                                ];
-                              }
-                              // Nếu Cancelled và learningRequest là 'Quá hạn thanh toán 60%' thì chỉ có 2 bước
-                              if (
-                                selectedRegistration.status === "Cancelled" &&
-                                selectedRegistration.learningRequest ===
-                                  "Quá hạn thanh toán 60%"
-                              ) {
-                                return [
-                                  {
-                                    title: "Đăng ký học",
-                                    description: (
-                                      <div>
-                                        <div>
-                                          Ngày đăng ký:{" "}
-                                          {dayjs(
-                                            selectedRegistration.requestDate
-                                          ).format("DD/MM/YYYY HH:mm")}
-                                        </div>
-                                        <div>
-                                          Trạng thái: {getStatusTag("Accepted")}
-                                        </div>
-                                      </div>
-                                    ),
-                                    status: "finish",
-                                  },
-                                  {
-                                    title: "Thanh toán 40% học phí",
-                                    description: (
-                                      <div>
-                                        <div>
-                                          Số tiền:{" "}
-                                          {(
-                                            selectedRegistration.price * 0.4
-                                          ).toLocaleString("vi-VN")}{" "}
-                                          VNĐ
-                                        </div>
-                                        <div>
-                                          Trạng thái: {getStatusTag("Fourty")}
-                                        </div>
-                                      </div>
-                                    ),
-                                    status: "finish",
-                                  },
-                                ];
-                              }
-                              // Các trường hợp còn lại
-                              return [
-                                {
-                                  title: "Đăng ký học",
-                                  description: (
+                                : 1
+                            }
+                            items={[
+                              {
+                                title: "Đăng ký học",
+                                description: (
+                                  <div>
                                     <div>
-                                      <div>
-                                        Ngày đăng ký:{" "}
+                                      Ngày đăng ký:{" "}
+                                      {dayjs(
+                                        selectedRegistration.requestDate
+                                      ).format("DD/MM/YYYY HH:mm")}
+                                    </div>
+                                    <div>
+                                      Trạng thái:{" "}
+                                      {getStatusTag(
+                                        selectedRegistration.status
+                                      )}
+                                    </div>
+                                  </div>
+                                ),
+                                status: "finish",
+                              },
+                              {
+                                title: "Thanh toán 40% học phí",
+                                description: (
+                                  <div>
+                                    <div>
+                                      Số tiền:{" "}
+                                      {(
+                                        selectedRegistration.firstPaymentPeriod
+                                          ?.PaymentAmount ||
+                                        selectedRegistration.price * 0.4
+                                      ).toLocaleString("vi-VN")}{" "}
+                                      VNĐ
+                                    </div>
+                                    <div>
+                                      Trạng thái:{" "}
+                                      {
+                                        selectedRegistration.firstPaymentPeriod
+                                          ?.PaymentStatus
+                                      }
+                                    </div>
+                                    {selectedRegistration.firstPaymentPeriod
+                                      ?.PaymentDeadline && (
+                                      <div className="text-red-500">
+                                        Hạn thanh toán:{" "}
                                         {dayjs(
-                                          selectedRegistration.requestDate
-                                        ).format("DD/MM/YYYY HH:mm")}
+                                          selectedRegistration
+                                            .firstPaymentPeriod.PaymentDeadline
+                                        ).format("DD/MM/YYYY")}
                                       </div>
-                                      <div>
-                                        Trạng thái:{" "}
-                                        {getStatusTag(
-                                          selectedRegistration.status ===
-                                            "Accepted" ||
-                                            selectedRegistration.status ===
-                                              "Fourty" ||
-                                            selectedRegistration.status ===
-                                              "FourtyFeedbackDone" ||
-                                            selectedRegistration.status ===
-                                              "Sixty" ||
-                                            selectedRegistration.status ===
-                                              "Completed"
-                                            ? "Accepted"
-                                            : selectedRegistration.status
-                                        )}
-                                      </div>
-                                    </div>
-                                  ),
-                                  status: "finish",
-                                },
-                                {
-                                  title: "Thanh toán 40% học phí",
-                                  description: (
+                                    )}
+                                  </div>
+                                ),
+                                status:
+                                  selectedRegistration.currentStatus ===
+                                    "Fourty" ||
+                                  selectedRegistration.currentStatus ===
+                                    "FourtyFeedbackDone" ||
+                                  selectedRegistration.currentStatus ===
+                                    "Sixty" ||
+                                  selectedRegistration.currentStatus ===
+                                    "Completed"
+                                    ? "finish"
+                                    : "wait",
+                              },
+                              {
+                                title: "Thanh toán 60% học phí còn lại",
+                                description: (
+                                  <div>
                                     <div>
-                                      <div>
-                                        Số tiền:{" "}
-                                        {(
-                                          selectedRegistration.price * 0.4
-                                        ).toLocaleString("vi-VN")}{" "}
-                                        VNĐ
-                                      </div>
-                                      <div>
-                                        Trạng thái:{" "}
-                                        {selectedRegistration.status ===
-                                          "Fourty" ||
-                                        selectedRegistration.status ===
-                                          "FourtyFeedbackDone" ||
-                                        selectedRegistration.status ===
-                                          "Sixty" ||
-                                        selectedRegistration.status ===
-                                          "Completed"
-                                          ? getStatusTag("Fourty")
-                                          : getStatusTag("Pending")}
-                                      </div>
-                                      {/* Hạn thanh toán chỉ hiện khi đã hoàn thành đăng ký học */}
-                                      {(selectedRegistration.status ===
-                                        "Accepted" ||
-                                        selectedRegistration.status ===
-                                          "Fourty" ||
-                                        selectedRegistration.status ===
-                                          "FourtyFeedbackDone" ||
-                                        selectedRegistration.status ===
-                                          "Sixty" ||
-                                        selectedRegistration.status ===
-                                          "Completed") &&
-                                        selectedRegistration.paymentDeadline && (
-                                          <div className="text-red-500">
-                                            Hạn thanh toán:{" "}
-                                            {dayjs(
-                                              selectedRegistration.paymentDeadline
-                                            ).format("DD/MM/YYYY")}
-                                          </div>
-                                        )}
+                                      Số tiền:{" "}
+                                      {(
+                                        selectedRegistration.secondPaymentPeriod
+                                          ?.PaymentAmount ||
+                                        selectedRegistration.price * 0.6
+                                      ).toLocaleString("vi-VN")}{" "}
+                                      VNĐ
                                     </div>
-                                  ),
-                                  status:
-                                    selectedRegistration.status === "Fourty" ||
-                                    selectedRegistration.status ===
-                                      "FourtyFeedbackDone" ||
-                                    selectedRegistration.status === "Sixty" ||
-                                    selectedRegistration.status === "Completed"
-                                      ? "finish"
-                                      : "wait",
-                                },
-                                {
-                                  title: "Thanh toán 60% học phí còn lại",
-                                  description: (
                                     <div>
-                                      <div>
-                                        Số tiền:{" "}
-                                        {(
-                                          selectedRegistration.price * 0.6
-                                        ).toLocaleString("vi-VN")}{" "}
-                                        VNĐ
-                                      </div>
-                                      <div>
-                                        Trạng thái:{" "}
-                                        {selectedRegistration.status ===
-                                          "Sixty" ||
-                                        selectedRegistration.status ===
-                                          "Completed"
-                                          ? getStatusTag("Sixty")
-                                          : getStatusTag("Pending")}
-                                      </div>
-                                      {/* Hạn thanh toán chỉ hiện khi đã hoàn thành 40% */}
-                                      {(selectedRegistration.status ===
-                                        "Fourty" ||
-                                        selectedRegistration.status ===
-                                          "FourtyFeedbackDone" ||
-                                        selectedRegistration.status ===
-                                          "Sixty" ||
-                                        selectedRegistration.status ===
-                                          "Completed") &&
-                                        selectedRegistration.paymentDeadline && (
-                                          <div className="text-red-500">
-                                            Hạn thanh toán:{" "}
-                                            {dayjs(
-                                              selectedRegistration.paymentDeadline
-                                            ).format("DD/MM/YYYY")}
-                                          </div>
-                                        )}
+                                      Trạng thái:{" "}
+                                      {
+                                        selectedRegistration.secondPaymentPeriod
+                                          ?.PaymentStatus
+                                      }
                                     </div>
-                                  ),
-                                  status:
-                                    selectedRegistration.status === "Sixty" ||
-                                    selectedRegistration.status === "Completed"
-                                      ? "finish"
-                                      : "wait",
-                                },
-                              ];
-                            })()}
+                                    {selectedRegistration.secondPaymentPeriod
+                                      ?.PaymentDeadline && (
+                                      <div className="text-red-500">
+                                        Hạn thanh toán:{" "}
+                                        {dayjs(
+                                          selectedRegistration
+                                            .secondPaymentPeriod.PaymentDeadline
+                                        ).format("DD/MM/YYYY")}
+                                      </div>
+                                    )}
+                                  </div>
+                                ),
+                                status:
+                                  selectedRegistration.currentStatus ===
+                                    "Sixty" ||
+                                  selectedRegistration.currentStatus ===
+                                    "Completed"
+                                    ? "finish"
+                                    : "wait",
+                              },
+                            ]}
                           />
                         </div>
                       </div>

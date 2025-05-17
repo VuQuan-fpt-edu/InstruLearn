@@ -45,11 +45,9 @@ import StudentCenterSchedule from "./pages/staff/StudentCenterSchedule";
 import StudentPersonalSchedule from "./pages/staff/StudentPersonalSchedule";
 import MakeupClassRequests from "./pages/staff/MakeupClassRequests";
 import CenterClassRegistration from "./pages/staff/CenterClassRegistration";
-import CenterClassPayments from "./pages/manager/CenterClassPayments";
-import CenterClassPaymentsDetails from "./pages/manager/CenterClassPaymentsDetails";
-import OneOnOnePayments from "./pages/manager/OneOnOnePayments";
-import OneOnOnePaymentsDetails from "./pages/manager/OneOnOnePaymentsDetails";
-import OnlineCoursePayments from "./pages/manager/OnlineCoursePayments";
+import DateRevenue from "./pages/manager/DateRevenue";
+import MonthRevenue from "./pages/manager/MonthRevenue";
+import YearRevenue from "./pages/manager/YearRevenue";
 import HistoryTransaction from "./pages/manager/HistoryTransaction";
 import PromotionCodes from "./pages/manager/PromotionCodes";
 import ManagerManagement from "./pages/admin/ManagerManagement";
@@ -81,6 +79,12 @@ import FeedbackManagement from "./pages/staff/FeedbackManagement";
 import StudentNotification from "./pages/staff/StudentNotification";
 import ResponsesManagement from "./pages/staff/ResponseManagement";
 import TeacherNotification from "./pages/teacher/Notification";
+import ChangeTeacher from "./pages/staff/ChangeTeacher";
+import RegistrationDetail from "./pages/home/profile/RegistrationDetail";
+import ChangeAllTeacher from "./pages/staff/ChangeAllTeacher";
+import TeacherEvaluationQuestionManagement from "./pages/staff/TeacherEvaluationQuestionManagement";
+import TeacherFeedbackManagement from "./pages/staff/TeacherFeedbackManagement";
+import LevelFeedbackTemplateManagement from "./pages/manager/LevelFeedbackTemplateManagement";
 export default function App() {
   return (
     <Router>
@@ -101,6 +105,10 @@ export default function App() {
           <Route path="/package/:id" element={<PackageDetail />} />
           <Route path="/class-detail/:id" element={<ClassDetails />} />
           <Route path="/notification" element={<Notification />} />
+          <Route
+            path="/profile/registration-detail/:id"
+            element={<RegistrationDetail />}
+          />
         </Route>
 
         {/* Admin Routes */}
@@ -193,7 +201,16 @@ export default function App() {
           path="staff/response-management"
           element={<ResponsesManagement />}
         />
-
+        <Route path="staff/change-teacher" element={<ChangeTeacher />} />
+        <Route path="staff/change-all-teacher" element={<ChangeAllTeacher />} />
+        <Route
+          path="staff/teacher-evaluation-question-management"
+          element={<TeacherEvaluationQuestionManagement />}
+        />
+        <Route
+          path="staff/teacher-feedback-management"
+          element={<TeacherFeedbackManagement />}
+        />
         {/* Teacher Routes */}
         <Route path="/teacher" element={<TeacherDashBoard />} />
         <Route path="/teacher/profile" element={<TeacherProfiles />} />
@@ -218,26 +235,12 @@ export default function App() {
         {/* Manager Routes */}
         <Route path="manager" element={<Dashboard />} />
         <Route path="manager/revenue" element={<RevenueReport />} />
+        <Route path="manager/revenue/date-revenue" element={<DateRevenue />} />
         <Route
-          path="manager/revenue/center-class-payments"
-          element={<CenterClassPayments />}
+          path="manager/revenue/month-revenue"
+          element={<MonthRevenue />}
         />
-        <Route
-          path="manager/revenue/center-class-payments/:id"
-          element={<CenterClassPaymentsDetails />}
-        />
-        <Route
-          path="manager/revenue/one-on-one-payments"
-          element={<OneOnOnePayments />}
-        />
-        <Route
-          path="manager/revenue/one-on-one-payments/:id"
-          element={<OneOnOnePaymentsDetails />}
-        />
-        <Route
-          path="manager/revenue/online-course-payments"
-          element={<OnlineCoursePayments />}
-        />
+        <Route path="manager/revenue/year-revenue" element={<YearRevenue />} />
         <Route
           path="manager/revenue/history-transaction"
           element={<HistoryTransaction />}
@@ -259,6 +262,10 @@ export default function App() {
         <Route
           path="manager/level-syllabus"
           element={<Syllabus11Management />}
+        />
+        <Route
+          path="manager/level-feedback-template"
+          element={<LevelFeedbackTemplateManagement />}
         />
         {/* Auth Routes */}
         <Route path="/login" element={<Login />} />

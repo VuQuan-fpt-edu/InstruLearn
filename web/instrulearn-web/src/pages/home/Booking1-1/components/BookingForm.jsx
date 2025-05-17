@@ -31,6 +31,8 @@ import {
 } from "firebase/storage";
 import dayjs from "dayjs";
 import axios from "axios";
+import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
+dayjs.extend(isSameOrAfter);
 
 const { Option } = Select;
 const { Title } = Typography;
@@ -97,11 +99,11 @@ const BookingForm = ({
   };
 
   const levelOptions = [
-    { value: "none", label: "Chưa chơi bao giờ" },
-    { value: "1-3", label: "1-3 tháng" },
-    { value: "3-6", label: "3-6 tháng" },
-    { value: "6-9", label: "6-9 tháng" },
-    { value: "1year", label: "Hơn 1 năm" },
+    { value: "none", label: "Tôi chưa chơi nhạc cụ này bao giờ" },
+    { value: "1-3", label: "Tôi đã chơi nhạc cụ này được 1-3 tháng" },
+    { value: "3-6", label: "Tôi đã chơi nhạc cụ này được 3-6 tháng" },
+    { value: "6-9", label: "Tôi đã chơi nhạc cụ này được 6-9 tháng" },
+    { value: "1year", label: "Tôi đã chơi nhạc cụ này được hơn 1 năm rồi" },
   ];
 
   const timeLearningOptions = [
@@ -386,6 +388,28 @@ const BookingForm = ({
     checkAvailableTeachers();
   };
 
+  // Hàm tính tất cả các ngày học dựa trên ngày bắt đầu, số tuần và các thứ đã chọn
+  const getAllLearningDates = () => {
+    const startDay = form.getFieldValue("startDay");
+    const numberOfWeeks = form.getFieldValue("numberOfWeeks");
+    const bookingDays = form.getFieldValue("bookingDays") || [];
+    if (!startDay || !numberOfWeeks || bookingDays.length === 0) return [];
+    const start = dayjs(startDay);
+    let result = [];
+    for (let week = 0; week < numberOfWeeks; week++) {
+      bookingDays.forEach((dayOfWeek) => {
+        const firstDayOfWeek = start.add(week, "week").startOf("week");
+        const day = firstDayOfWeek.add(Number(dayOfWeek), "day");
+        const dayObj = dayjs(day); // Đảm bảo là dayjs object
+        if (dayObj.isSameOrAfter(start)) {
+          result.push(dayObj.format("YYYY-MM-DD"));
+        }
+      });
+    }
+    result = Array.from(new Set(result)).sort();
+    return result;
+  };
+
   const checkAvailableTeachers = async () => {
     // Reset giáo viên đã chọn trước khi gọi API
     forceResetTeacherSelection();
@@ -395,13 +419,15 @@ const BookingForm = ({
     const timeLearning = form.getFieldValue("timeLearning");
     const startDay = form.getFieldValue("startDay");
     const selectedMajor = majors.find((m) => m.majorName === instrument);
+    const allLearningDates = getAllLearningDates();
 
     if (
       instrument &&
       bookingSlot &&
       timeLearning &&
       startDay &&
-      selectedMajor
+      selectedMajor &&
+      allLearningDates.length > 0
     ) {
       try {
         setIsCheckingTeachers(true);
@@ -409,7 +435,7 @@ const BookingForm = ({
           majorId: selectedMajor.majorId,
           timeStart: dayjs(bookingSlot).format("HH:mm"),
           timeLearning: timeLearning,
-          startDay: dayjs(startDay).format("YYYY-MM-DD"),
+          startDay: allLearningDates.join(","),
         });
 
         const response = await axios.get(
@@ -419,7 +445,7 @@ const BookingForm = ({
               majorId: selectedMajor.majorId,
               timeStart: dayjs(bookingSlot).format("HH:mm"),
               timeLearning: timeLearning,
-              startDay: dayjs(startDay).format("YYYY-MM-DD"),
+              startDay: allLearningDates.join(","),
             },
           }
         );

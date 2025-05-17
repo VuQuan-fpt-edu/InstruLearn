@@ -4,6 +4,8 @@ import TeacherSidebar from "../../components/teacher/TeacherSidebar";
 import TeacherHeader from "../../components/teacher/TeacherHeader";
 import axios from "axios";
 import dayjs from "dayjs";
+import { CheckCircleOutlined, EyeOutlined } from "@ant-design/icons";
+import { message } from "antd";
 
 const { Content } = Layout;
 const { Title } = Typography;
@@ -62,6 +64,17 @@ const Notification = () => {
     }
   };
 
+  const markAsRead = async (notificationId) => {
+    try {
+      await axios.post(
+        `https://instrulearnapplication.azurewebsites.net/api/StaffNotification/mark-as-read/${notificationId}`
+      );
+      if (teacherId) fetchNotifications(teacherId);
+    } catch (error) {
+      message.error("Không thể đánh dấu đã đọc");
+    }
+  };
+
   return (
     <Layout className="min-h-screen bg-gray-50">
       <TeacherSidebar
@@ -111,8 +124,29 @@ const Notification = () => {
                               <span className="font-medium text-blue-600">
                                 {item.title}
                               </span>
-                              <Tag color={item.status === 0 ? "blue" : "green"}>
-                                {item.status === 0 ? "Chưa xử lý" : "Đã xử lý"}
+                              <Tag
+                                color={
+                                  item.status === 0
+                                    ? "blue"
+                                    : item.status === 1
+                                    ? "gold"
+                                    : "green"
+                                }
+                                icon={
+                                  item.status === 0 ? (
+                                    <EyeOutlined />
+                                  ) : item.status === 1 ? (
+                                    <CheckCircleOutlined />
+                                  ) : (
+                                    <CheckCircleOutlined />
+                                  )
+                                }
+                              >
+                                {item.status === 0
+                                  ? "Chưa đọc"
+                                  : item.status === 1
+                                  ? "Đã đọc"
+                                  : "Đã xử lý"}
                               </Tag>
                             </div>
                           }
@@ -131,7 +165,20 @@ const Notification = () => {
                                     "DD/MM/YYYY HH:mm"
                                   )}
                                 </span>
+                                {/* <span>Mã đăng ký: {item.learningRegisId}</span> */}
                               </div>
+                              {item.status === 0 && (
+                                <Button
+                                  type="primary"
+                                  size="small"
+                                  className="mt-3"
+                                  onClick={() =>
+                                    markAsRead(item.notificationId)
+                                  }
+                                >
+                                  Đánh dấu đã đọc
+                                </Button>
+                              )}
                             </>
                           }
                         />

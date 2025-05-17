@@ -43,6 +43,19 @@ const days = [
 
 const sessionOptions = Array.from({ length: 16 }, (_, i) => i + 5);
 
+const levelOptions = [
+  { value: "none", label: "Tôi chưa chơi nhạc cụ này bao giờ" },
+  { value: "1-3", label: "Tôi đã chơi nhạc cụ này được 1-3 tháng" },
+  { value: "3-6", label: "Tôi đã chơi nhạc cụ này được 3-6 tháng" },
+  { value: "6-9", label: "Tôi đã chơi nhạc cụ này được 6-9 tháng" },
+  { value: "1year", label: "Tôi đã chơi nhạc cụ này được hơn 1 năm rồi" },
+];
+
+function getLevelLabel(value) {
+  const found = levelOptions.find((opt) => opt.value === value);
+  return found ? found.label : value;
+}
+
 const StudentBookingForm = () => {
   const [form] = Form.useForm();
   const [current, setCurrent] = useState(0);
@@ -212,6 +225,7 @@ const StudentBookingForm = () => {
         requestDate: dayjs().format("YYYY-MM-DDTHH:mm:ss"),
         numberOfSession: parseInt(formValues.numberOfSlots),
         learningRequest: formValues.learningRequest || "",
+        selfAssessment: getLevelLabel(formValues.level) || "",
         learningDays: formValues.bookingDays.map((day) => parseInt(day)),
       };
 

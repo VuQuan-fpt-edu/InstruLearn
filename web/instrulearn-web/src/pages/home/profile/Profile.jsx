@@ -63,6 +63,7 @@ import MyRegistrations from "./MyRegistrations";
 import MySchedule from "./MySchedule";
 import TransactionHistory from "./TransactionHistory";
 import MyLibrary from "./MyLibrary";
+import TeacherEvaluations from "./MyCourse";
 
 // Firebase configuration
 const firebaseConfig = {
@@ -600,7 +601,7 @@ const Profile = () => {
       case "schedule":
         return <MySchedule />;
       case "courses":
-        return <EnrolledCourses courses={enrolledCourses} />;
+        return <TeacherEvaluations />;
       case "achievements":
         return <Achievements achievements={achievements} />;
       case "wallet":
@@ -642,13 +643,13 @@ const Profile = () => {
     {
       key: "courses",
       icon: <BookOutlined className="text-lg" />,
-      label: "Gói học online của tôi",
+      label: "Đánh giá của giáo viên",
     },
-    {
-      key: "achievements",
-      icon: <TrophyOutlined className="text-lg" />,
-      label: "Thành tích",
-    },
+    // {
+    //   key: "achievements",
+    //   icon: <TrophyOutlined className="text-lg" />,
+    //   label: "Thành tích",
+    // },
     {
       key: "wallet",
       icon: <WalletOutlined className="text-lg" />,

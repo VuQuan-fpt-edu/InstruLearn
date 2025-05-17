@@ -109,14 +109,13 @@ const CenterSchedule = () => {
     }
   };
 
-  const handleParticipantAttendance = async (participantId, status) => {
+  const handleParticipantAttendance = async (participantScheduleId, status) => {
     try {
       setAttendanceLoading(true);
       const token = localStorage.getItem("authToken");
-
       const response = await axios.put(
-        `https://instrulearnapplication.azurewebsites.net/api/Schedules/update-attendance/${participantId}`,
-        status,
+        `https://instrulearnapplication.azurewebsites.net/api/Schedules/check-attendance/${participantScheduleId}`,
+        { status },
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -124,55 +123,13 @@ const CenterSchedule = () => {
           },
         }
       );
-
       if (response.data.isSucceed) {
         message.success("Cập nhật điểm danh thành công");
-        // Cập nhật trạng thái điểm danh trong state
-        const updatedSchedules = schedules.map((schedule) => {
-          if (schedule.startDay === selectedDate?.format("YYYY-MM-DD")) {
-            return {
-              ...schedule,
-              participants: schedule.participants.map((participant) => {
-                if (participant.scheduleId === participantId) {
-                  return {
-                    ...participant,
-                    attendanceStatus: status,
-                  };
-                }
-                return participant;
-              }),
-            };
-          }
-          return schedule;
-        });
-
-        setSchedules(updatedSchedules);
-
-        // Cập nhật danh sách selectedSchedules
-        const updatedSelectedSchedules = selectedSchedules.map((schedule) => {
-          if (schedule.startDay === selectedDate?.format("YYYY-MM-DD")) {
-            return {
-              ...schedule,
-              participants: schedule.participants.map((participant) => {
-                if (participant.scheduleId === participantId) {
-                  return {
-                    ...participant,
-                    attendanceStatus: status,
-                  };
-                }
-                return participant;
-              }),
-            };
-          }
-          return schedule;
-        });
-
-        setSelectedSchedules(updatedSelectedSchedules);
+        fetchSchedules(); // Cập nhật lại giao diện
       } else {
         throw new Error("Không thể cập nhật điểm danh");
       }
     } catch (error) {
-      console.error("Error updating attendance:", error);
       message.error("Không thể cập nhật điểm danh");
     } finally {
       setAttendanceLoading(false);

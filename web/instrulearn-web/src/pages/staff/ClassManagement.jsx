@@ -73,12 +73,15 @@ const ClassManagement = () => {
   const [majors, setMajors] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedDays, setSelectedDays] = useState([]);
+  const [weekCount, setWeekCount] = useState(1);
   const [availableTeachers, setAvailableTeachers] = useState([]);
   const [isLoadingTeachers, setIsLoadingTeachers] = useState(false);
   const [existingClassNames, setExistingClassNames] = useState([]);
   const [isCheckingClassName, setIsCheckingClassName] = useState(false);
   const [classNameError, setClassNameError] = useState("");
   const [checkClassNameTimer, setCheckClassNameTimer] = useState(null);
+  const [levels, setLevels] = useState([]);
+  const [selectedMajorId, setSelectedMajorId] = useState(undefined);
 
   useEffect(() => {
     Promise.all([
@@ -86,6 +89,7 @@ const ClassManagement = () => {
       fetchSyllabuses(),
       fetchClasses(),
       fetchMajors(),
+      fetchLevels(),
     ]);
   }, []);
 
@@ -159,57 +163,82 @@ const ClassManagement = () => {
     }
   };
 
-  const fetchAvailableTeachers = async (startDate, classTime) => {
+  const fetchLevels = async () => {
+    try {
+      const response = await fetch(
+        "https://instrulearnapplication.azurewebsites.net/api/LevelAssigned/get-all"
+      );
+      const data = await response.json();
+      // data là mảng các object có .data
+      const formattedLevels = data.map((item) => item.data);
+      setLevels(formattedLevels);
+    } catch (error) {
+      message.error("Không thể tải danh sách cấp độ");
+    }
+  };
+
+  // Hàm tính tất cả các ngày học thực tế (bao gồm ngày kiểm tra đầu vào và các ngày học chính thức)
+  const getAllSessionDates = (startDate, classDays, weekCount, testDay) => {
+    if (!startDate || !classDays || classDays.length === 0 || !weekCount)
+      return [];
+    let result = [];
+    // Thêm ngày kiểm tra đầu vào nếu có
+    if (testDay) {
+      result.push(dayjs(testDay).format("YYYY-MM-DD"));
+    }
+    // Tính các ngày học chính thức
+    const start = dayjs(startDate);
+    for (let week = 0; week < weekCount; week++) {
+      classDays.forEach((dayOfWeek) => {
+        // Tìm ngày đầu tiên của tuần hiện tại (thứ 2)
+        const weekStart = start.startOf("week").add(week, "week");
+        // Tìm ngày học trong tuần này
+        const sessionDate = weekStart.day(dayOfWeek);
+        // Nếu tuần đầu tiên, chỉ lấy ngày >= startDate
+        if (week === 0 && sessionDate.isBefore(start, "day")) return;
+        // Không trùng ngày kiểm tra đầu vào
+        const sessionDateStr = sessionDate.format("YYYY-MM-DD");
+        if (!result.includes(sessionDateStr)) {
+          result.push(sessionDateStr);
+        }
+      });
+    }
+    // Sắp xếp tăng dần
+    result = result.sort();
+    return result;
+  };
+
+  const fetchAvailableTeachers = async () => {
     try {
       setIsLoadingTeachers(true);
-      // Chuyển từ POST method sang GET method và truyền tham số qua query parameters
+      const majorId = form.getFieldValue("majorId");
+      const classTime = form.getFieldValue("classTime")?.format("HH:mm:00");
+      const classDays = form.getFieldValue("classDays");
+      const weekCount = form.getFieldValue("weekCount");
+      const startDate = form.getFieldValue("startDate");
+      const testDay = form.getFieldValue("testDay");
+
+      // Tính danh sách ngày học thực tế
+      const sessionDates = getAllSessionDates(
+        startDate,
+        classDays,
+        weekCount,
+        testDay
+      );
+      const startDayParam = sessionDates.join(",");
+
       const url = new URL(
         "https://instrulearnapplication.azurewebsites.net/api/Schedules/available-teachers"
       );
-
-      // Thêm query parameters
-      url.searchParams.append("timeLearning", "120");
+      url.searchParams.append("majorId", majorId);
       url.searchParams.append("timeStart", classTime);
-      url.searchParams.append("startDay", startDate);
-
-      // Nếu đã chọn majorId thì truyền vào
-      const majorId = form.getFieldValue("majorId");
-      if (majorId) {
-        url.searchParams.append("majorId", majorId);
-      }
-
-      console.log("Calling API with URL:", url.toString());
+      url.searchParams.append("timeLearning", "120");
+      url.searchParams.append("startDay", startDayParam);
 
       const response = await fetch(url);
       const data = await response.json();
-      console.log("API response:", data);
-
-      // Kiểm tra dữ liệu trả về
-      if (Array.isArray(data)) {
-        setAvailableTeachers(data);
-        if (data.length === 0) {
-          message.warning(
-            "Không có giáo viên nào có lịch trống vào thời gian này"
-          );
-        }
-      } else if (data.isSucceed) {
-        if (Array.isArray(data.data)) {
-          setAvailableTeachers(data.data);
-          if (data.data.length === 0) {
-            message.warning(
-              "Không có giáo viên nào có lịch trống vào thời gian này"
-            );
-          }
-        } else {
-          message.error("Định dạng dữ liệu không hợp lệ");
-        }
-      } else {
-        message.error(
-          data.message || "Không thể tải danh sách giáo viên khả dụng"
-        );
-      }
+      setAvailableTeachers(Array.isArray(data) ? data : data.data || []);
     } catch (error) {
-      console.error("Error fetching available teachers:", error);
       message.error("Không thể tải danh sách giáo viên khả dụng");
     } finally {
       setIsLoadingTeachers(false);
@@ -226,8 +255,11 @@ const ClassManagement = () => {
       const requestData = {
         teacherId: Number(values.teacherId),
         majorId: Number(values.majorId),
-        syllabusId: Number(values.syllabusId),
+        levelId: Number(values.levelId),
         className: values.className.trim(),
+        testDay: values.testDay
+          ? values.testDay.format("YYYY-MM-DD")
+          : values.startDate.format("YYYY-MM-DD"),
         startDate: values.startDate.format("YYYY-MM-DD"),
         classTime: values.classTime.format("HH:mm:00"),
         maxStudents: Number(values.maxStudents),
@@ -453,19 +485,18 @@ const ClassManagement = () => {
   );
 
   const handleFormValuesChange = (changedValues, allValues) => {
-    // Kiểm tra nếu đã chọn đủ 3 trường cần thiết
-    if (allValues.majorId && allValues.startDate && allValues.classTime) {
-      // Reset danh sách giáo viên trước khi gọi API mới
-      setAvailableTeachers([]);
-      // Gọi API để lấy danh sách giáo viên khả dụng
-      fetchAvailableTeachers(
-        allValues.startDate.format("YYYY-MM-DD"),
-        allValues.classTime.format("HH:mm:00")
-      );
+    // Kiểm tra nếu đã chọn đủ các trường cần thiết để lấy giáo viên
+    if (
+      allValues.majorId &&
+      allValues.startDate &&
+      allValues.classTime &&
+      allValues.classDays &&
+      allValues.classDays.length > 0 &&
+      allValues.weekCount
+    ) {
+      fetchAvailableTeachers();
     } else {
-      // Reset danh sách giáo viên nếu chưa đủ điều kiện
       setAvailableTeachers([]);
-      // Nếu thay đổi một trong các trường quan trọng, reset trường giáo viên
       if (
         changedValues.majorId ||
         changedValues.startDate ||
@@ -473,6 +504,23 @@ const ClassManagement = () => {
       ) {
         form.setFieldValue("teacherId", undefined);
       }
+    }
+
+    // Tự động tính tổng số buổi học khi thay đổi ngày học hoặc số tuần học
+    if (
+      changedValues.weekCount !== undefined ||
+      changedValues.classDays !== undefined
+    ) {
+      const days =
+        changedValues.classDays !== undefined
+          ? changedValues.classDays
+          : selectedDays;
+      const weeks =
+        changedValues.weekCount !== undefined
+          ? changedValues.weekCount
+          : weekCount;
+      const total = (days ? days.length : 0) * (weeks ? weeks : 0);
+      form.setFieldsValue({ totalDays: total });
     }
   };
 
@@ -525,6 +573,30 @@ const ClassManagement = () => {
       return Promise.reject(new Error("Tên lớp này đã tồn tại!"));
     }
     return Promise.resolve();
+  };
+
+  // Hàm kiểm tra ngày bắt đầu hợp lệ: chỉ cho chọn ngày trong tuần đã chọn và từ tuần sau nữa trở đi (cách 2 tuần)
+  const isValidStartDate = (date) => {
+    if (!selectedDays || selectedDays.length === 0) return false;
+    const dayOfWeek = date.day(); // 0: Chủ nhật, 1: Thứ 2, ...
+    const today = dayjs();
+    const twoWeeksLaterStart = today.startOf("week").add(2, "week");
+    // Nếu ngày đang xét < ngày đầu tuần sau nữa => không hợp lệ
+    if (date.isBefore(twoWeeksLaterStart, "day")) return false;
+    // Chỉ cho phép chọn ngày trong selectedDays
+    return selectedDays.includes(dayOfWeek);
+  };
+
+  // Hàm kiểm tra ngày kiểm tra đầu vào hợp lệ: chỉ cho chọn ngày trong tuần đã chọn và từ tuần sau trở đi (cách 1 tuần)
+  const isValidTestDay = (date) => {
+    if (!selectedDays || selectedDays.length === 0) return false;
+    const dayOfWeek = date.day(); // 0: Chủ nhật, 1: Thứ 2, ...
+    const today = dayjs();
+    const nextWeekStart = today.startOf("week").add(1, "week");
+    // Nếu ngày đang xét < ngày đầu tuần sau => không hợp lệ
+    if (date.isBefore(nextWeekStart, "day")) return false;
+    // Chỉ cho phép chọn ngày trong selectedDays
+    return selectedDays.includes(dayOfWeek);
   };
 
   return (
@@ -651,91 +723,10 @@ const ClassManagement = () => {
             teacherId: undefined,
             syllabusId: undefined,
             majorId: undefined,
+            levelId: undefined,
           }}
         >
           <div className="grid grid-cols-2 gap-4">
-            <Form.Item
-              name="majorId"
-              label="Chuyên ngành"
-              rules={[
-                { required: true, message: "Vui lòng chọn chuyên ngành" },
-              ]}
-            >
-              <Select placeholder="Chọn chuyên ngành">
-                {majors.map((major) => (
-                  <Option key={major.majorId} value={major.majorId}>
-                    {major.majorName}
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
-
-            <Form.Item
-              name="startDate"
-              label="Ngày bắt đầu"
-              rules={[
-                { required: true, message: "Vui lòng chọn ngày bắt đầu" },
-              ]}
-            >
-              <DatePicker className="w-full" />
-            </Form.Item>
-
-            <Form.Item
-              name="classTime"
-              label="Thời gian học"
-              rules={[
-                { required: true, message: "Vui lòng chọn thời gian học" },
-              ]}
-            >
-              <TimePicker
-                className="w-full"
-                format="HH:mm"
-                disabledTime={disabledTime}
-                minuteStep={15}
-                showNow={false}
-                placeholder="Chọn thời gian (7:00 - 19:00)"
-              />
-            </Form.Item>
-
-            <Form.Item
-              name="teacherId"
-              label="Giáo viên"
-              rules={[{ required: true, message: "Vui lòng chọn giáo viên" }]}
-            >
-              <Select
-                placeholder="Chọn giáo viên"
-                loading={isLoadingTeachers}
-                disabled={
-                  !form.getFieldValue("majorId") ||
-                  !form.getFieldValue("startDate") ||
-                  !form.getFieldValue("classTime")
-                }
-              >
-                {availableTeachers.map((teacher) => (
-                  <Option key={teacher.teacherId} value={teacher.teacherId}>
-                    {teacher.fullname}
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
-
-            <Form.Item
-              name="syllabusId"
-              label="Giáo trình"
-              rules={[{ required: true, message: "Vui lòng chọn giáo trình" }]}
-            >
-              <Select placeholder="Chọn giáo trình">
-                {syllabuses.map((syllabus) => (
-                  <Option
-                    key={syllabus.data.syllabusId}
-                    value={syllabus.data.syllabusId}
-                  >
-                    {syllabus.data.syllabusName}
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
-
             <Form.Item
               name="className"
               label="Tên lớp"
@@ -777,14 +768,6 @@ const ClassManagement = () => {
             </Form.Item>
 
             <Form.Item
-              name="totalDays"
-              label="Tổng số buổi học"
-              rules={[{ required: true, message: "Vui lòng nhập số buổi học" }]}
-            >
-              <InputNumber className="w-full" min={1} />
-            </Form.Item>
-
-            <Form.Item
               name="price"
               label="Giá/buổi"
               rules={[{ required: true, message: "Vui lòng nhập giá" }]}
@@ -800,19 +783,166 @@ const ClassManagement = () => {
             </Form.Item>
 
             <Form.Item
+              name="majorId"
+              label="Chuyên ngành"
+              rules={[
+                { required: true, message: "Vui lòng chọn chuyên ngành" },
+              ]}
+            >
+              <Select
+                placeholder="Chọn chuyên ngành"
+                onChange={(value) => {
+                  setSelectedMajorId(value);
+                  form.setFieldsValue({ levelId: undefined }); // reset level khi đổi major
+                }}
+              >
+                {majors.map((major) => (
+                  <Option key={major.majorId} value={major.majorId}>
+                    {major.majorName}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+
+            <Form.Item
+              name="levelId"
+              label="Cấp độ"
+              rules={[{ required: true, message: "Vui lòng chọn cấp độ" }]}
+            >
+              <Select placeholder="Chọn cấp độ" disabled={!selectedMajorId}>
+                {levels
+                  .filter((level) => level.majorId === selectedMajorId)
+                  .map((level) => (
+                    <Option
+                      key={level.levelAssignedId}
+                      value={level.levelAssignedId}
+                    >
+                      {level.levelName} -{" "}
+                      {majors.find((m) => m.majorId === level.majorId)
+                        ?.majorName || "Chuyên ngành?"}
+                    </Option>
+                  ))}
+              </Select>
+            </Form.Item>
+
+            <Form.Item
+              name="classTime"
+              label="Thời gian học"
+              rules={[
+                { required: true, message: "Vui lòng chọn thời gian học" },
+              ]}
+            >
+              <TimePicker
+                className="w-full"
+                format="HH:mm"
+                disabledTime={disabledTime}
+                minuteStep={15}
+                showNow={false}
+                placeholder="Chọn thời gian (7:00 - 19:00)"
+              />
+            </Form.Item>
+
+            <Form.Item
               label="Ngày học trong tuần"
+              name="classDays"
               rules={[{ required: true, message: "Vui lòng chọn ngày học" }]}
             >
               <Select
                 mode="multiple"
                 placeholder="Chọn ngày học"
                 value={selectedDays}
-                onChange={setSelectedDays}
+                onChange={(days) => {
+                  setSelectedDays(days);
+                  // Tự động tính lại tổng số buổi học khi chọn ngày học
+                  const total = days.length * weekCount;
+                  form.setFieldsValue({ totalDays: total });
+                }}
                 className="w-full"
               >
                 {weekDays.map((day) => (
                   <Option key={day.value} value={day.value}>
                     {day.label}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+
+            <Form.Item
+              label="Số tuần học"
+              name="weekCount"
+              rules={[{ required: true, message: "Vui lòng chọn số tuần học" }]}
+              initialValue={1}
+            >
+              <Select
+                placeholder="Chọn số tuần học"
+                onChange={(value) => {
+                  setWeekCount(value);
+                  // Tự động tính lại tổng số buổi học khi chọn số tuần học
+                  const total = selectedDays.length * value;
+                  form.setFieldsValue({ totalDays: total });
+                }}
+              >
+                {[...Array(12)].map((_, idx) => (
+                  <Option key={idx + 1} value={idx + 1}>
+                    {idx + 1} tuần
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+
+            <Form.Item
+              name="totalDays"
+              label="Tổng số buổi học"
+              rules={[{ required: true, message: "Vui lòng nhập số buổi học" }]}
+            >
+              <InputNumber className="w-full" min={1} disabled />
+            </Form.Item>
+
+            <Form.Item
+              name="startDate"
+              label="Ngày bắt đầu"
+              rules={[
+                { required: true, message: "Vui lòng chọn ngày bắt đầu" },
+              ]}
+            >
+              <DatePicker
+                className="w-full"
+                disabledDate={(current) => !isValidStartDate(dayjs(current))}
+                placeholder="Chọn ngày bắt đầu"
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="testDay"
+              label="Ngày kiểm tra đầu vào"
+              rules={[{ required: false }]}
+            >
+              <DatePicker
+                className="w-full"
+                disabledDate={(current) => !isValidTestDay(dayjs(current))}
+                placeholder="Chọn ngày kiểm tra (Bắt buộc)"
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="teacherId"
+              label="Giáo viên"
+              rules={[{ required: true, message: "Vui lòng chọn giáo viên" }]}
+            >
+              <Select
+                placeholder="Chọn giáo viên"
+                loading={isLoadingTeachers}
+                disabled={
+                  !form.getFieldValue("majorId") ||
+                  !form.getFieldValue("startDate") ||
+                  !form.getFieldValue("classTime") ||
+                  !form.getFieldValue("classDays") ||
+                  !form.getFieldValue("weekCount")
+                }
+              >
+                {availableTeachers.map((teacher) => (
+                  <Option key={teacher.teacherId} value={teacher.teacherId}>
+                    {teacher.fullname}
                   </Option>
                 ))}
               </Select>

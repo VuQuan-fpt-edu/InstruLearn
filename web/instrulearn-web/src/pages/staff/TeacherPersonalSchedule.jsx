@@ -298,17 +298,16 @@ const TeacherPersonalSchedule = () => {
                                       )}
                                     </div>
                                   </div>
-                                  <Tag
+                                  {/* <Tag
                                     color={
                                       schedule.isSessionCompleted
                                         ? "success"
                                         : "default"
                                     }
                                   >
-                                    {schedule.isSessionCompleted
-                                      ? "Đã hoàn thành"
-                                      : "Chưa hoàn thành"}
-                                  </Tag>
+                                    {!schedule.isSessionCompleted &&
+                                      "Chưa hoàn thành"}
+                                  </Tag> */}
                                 </div>
 
                                 {/* Learner Info */}

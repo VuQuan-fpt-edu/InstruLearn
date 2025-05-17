@@ -27,19 +27,18 @@ import {
   CloseCircleOutlined,
   QuestionCircleOutlined,
   SwapOutlined,
-  FilterOutlined,
-  EditOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
 import dayjs from "dayjs";
 import StaffSidebar from "../../components/staff/StaffSidebar";
 import StaffHeader from "../../components/staff/StaffHeader";
+import { useNavigate } from "react-router-dom";
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
 const { Option } = Select;
 
-const StudentPersonalSchedule = () => {
+const ChangeTeacher = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [students, setStudents] = useState([]);
@@ -48,7 +47,13 @@ const StudentPersonalSchedule = () => {
   const [viewMode, setViewMode] = useState("month");
   const [teachers, setTeachers] = useState([]);
   const [selectedTeacher, setSelectedTeacher] = useState(null);
+  const [changeTeacherModalVisible, setChangeTeacherModalVisible] =
+    useState(false);
+  const [selectedSchedule, setSelectedSchedule] = useState(null);
+  const [changeTeacherForm] = Form.useForm();
   const [teachersFromSchedules, setTeachersFromSchedules] = useState([]);
+  const [availableTeachers, setAvailableTeachers] = useState([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchStudents();
@@ -170,6 +175,72 @@ const StudentPersonalSchedule = () => {
     return schedules.filter(
       (schedule) => schedule.teacherId === selectedTeacher
     );
+  };
+
+  const handleChangeTeacher = async (schedule) => {
+    setSelectedSchedule(schedule);
+    changeTeacherForm.resetFields();
+    setChangeTeacherModalVisible(true);
+
+    try {
+      setLoading(true);
+      const params = {
+        majorId: schedule.majorId,
+        timeStart: schedule.timeStart,
+        timeLearning: schedule.timeLearning,
+        startDay: schedule.startDay,
+      };
+
+      const response = await axios.get(
+        "https://instrulearnapplication.azurewebsites.net/api/Schedules/available-teachers",
+        { params }
+      );
+
+      if (Array.isArray(response.data)) {
+        setAvailableTeachers(response.data);
+      } else if (response.data?.isSucceed) {
+        setAvailableTeachers(response.data.data);
+      } else {
+        setAvailableTeachers([]);
+      }
+    } catch (error) {
+      setAvailableTeachers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const submitChangeTeacher = async () => {
+    try {
+      const values = await changeTeacherForm.validateFields();
+      setLoading(true);
+
+      const payload = {
+        teacherId: values.teacherId,
+        changeReason: values.changeReason,
+      };
+
+      const response = await axios.put(
+        `https://instrulearnapplication.azurewebsites.net/api/Schedules/update-teacher/${selectedSchedule.scheduleId}`,
+        payload
+      );
+
+      if (response.data && response.data.isSucceed) {
+        message.success("Đã thay đổi giáo viên thành công");
+        setChangeTeacherModalVisible(false);
+
+        if (selectedStudent) {
+          handleStudentChange(selectedStudent.learnerId);
+        }
+      } else {
+        message.error(response.data?.message || "Không thể thay đổi giáo viên");
+      }
+    } catch (error) {
+      console.error("Error changing teacher:", error);
+      message.error("Đã xảy ra lỗi khi thay đổi giáo viên");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const isPastDate = (startDay) => {
@@ -300,7 +371,7 @@ const StudentPersonalSchedule = () => {
       <StaffSidebar
         collapsed={collapsed}
         setCollapsed={setCollapsed}
-        selectedMenu="personal-teaching"
+        selectedMenu="change-teacher"
       />
       <Layout
         style={{
@@ -317,7 +388,7 @@ const StudentPersonalSchedule = () => {
         >
           <Card>
             <div className="flex justify-between items-center mb-4">
-              <Title level={4}>Quản lý lịch học học viên</Title>
+              <Title level={4}>Quản lý đổi giáo viên từng buổi</Title>
               <Space>
                 <Select
                   placeholder="Lọc theo giáo viên"
@@ -473,6 +544,20 @@ const StudentPersonalSchedule = () => {
                                           </div>
                                         </div>
                                       </div>
+                                      <div className="flex gap-2">
+                                        {!isPastDate(schedule.startDay) && (
+                                          <Button
+                                            type="primary"
+                                            icon={<SwapOutlined />}
+                                            size="small"
+                                            onClick={() =>
+                                              handleChangeTeacher(schedule)
+                                            }
+                                          >
+                                            Đổi giáo viên
+                                          </Button>
+                                        )}
+                                      </div>
                                     </div>
 
                                     <div className="space-y-2">
@@ -526,6 +611,95 @@ const StudentPersonalSchedule = () => {
               )}
             </Card>
           </Card>
+
+          {/* Modal đổi giáo viên */}
+          <Modal
+            title="Đổi giáo viên"
+            open={changeTeacherModalVisible}
+            onOk={submitChangeTeacher}
+            onCancel={() => setChangeTeacherModalVisible(false)}
+            okText="Xác nhận"
+            cancelText="Hủy"
+            confirmLoading={loading}
+          >
+            {selectedSchedule && (
+              <div className="mb-4">
+                <div className="text-sm mb-2">Thông tin buổi học:</div>
+                <div className="p-3 bg-gray-50 rounded-md">
+                  <div>
+                    <strong>Buổi học:</strong> {selectedSchedule.sessionTitle}
+                  </div>
+                  <div>
+                    <strong>Ngày:</strong>{" "}
+                    {dayjs(selectedSchedule.startDay).format("DD/MM/YYYY")}
+                  </div>
+                  <div>
+                    <strong>Thời gian:</strong> {selectedSchedule.timeStart} -{" "}
+                    {selectedSchedule.timeEnd}
+                  </div>
+                  <div>
+                    <strong>Giáo viên hiện tại:</strong>{" "}
+                    {selectedSchedule.teacherName}
+                  </div>
+                </div>
+              </div>
+            )}
+            {selectedSchedule && (
+              <div className="mb-2 text-xs text-gray-400">
+                <div>majorId: {selectedSchedule.majorId}</div>
+                <div>timeStart: {selectedSchedule.timeStart}</div>
+                <div>timeLearning: {selectedSchedule.timeLearning}</div>
+                <div>startDay: {selectedSchedule.startDay}</div>
+              </div>
+            )}
+            <Form form={changeTeacherForm} layout="vertical">
+              <Form.Item
+                name="teacherId"
+                label="Chọn giáo viên mới"
+                rules={[{ required: true, message: "Vui lòng chọn giáo viên" }]}
+                tooltip="Danh sách giáo viên đã được lọc theo chuyên ngành phù hợp"
+              >
+                <Select
+                  placeholder="Chọn giáo viên"
+                  notFoundContent={
+                    <div className="text-center py-3">
+                      <Empty
+                        image={Empty.PRESENTED_IMAGE_SIMPLE}
+                        description="Không tìm thấy giáo viên phù hợp"
+                      />
+                    </div>
+                  }
+                  loading={loading}
+                >
+                  {availableTeachers.map((teacher) => (
+                    <Option key={teacher.teacherId} value={teacher.teacherId}>
+                      <div className="flex items-center">
+                        <span>{teacher.fullname || teacher.fullName}</span>
+                        {teacher.majors && teacher.majors.length > 0 && (
+                          <span className="ml-2 text-xs text-gray-400">
+                            ({teacher.majors.map((m) => m.majorName).join(", ")}
+                            )
+                          </span>
+                        )}
+                      </div>
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+              <Form.Item
+                name="changeReason"
+                label="Lý do thay đổi"
+                rules={[
+                  { required: true, message: "Vui lòng nhập lý do thay đổi" },
+                ]}
+              >
+                <Input.TextArea
+                  placeholder="Nhập lý do thay đổi giáo viên"
+                  rows={4}
+                />
+              </Form.Item>
+            </Form>
+          </Modal>
         </Content>
       </Layout>
       <style jsx global>{`
@@ -561,4 +735,4 @@ const StudentPersonalSchedule = () => {
   );
 };
 
-export default StudentPersonalSchedule;
+export default ChangeTeacher;

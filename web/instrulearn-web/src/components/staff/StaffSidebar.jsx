@@ -112,6 +112,18 @@ const StaffSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
       case "student-notification":
         navigate("/staff/student-notification");
         break;
+      case "change-teacher":
+        navigate("/staff/change-teacher");
+        break;
+      case "change-all-teacher":
+        navigate("/staff/change-all-teacher");
+        break;
+      case "teacher-evaluation-question-management":
+        navigate("/staff/teacher-evaluation-question-management");
+        break;
+      case "teacher-feedback-management":
+        navigate("/staff/teacher-feedback-management");
+        break;
       default:
         break;
     }
@@ -160,7 +172,8 @@ const StaffSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
       icon: <BellOutlined />,
       label: "Yêu cầu",
       children: [
-        { key: "teacher-schedule-changes", label: "Thay đổi giáo viên" },
+        { key: "change-teacher", label: "Thay đổi giáo viên" },
+        { key: "change-all-teacher", label: "Yêu cầu đổi giáo viên" },
         { key: "makeup-class-requests", label: "Yêu cầu học bù" },
         { key: "booking1-1-requests", label: "Học 1-1" },
         { key: "refund-requests", label: "Yêu cầu hoàn tiền" },
@@ -180,11 +193,26 @@ const StaffSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
     {
       key: "feedback",
       icon: <MessageOutlined />,
-      label: "Phản hồi và đánh giá",
+      label: "Phản hồi từ học viên",
       children: [
-        { key: "feedback-management", label: "Quản lý câu hỏi" },
-        { key: "response-management", label: "Quản lý phản hồi" },
-        { key: "student-notification", label: "Thông báo từ học viên" },
+        { key: "feedback-management", label: "Quản lý câu hỏi " },
+        { key: "response-management", label: "Quản lý phản hồi " },
+        { key: "student-notification", label: "Thông báo đổi giáo viên" },
+      ],
+    },
+    {
+      key: "teacher-evaluation",
+      icon: <MessageOutlined />,
+      label: "Đánh giá từ giáo viên",
+      children: [
+        {
+          key: "teacher-evaluation-question-management",
+          label: "Quản lý câu hỏi ",
+        },
+        {
+          key: "teacher-feedback-management",
+          label: "Quản lý phản hồi",
+        },
       ],
     },
     {

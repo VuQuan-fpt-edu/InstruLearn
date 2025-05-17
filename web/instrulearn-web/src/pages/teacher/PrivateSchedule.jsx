@@ -53,6 +53,8 @@ const PrivateSchedule = () => {
   const [selectedTab, setSelectedTab] = useState("info");
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedSchedules, setSelectedSchedules] = useState([]);
+  const [showAbsenceOptions, setShowAbsenceOptions] = useState({});
+  const [selectedPreferenceStatus, setSelectedPreferenceStatus] = useState({});
 
   const fetchSchedules = async () => {
     try {
@@ -96,25 +98,27 @@ const PrivateSchedule = () => {
           formattedDayOfWeek: formatDayOfWeek(schedule.dayOfWeek),
         }));
         setSchedules(processedSchedules);
+        return processedSchedules;
       } else {
         throw new Error("Không thể lấy lịch dạy");
       }
     } catch (err) {
       console.error("Error fetching schedules:", err);
       message.error(err.message || "Đã xảy ra lỗi khi tải lịch dạy");
+      return null;
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAttendance = async (scheduleId, status) => {
+  const handleAttendance = async (scheduleId, status, preferenceStatus = 0) => {
     try {
       setAttendanceLoading(true);
       const token = localStorage.getItem("authToken");
-
+      const body = { status, preferenceStatus };
       const response = await axios.put(
         `https://instrulearnapplication.azurewebsites.net/api/Schedules/update-attendance/${scheduleId}`,
-        status,
+        body,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -122,26 +126,33 @@ const PrivateSchedule = () => {
           },
         }
       );
-
       if (response.data.isSucceed) {
         message.success("Cập nhật điểm danh thành công");
+        const newSchedules = await fetchSchedules();
+        if (modalVisible && selectedDate && newSchedules) {
+          const dateStr = selectedDate.format("YYYY-MM-DD");
+          const newDaySchedules = newSchedules.filter(
+            (schedule) => schedule.startDay === dateStr
+          );
+          setSelectedSchedules(newDaySchedules);
+        }
         // Cập nhật trạng thái điểm danh trong state
         const updatedSchedules = schedules.map((schedule) => {
           if (schedule.scheduleId === scheduleId) {
             return {
               ...schedule,
               attendanceStatus: status,
+              preferenceStatus: preferenceStatus,
             };
           }
           return schedule;
         });
         setSchedules(updatedSchedules);
-
-        // Cập nhật selectedSchedule
         if (selectedSchedule && selectedSchedule.scheduleId === scheduleId) {
           setSelectedSchedule({
             ...selectedSchedule,
             attendanceStatus: status,
+            preferenceStatus: preferenceStatus,
           });
         }
       } else {
@@ -244,6 +255,25 @@ const PrivateSchedule = () => {
   useEffect(() => {
     fetchSchedules();
   }, []);
+
+  useEffect(() => {
+    if (modalVisible && selectedSchedules.length > 0) {
+      const newShowAbsenceOptions = {};
+      const newSelectedPreferenceStatus = {};
+      selectedSchedules.forEach((sch) => {
+        if (sch.attendanceStatus === 2) {
+          newShowAbsenceOptions[sch.scheduleId] = false;
+          newSelectedPreferenceStatus[sch.scheduleId] =
+            sch.preferenceStatus ?? 0;
+        }
+      });
+      setShowAbsenceOptions((prev) => ({ ...prev, ...newShowAbsenceOptions }));
+      setSelectedPreferenceStatus((prev) => ({
+        ...prev,
+        ...newSelectedPreferenceStatus,
+      }));
+    }
+  }, [modalVisible, selectedSchedules]);
 
   const dateCellRender = (value) => {
     const dateStr = value.format("YYYY-MM-DD");
@@ -626,46 +656,133 @@ const PrivateSchedule = () => {
 
                               <div>
                                 <Title level={5}>Điểm danh</Title>
-                                <div className="flex justify-center space-x-4">
-                                  <Button
-                                    type="primary"
-                                    onClick={() =>
-                                      handleAttendance(schedule.scheduleId, 1)
-                                    }
-                                    className="bg-green-500 hover:bg-green-600"
-                                    loading={attendanceLoading}
-                                    disabled={
-                                      schedule.attendanceStatus === 1 ||
-                                      !canTakeAttendance(schedule.startDay)
-                                    }
-                                    icon={<CheckCircleOutlined />}
-                                  >
-                                    Có mặt
-                                  </Button>
-                                  <Button
-                                    danger
-                                    onClick={() =>
-                                      handleAttendance(schedule.scheduleId, 2)
-                                    }
-                                    loading={attendanceLoading}
-                                    disabled={
-                                      schedule.attendanceStatus === 2 ||
-                                      !canTakeAttendance(schedule.startDay)
-                                    }
-                                    icon={<CloseCircleOutlined />}
-                                  >
-                                    Vắng mặt
-                                  </Button>
-                                </div>
-                                {!canTakeAttendance(schedule.startDay) && (
-                                  <div className="text-center mt-2">
-                                    <Text type="warning">
-                                      {isPastDate(schedule.startDay)
-                                        ? "Đã quá hạn điểm danh"
-                                        : "Chưa đến ngày dạy"}
-                                    </Text>
+                                <div className="flex flex-col items-center space-y-2">
+                                  <div className="flex justify-center space-x-4 mb-2">
+                                    <Button
+                                      type="primary"
+                                      onClick={async () => {
+                                        await handleAttendance(
+                                          schedule.scheduleId,
+                                          1,
+                                          0
+                                        );
+                                        setShowAbsenceOptions((prev) => ({
+                                          ...prev,
+                                          [schedule.scheduleId]: false,
+                                        }));
+                                      }}
+                                      className="bg-green-500 hover:bg-green-600"
+                                      loading={attendanceLoading}
+                                      disabled={
+                                        schedule.attendanceStatus === 1 ||
+                                        !canTakeAttendance(schedule.startDay)
+                                      }
+                                      icon={<CheckCircleOutlined />}
+                                    >
+                                      Có mặt
+                                    </Button>
+                                    <Button
+                                      danger
+                                      onClick={() => {
+                                        setSelectedPreferenceStatus((prev) => ({
+                                          ...prev,
+                                          [schedule.scheduleId]: 0,
+                                        }));
+                                        setShowAbsenceOptions((prev) => ({
+                                          ...prev,
+                                          [schedule.scheduleId]: true,
+                                        }));
+                                      }}
+                                      loading={attendanceLoading}
+                                      disabled={
+                                        !canTakeAttendance(schedule.startDay)
+                                      }
+                                      icon={<CloseCircleOutlined />}
+                                      style={{
+                                        background:
+                                          schedule.attendanceStatus === 2
+                                            ? "#fff1f0"
+                                            : undefined,
+                                      }}
+                                    >
+                                      Vắng mặt
+                                    </Button>
                                   </div>
-                                )}
+                                  {showAbsenceOptions[schedule.scheduleId] ||
+                                  schedule.attendanceStatus === 2 ? (
+                                    <div className="flex flex-col items-center">
+                                      <Radio.Group
+                                        value={
+                                          showAbsenceOptions[
+                                            schedule.scheduleId
+                                          ]
+                                            ? selectedPreferenceStatus[
+                                                schedule.scheduleId
+                                              ] ?? 0
+                                            : schedule.preferenceStatus ?? 0
+                                        }
+                                        onChange={(e) =>
+                                          setSelectedPreferenceStatus(
+                                            (prev) => ({
+                                              ...prev,
+                                              [schedule.scheduleId]:
+                                                e.target.value,
+                                            })
+                                          )
+                                        }
+                                        className="mb-2"
+                                        disabled={
+                                          !showAbsenceOptions[
+                                            schedule.scheduleId
+                                          ]
+                                        }
+                                      >
+                                        <Radio value={0}>Không học bù</Radio>
+                                        <Radio value={2}>Đánh dấu học bù</Radio>
+                                      </Radio.Group>
+                                      {showAbsenceOptions[
+                                        schedule.scheduleId
+                                      ] && (
+                                        <Button
+                                          type="primary"
+                                          danger
+                                          onClick={async () => {
+                                            await handleAttendance(
+                                              schedule.scheduleId,
+                                              2,
+                                              selectedPreferenceStatus[
+                                                schedule.scheduleId
+                                              ] ?? 0
+                                            );
+                                            setShowAbsenceOptions((prev) => ({
+                                              ...prev,
+                                              [schedule.scheduleId]: false,
+                                            }));
+                                          }}
+                                          loading={attendanceLoading}
+                                          disabled={
+                                            schedule.attendanceStatus === 2 &&
+                                            schedule.preferenceStatus ===
+                                              (selectedPreferenceStatus[
+                                                schedule.scheduleId
+                                              ] ?? 0)
+                                          }
+                                        >
+                                          Xác nhận vắng mặt
+                                        </Button>
+                                      )}
+                                    </div>
+                                  ) : null}
+                                  {!canTakeAttendance(schedule.startDay) && (
+                                    <div className="text-center mt-2">
+                                      <Text type="warning">
+                                        {isPastDate(schedule.startDay)
+                                          ? "Đã quá hạn điểm danh"
+                                          : "Chưa đến ngày dạy"}
+                                      </Text>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </TabPane>
@@ -682,7 +799,7 @@ const PrivateSchedule = () => {
                                 <Title level={5} className="mb-0">
                                   Thông tin lộ trình
                                 </Title>
-                                <Tag
+                                {/* <Tag
                                   color={
                                     schedule.isSessionCompleted
                                       ? "success"
@@ -692,7 +809,7 @@ const PrivateSchedule = () => {
                                   {schedule.isSessionCompleted
                                     ? "Đã hoàn thành"
                                     : "Chưa hoàn thành"}
-                                </Tag>
+                                </Tag> */}
                               </div>
                               <div className="bg-gray-50 p-4 rounded-lg">
                                 <div className="flex items-center gap-3 mb-3">

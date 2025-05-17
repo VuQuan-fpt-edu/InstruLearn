@@ -54,6 +54,7 @@ export default function AppLayout({ children }) {
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState([]);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
+  const [learnerNotifications, setLearnerNotifications] = useState([]);
 
   // Kiểm tra trạng thái đăng nhập và lấy thông tin người dùng khi component mount
   useEffect(() => {
@@ -71,6 +72,7 @@ export default function AppLayout({ children }) {
           // Nếu đăng nhập thành công và có learnerId, lấy thông báo
           if (userData.learnerId) {
             fetchNotifications(userData.learnerId);
+            fetchLearnerNotifications(userData.learnerId);
           }
         } catch (error) {
           console.error("Error fetching user data:", error);
@@ -110,6 +112,17 @@ export default function AppLayout({ children }) {
     } finally {
       setLoadingNotifications(false);
     }
+  };
+
+  const fetchLearnerNotifications = async (learnerId) => {
+    try {
+      const res = await axios.get(
+        `https://instrulearnapplication.azurewebsites.net/api/LearnerNotification/learner-notifications/${learnerId}`
+      );
+      if (res.data?.isSucceed) {
+        setLearnerNotifications(res.data.data || []);
+      }
+    } catch (err) {}
   };
 
   const handleLogout = () => {
@@ -154,7 +167,7 @@ export default function AppLayout({ children }) {
       title: `Phản hồi khóa học với giáo viên ${notification.teacherName}`,
       description: notification.message,
       time: dayjs(notification.createdAt).fromNow(),
-      link: `/feedback/${notification.feedbackId}`,
+      link: `/notification`,
     };
   };
 
@@ -194,6 +207,34 @@ export default function AppLayout({ children }) {
               </Menu.Item>
             )}
           />
+          {learnerNotifications.length > 0 && (
+            <>
+              <div className="p-2 border-b bg-blue-50">
+                <Text strong>Thông báo hệ thống</Text>
+              </div>
+              <List
+                itemLayout="horizontal"
+                dataSource={learnerNotifications.slice(0, 5)}
+                renderItem={(item) => (
+                  <Menu.Item key={item.sentDate + item.title}>
+                    <div className="flex items-start space-x-3 py-2">
+                      <div className="flex-1 min-w-0">
+                        <Text strong className="block text-sm mb-1">
+                          {item.title}
+                        </Text>
+                        <Text className="block text-xs text-gray-500 mb-1 truncate max-w-[250px]">
+                          {item.message}
+                        </Text>
+                        <Text className="block text-xs text-gray-400">
+                          {dayjs(item.sentDate).fromNow()}
+                        </Text>
+                      </div>
+                    </div>
+                  </Menu.Item>
+                )}
+              />
+            </>
+          )}
           <Menu.Divider />
           <Menu.Item key="all" className="text-center">
             <Link to="/notification">Xem tất cả thông báo</Link>
@@ -269,19 +310,17 @@ export default function AppLayout({ children }) {
             <Spin size="small" className="mr-4" />
           ) : isLoggedIn && currentUser ? (
             <>
-              <Dropdown
-                overlay={notificationMenu}
-                trigger={["click"]}
-                placement="bottomRight"
+              <Badge
+                count={notifications.length + learnerNotifications.length}
+                className="mr-4"
               >
-                <Badge count={notifications.length} className="mr-4">
-                  <Button
-                    type="text"
-                    icon={<BellOutlined className="text-xl" />}
-                    className="flex items-center justify-center"
-                  />
-                </Badge>
-              </Dropdown>
+                <Button
+                  type="text"
+                  icon={<BellOutlined className="text-xl" />}
+                  className="flex items-center justify-center"
+                  onClick={() => navigate("/notification")}
+                />
+              </Badge>
 
               <Dropdown overlay={userMenu} trigger={["click"]}>
                 <div className="flex items-center cursor-pointer">

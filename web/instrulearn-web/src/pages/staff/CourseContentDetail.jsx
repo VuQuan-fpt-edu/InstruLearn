@@ -78,6 +78,8 @@ const CourseContentDetail = () => {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
+  const [pdfViewerVisible, setPdfViewerVisible] = useState(false);
+  const [currentPdfUrl, setCurrentPdfUrl] = useState("");
 
   // Firebase upload states
   const [file, setFile] = useState(null);
@@ -86,6 +88,10 @@ const CourseContentDetail = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [fileURL, setFileURL] = useState("");
   const [previewImage, setPreviewImage] = useState("");
+
+  const [addItemFileAccept, setAddItemFileAccept] = useState(
+    ".pdf,application/pdf"
+  );
 
   useEffect(() => {
     fetchContentDetail();
@@ -128,43 +134,63 @@ const CourseContentDetail = () => {
     }
   };
 
+  const handleAddItemTypeChange = (value) => {
+    // Tìm tên loại nội dung
+    const type = itemTypes.find((t) => t.itemTypeId === value);
+    if (type && type.itemTypeName.toLowerCase().includes("video")) {
+      setAddItemFileAccept("video/*");
+    } else {
+      setAddItemFileAccept(".pdf,application/pdf");
+    }
+    // Reset file khi đổi loại
+    setFile(null);
+    setFileType("");
+    setFileURL("");
+    setPreviewImage("");
+  };
+
   const handleFileSelect = (e) => {
     if (e.target.files[0]) {
       const selectedFile = e.target.files[0];
-
+      // Lấy loại nội dung hiện tại
+      const itemTypeId = form.getFieldValue("itemTypeId");
+      const type = itemTypes.find((t) => t.itemTypeId === itemTypeId);
+      // Kiểm tra loại file phù hợp
+      if (type && type.itemTypeName.toLowerCase().includes("video")) {
+        if (!selectedFile.type.startsWith("video/")) {
+          message.error("Vui lòng chỉ chọn file video cho loại nội dung này");
+          return;
+        }
+      } else {
+        if (selectedFile.type !== "application/pdf") {
+          message.error("Vui lòng chỉ chọn file PDF cho loại nội dung này");
+          return;
+        }
+      }
       // Validate file size (maximum 10MB)
       if (selectedFile.size > 10 * 1024 * 1024) {
         message.error("Kích thước file không được vượt quá 10MB");
         return;
       }
-
       setFile(selectedFile);
-      // Clear fileURL when a new file is selected
       setFileURL("");
-
-      // Determine file type and set corresponding itemTypeId
+      // ... existing logic xác định fileType ...
       if (selectedFile.type.startsWith("image/")) {
         setFileType("image");
-        form.setFieldsValue({ itemTypeId: 1 }); // Images is type 1
+        form.setFieldsValue({ itemTypeId: 1 });
         editForm.setFieldsValue({ itemTypeId: 1 });
       } else if (selectedFile.type.startsWith("video/")) {
         setFileType("video");
-        form.setFieldsValue({ itemTypeId: 2 }); // Video is type 2
+        form.setFieldsValue({ itemTypeId: 2 });
         editForm.setFieldsValue({ itemTypeId: 2 });
-      } else if (
-        selectedFile.type === "application/pdf" ||
-        selectedFile.type === "application/msword" ||
-        selectedFile.type ===
-          "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-      ) {
+      } else if (selectedFile.type === "application/pdf") {
         setFileType("document");
-        form.setFieldsValue({ itemTypeId: 3 }); // Document is type 3
+        form.setFieldsValue({ itemTypeId: 3 });
         editForm.setFieldsValue({ itemTypeId: 3 });
       } else {
         setFileType("other");
       }
-
-      // Create a preview for images
+      // ... existing preview logic ...
       if (selectedFile.type.startsWith("image/")) {
         const reader = new FileReader();
         reader.onloadend = () => {
@@ -543,9 +569,15 @@ const CourseContentDetail = () => {
                 {item.status === 0 ? "Đã khóa" : "Đã mở khóa"}
               </Tag>
             </div>
-            <a href={item.itemDes} target="_blank" rel="noopener noreferrer">
+            <Button
+              type="link"
+              onClick={() => {
+                setCurrentPdfUrl(item.itemDes);
+                setPdfViewerVisible(true);
+              }}
+            >
               Xem tài liệu
-            </a>
+            </Button>
           </div>
         );
 
@@ -766,7 +798,10 @@ const CourseContentDetail = () => {
                   { required: true, message: "Vui lòng chọn loại nội dung" },
                 ]}
               >
-                <Select placeholder="Chọn loại nội dung">
+                <Select
+                  placeholder="Chọn loại nội dung"
+                  onChange={handleAddItemTypeChange}
+                >
                   {itemTypes.map((type) => (
                     <Option key={type.itemTypeId} value={type.itemTypeId}>
                       {type.itemTypeName}
@@ -779,6 +814,7 @@ const CourseContentDetail = () => {
                 <input
                   type="file"
                   onChange={handleFileSelect}
+                  accept={addItemFileAccept}
                   className="block w-full text-sm border border-gray-300 rounded p-2"
                   required
                 />
@@ -937,6 +973,24 @@ const CourseContentDetail = () => {
                 không? Hành động này không thể hoàn tác.
               </span>
             </div>
+          </Modal>
+
+          {/* PDF Viewer Modal */}
+          <Modal
+            title="Xem tài liệu"
+            open={pdfViewerVisible}
+            onCancel={() => setPdfViewerVisible(false)}
+            width={800}
+            footer={null}
+            bodyStyle={{ padding: 0 }}
+          >
+            <iframe
+              src={`${currentPdfUrl}#toolbar=0`}
+              width="100%"
+              height="600px"
+              style={{ border: "none" }}
+              title="PDF Viewer"
+            />
           </Modal>
         </Content>
       </Layout>

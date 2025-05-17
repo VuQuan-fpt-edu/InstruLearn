@@ -31,11 +31,14 @@ const ManagerSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
       case "total-revenue":
         navigate("/manager/revenue");
         break;
-      case "video-revenue":
-        navigate("/manager/revenue/online-course-payments");
+      case "year-revenue":
+        navigate("/manager/revenue/year-revenue");
         break;
-      case "class-revenue":
-        navigate("/manager/revenue/center-class-payments");
+      case "month-revenue":
+        navigate("/manager/revenue/month-revenue");
+        break;
+      case "date-revenue":
+        navigate("/manager/revenue/date-revenue");
         break;
       case "private-revenue":
         navigate("/manager/revenue/one-on-one-payments");
@@ -67,6 +70,9 @@ const ManagerSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
       case "level-syllabus":
         navigate("/manager/level-syllabus");
         break;
+      case "level-feedback-template":
+        navigate("/manager/level-feedback-template");
+        break;
       default:
         break;
     }
@@ -84,9 +90,9 @@ const ManagerSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
       label: "Báo cáo doanh thu",
       children: [
         { key: "total-revenue", label: "Tổng doanh thu" },
-        { key: "video-revenue", label: "Gói học online" },
-        { key: "class-revenue", label: "Lớp học trung tâm" },
-        { key: "private-revenue", label: "Học 1-1" },
+        { key: "year-revenue", label: "Doanh thu theo năm" },
+        { key: "month-revenue", label: "Doanh thu theo tháng" },
+        { key: "date-revenue", label: "Doanh thu theo ngày" },
         { key: "history-transaction", label: "Lịch sử giao dịch" },
       ],
     },
@@ -101,8 +107,12 @@ const ManagerSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
       icon: <LineChartOutlined />,
       label: "Quản lý cấp độ",
       children: [
-        { key: "One-on-one Level", label: "Cấp độ khóa học (1-1)" },
-        { key: "level-syllabus", label: "Giáo trình (1-1)" },
+        { key: "One-on-one Level", label: "Cấp độ khóa học " },
+        { key: "level-syllabus", label: "Giáo trình " },
+        {
+          key: "level-feedback-template",
+          label: "Template phản hồi (Trung tâm)",
+        },
       ],
     },
     {
@@ -110,8 +120,11 @@ const ManagerSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
       icon: <MessageOutlined />,
       label: "Báo cáo phản hồi",
       children: [
-        { key: "response-management", label: "Quản lý phản hồi" },
-        { key: "response-type-management", label: "Quản lý loại phản hồi" },
+        { key: "response-management", label: "Quản lý phản hồi (1-1)" },
+        {
+          key: "response-type-management",
+          label: "Quản lý loại phản hồi (1-1)",
+        },
       ],
     },
     {
