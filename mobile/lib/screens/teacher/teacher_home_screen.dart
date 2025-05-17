@@ -8,6 +8,7 @@ import 'teacher_notification_screen.dart';
 import 'teacher_student_performance_screen.dart';
 import 'teacher_profile_screen.dart';
 import 'teacher_center_schedule_screen.dart';
+import 'application_screen_teacher.dart';
 
 class TeacherHomeScreen extends StatefulWidget {
   const TeacherHomeScreen({Key? key}) : super(key: key);
@@ -303,6 +304,19 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                       MaterialPageRoute(
                         builder: (context) =>
                             const TeacherCenterScheduleScreen(),
+                      ),
+                    );
+                  },
+                ),
+                _buildMenuItem(
+                  context: context,
+                  title: 'Quản lý lộ trình',
+                  icon: Icons.description,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ApplicationScreenTeacher(),
                       ),
                     );
                   },

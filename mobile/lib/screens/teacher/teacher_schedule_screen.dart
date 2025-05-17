@@ -12,6 +12,12 @@ enum FilterType {
   month,
 }
 
+enum PreferenceStatus {
+  none,
+  changeTeacher,
+  makeupClass,
+}
+
 class TeacherScheduleScreen extends StatefulWidget {
   const TeacherScheduleScreen({Key? key}) : super(key: key);
 
@@ -82,17 +88,14 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
       return schedule.mode == 'OneOnOne';
     }).toList();
 
-    // Sắp xếp theo ngày, tháng, năm và giờ từ bé đến lớn
     filteredSchedules.sort((a, b) {
       final dateA = DateTime.parse(a.startDate);
       final dateB = DateTime.parse(b.startDate);
 
-      // So sánh ngày, tháng, năm trước
       if (dateA.year != dateB.year) return dateA.year.compareTo(dateB.year);
       if (dateA.month != dateB.month) return dateA.month.compareTo(dateB.month);
       if (dateA.day != dateB.day) return dateA.day.compareTo(dateB.day);
 
-      // Nếu cùng ngày thì so sánh giờ
       final timeA = a.timeStart.split(':');
       final timeB = b.timeStart.split(':');
 
@@ -132,7 +135,6 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
                 .isAfter(startOfWeek.subtract(const Duration(days: 1))) &&
             scheduleDate.isBefore(endOfWeek.add(const Duration(days: 1)));
       } catch (e) {
-        // Nếu phân tích ngày bị lỗi, bỏ qua mục này
         return false;
       }
     }).toList();
@@ -166,42 +168,16 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
   }
 
   bool _hasScheduleOnDate(DateTime date) {
-    switch (_currentFilter) {
-      case FilterType.day:
-        return _selectedDate.year == date.year &&
-            _selectedDate.month == date.month &&
-            _selectedDate.day == date.day &&
-            _getSchedulesForDay().isNotEmpty;
-      case FilterType.week:
-        final startOfWeek = _getStartOfWeek(_selectedDate);
-        final endOfWeek = startOfWeek.add(const Duration(days: 6));
-        final isInSelectedWeek =
-            date.isAfter(startOfWeek.subtract(const Duration(days: 1))) &&
-                date.isBefore(endOfWeek.add(const Duration(days: 1)));
-
-        return isInSelectedWeek &&
-            _getFilteredSchedules().any((schedule) {
-              try {
-                final scheduleDate = DateTime.parse(schedule.startDate);
-                return scheduleDate.year == date.year &&
-                    scheduleDate.month == date.month &&
-                    scheduleDate.day == date.day;
-              } catch (e) {
-                return false;
-              }
-            });
-      case FilterType.month:
-        return _getFilteredSchedules().any((schedule) {
-          try {
-            final scheduleDate = DateTime.parse(schedule.startDate);
-            return scheduleDate.year == date.year &&
-                scheduleDate.month == date.month &&
-                scheduleDate.day == date.day;
-          } catch (e) {
-            return false;
-          }
-        });
-    }
+    return _getFilteredSchedules().any((schedule) {
+      try {
+        final scheduleDate = DateTime.parse(schedule.startDate);
+        return scheduleDate.year == date.year &&
+            scheduleDate.month == date.month &&
+            scheduleDate.day == date.day;
+      } catch (e) {
+        return false;
+      }
+    });
   }
 
   @override
@@ -212,7 +188,6 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
       );
     }
 
-    // Luôn hiển thị lịch, ngay cả khi có lỗi hoặc không có dữ liệu
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -445,16 +420,13 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
   }
 
   Widget _buildMonthGrid() {
-    // Tính toán ngày đầu tiên và cuối cùng của grid
     final firstDayOfMonth =
         DateTime(_selectedDate.year, _selectedDate.month, 1);
     final lastDayOfMonth =
         DateTime(_selectedDate.year, _selectedDate.month + 1, 0);
 
-    // Tính số ngày cần hiển thị từ tháng trước
     final firstWeekday = firstDayOfMonth.weekday % 7;
 
-    // Tính tổng số ngày cần hiển thị (gồm cả ngày từ tháng trước và tháng sau)
     final daysInGrid = firstWeekday + lastDayOfMonth.day;
     final rowsRequired = (daysInGrid / 7).ceil();
     final totalDays = rowsRequired * 7;
@@ -468,21 +440,17 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
       ),
       itemCount: totalDays,
       itemBuilder: (context, index) {
-        // Tính ngày tương ứng với index
         DateTime date;
         bool isCurrentMonth = true;
 
         if (index < firstWeekday) {
-          // Ngày từ tháng trước
           final daysToSubtract = firstWeekday - index;
           date = firstDayOfMonth.subtract(Duration(days: daysToSubtract));
           isCurrentMonth = false;
         } else if (index < firstWeekday + lastDayOfMonth.day) {
-          // Ngày trong tháng hiện tại
           final day = index - firstWeekday + 1;
           date = DateTime(_selectedDate.year, _selectedDate.month, day);
         } else {
-          // Ngày từ tháng sau
           final daysToAdd = index - firstWeekday - lastDayOfMonth.day + 1;
           date =
               DateTime(_selectedDate.year, _selectedDate.month + 1, daysToAdd);
@@ -599,23 +567,27 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
     final date = DateTime.parse(schedule.startDate);
     final dayName = _getVietnameseDayName(date.weekday);
 
-    // Determine card color based on attendance status and date
     Color cardColor;
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final scheduleDate = DateTime(date.year, date.month, date.day);
-
     if (schedule.attendanceStatus == 1) {
-      cardColor = Colors.green; // Present
+      cardColor = Colors.green;
     } else if (schedule.attendanceStatus == 2) {
-      cardColor = Colors.red; // Absent
+      cardColor = Colors.red;
     } else {
-      // attendanceStatus == 0 (or null/other)
-      if (scheduleDate.isBefore(today)) {
-        cardColor = Colors.grey; // Past and not attended
-      } else {
-        cardColor = const Color(
-            0xFF536DFE); // Future or today, not attended (default blue)
+      cardColor = const Color(0xFF536DFE);
+    }
+
+    String? preferenceText;
+    Color? preferenceColor;
+    if (schedule.attendanceStatus == 2) {
+      switch (schedule.preferenceStatus) {
+        case 1:
+          preferenceText = 'Yêu cầu đổi giáo viên';
+          preferenceColor = Colors.orange;
+          break;
+        case 2:
+          preferenceText = 'Yêu cầu học bù';
+          preferenceColor = Colors.purple;
+          break;
       }
     }
 
@@ -643,12 +615,11 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: cardColor, // Use the determined color
+              color: cardColor,
               borderRadius: BorderRadius.circular(8),
               boxShadow: [
                 BoxShadow(
-                  color: cardColor
-                      .withOpacity(0.3), // Use the determined color for shadow
+                  color: cardColor.withOpacity(0.3),
                   spreadRadius: 1,
                   blurRadius: 3,
                   offset: const Offset(0, 2),
@@ -658,23 +629,81 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  schedule.learnerName,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        schedule.learnerName,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    if (preferenceText != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: preferenceColor,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          preferenceText,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Dạy kèm 1:1',
+                  'Môn học: ${schedule.majorName}',
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w400,
                   ),
                 ),
                 const SizedBox(height: 4),
+                const Text(
+                  'Dạy kèm 1:1',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+                if (schedule.sessionTitle != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Buổi ${schedule.sessionNumber}: ${schedule.sessionTitle}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  if (schedule.sessionDescription != null &&
+                      schedule.sessionDescription!.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        schedule.sessionDescription!,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w400,
+                          fontSize: 12,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                ],
+                const SizedBox(height: 8),
                 Row(
                   children: [
                     const Icon(
@@ -723,14 +752,6 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
   }
 
   void _showAttendanceBottomSheet(BuildContext context, Schedule schedule) {
-    final scheduleDate = DateTime.parse(schedule.startDate);
-    final now = DateTime.now();
-    // Compare dates only, ignoring time
-    final today = DateTime(now.year, now.month, now.day);
-    final scheduleDateOnly =
-        DateTime(scheduleDate.year, scheduleDate.month, scheduleDate.day);
-    final isFutureDate = scheduleDateOnly.isAfter(today);
-
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -764,18 +785,8 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
                     label: const Text('Có mặt',
                         style: TextStyle(color: Colors.white)),
                     onPressed: () {
-                      Navigator.pop(context); // Close bottom sheet first
-                      if (isFutureDate) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                                'Không thể điểm danh cho ngày trong tương lai.'),
-                            backgroundColor: Colors.orange,
-                          ),
-                        );
-                      } else {
-                        _updateAttendance(schedule.scheduleId, 1);
-                      }
+                      Navigator.pop(context);
+                      _updateAttendance(schedule.scheduleId, 1);
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
@@ -788,18 +799,8 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
                     label: const Text('Vắng mặt',
                         style: TextStyle(color: Colors.white)),
                     onPressed: () {
-                      Navigator.pop(context); // Close bottom sheet first
-                      if (isFutureDate) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                                'Không thể điểm danh cho ngày trong tương lai.'),
-                            backgroundColor: Colors.orange,
-                          ),
-                        );
-                      } else {
-                        _updateAttendance(schedule.scheduleId, 2);
-                      }
+                      Navigator.pop(context);
+                      _showPreferenceOptions(schedule);
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
@@ -817,14 +818,79 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
     );
   }
 
-  Future<void> _updateAttendance(int scheduleId, int status) async {
+  void _showPreferenceOptions(Schedule schedule) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext bc) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              const Text(
+                'Học viên vắng mặt',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Vui lòng chọn một trong các lựa chọn sau:',
+                style: TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.person_off, color: Colors.white),
+                label: const Text('Không học bù',
+                    style: TextStyle(color: Colors.white)),
+                onPressed: () {
+                  Navigator.pop(context);
+                  _updateAttendance(schedule.scheduleId, 2,
+                      preferenceStatus: 0);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.grey,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                ),
+              ),
+              const SizedBox(height: 10),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.calendar_today, color: Colors.white),
+                label: const Text('Yêu cầu học bù',
+                    style: TextStyle(color: Colors.white)),
+                onPressed: () {
+                  Navigator.pop(context);
+                  _updateAttendance(schedule.scheduleId, 2,
+                      preferenceStatus: 2);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.purple,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _updateAttendance(int scheduleId, int status,
+      {int preferenceStatus = 0}) async {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Đang cập nhật điểm danh...')),
     );
 
     try {
-      final success =
-          await _scheduleService.updateAttendance(scheduleId, status);
+      final success = await _scheduleService.updateAttendance(
+          scheduleId, status,
+          preferenceStatus: preferenceStatus);
       if (success) {
         ScaffoldMessenger.of(context).removeCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(

@@ -80,7 +80,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
     }
   }
 
-  // Kiểm tra trạng thái thanh toán từ URL hoặc nội dung trang
   void _checkPaymentStatus(String url) {
     print('Checking payment status for URL: $url');
 
@@ -88,7 +87,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
       final uri = Uri.parse(url);
       final queryParams = uri.queryParameters;
 
-      // Kiểm tra xem URL có chứa các tham số cần thiết không
       if (queryParams.containsKey('orderCode') &&
           queryParams.containsKey('status')) {
         final orderCode = queryParams['orderCode'];
@@ -96,7 +94,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
         if (orderCode != null && status != null) {
           print('Found orderCode: $orderCode and status: $status');
-          // Gọi API cập nhật trạng thái
           updatePaymentStatus(orderCode, status);
 
           if (status.toUpperCase() == 'PAID') {
@@ -106,13 +103,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
             _showPaymentSuccessAndReturn();
           }
         }
-      }
-      // Kiểm tra URL trả về từ VNPay
-      else if (url.contains('vnpay-return')) {
+      } else if (url.contains('vnpay-return')) {
         _handleVNPayReturn(url);
-      }
-      // Kiểm tra các URL khác cho trường hợp thanh toán thành công
-      else if (url.contains('success') ||
+      } else if (url.contains('success') ||
           url.contains('thanh-toan-thanh-cong') ||
           url.contains('payment-success') ||
           url.contains('return_url')) {
@@ -160,7 +153,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
     }
   }
 
-  // Hiển thị thông báo và quay về màn hình wallet
   void _showPaymentSuccessAndReturn() {
     if (_isPaymentComplete) {
       showDialog(
@@ -174,9 +166,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
             actions: [
               ElevatedButton(
                 onPressed: () {
-                  Navigator.pop(context); // Đóng dialog
-                  Navigator.pop(context,
-                      true); // Quay về màn hình wallet với kết quả thành công
+                  Navigator.pop(context);
+                  Navigator.pop(context, true);
                 },
                 child: const Text('OK'),
               ),
@@ -187,7 +178,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
     }
   }
 
-  // Hiển thị nút quay lại khi đã thanh toán xong
   Widget _buildCompleteButton() {
     return SafeArea(
       child: Padding(
@@ -202,8 +192,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
             onPressed: () {
-              Navigator.pop(context,
-                  true); // Quay về màn hình wallet với kết quả thành công
+              Navigator.pop(context, true);
             },
           ),
         ),

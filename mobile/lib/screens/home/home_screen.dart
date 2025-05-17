@@ -13,6 +13,7 @@ import '../service/notification_screen.dart';
 import '../service/library_screen.dart';
 import '../service/class_registration.dart';
 import '../service/learner_schedule_center_screen.dart';
+import '../service/attendance_checking.dart';
 
 void main() {
   runApp(const MyApp());
@@ -550,6 +551,20 @@ class _HomeScreenState extends State<HomeScreen> {
                       MaterialPageRoute(
                         builder: (context) =>
                             WalletScreen(learnerId: learnerId),
+                      ),
+                    );
+                  },
+                ),
+                _buildMenuItem(
+                  context: context,
+                  title: 'Báo cáo điểm danh',
+                  icon: Icons.check_circle,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            AttendanceCheckingScreen(learnerId: learnerId),
                       ),
                     );
                   },

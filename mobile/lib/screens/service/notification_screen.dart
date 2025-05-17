@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import '../../models/feedback_notification.dart';
 import 'detail/notification_detail_screen.dart';
+import 'learner_notification_screen.dart';
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({Key? key}) : super(key: key);
@@ -8,41 +13,103 @@ class NotificationScreen extends StatefulWidget {
   State<NotificationScreen> createState() => _NotificationScreenState();
 }
 
-class _NotificationScreenState extends State<NotificationScreen> {
+class _NotificationScreenState extends State<NotificationScreen>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
-  List<NotificationItem> notifications = [
-    NotificationItem(
-      title:
-          '[Trung tâm âm nhạc InstruLearn]_THÔNG BÁO VỀ VIỆC GIÁO VIÊN PHỤ TRÁCH DẠY KÈM 1:1 THEO HỌC VIÊN YÊU CẦU ĐÃ CHẤP THUẬN ĐƠN YÊU CẦU HỌC KÈM CỦA HỌC VIÊN, HỌC VIÊN VUI LÒNG THANH TOÁN HỌC PHÍ',
-      date: '12/12/2025',
-    ),
-    NotificationItem(
-      title:
-          '[Trung tâm âm nhạc InstruLearn]_THÔNG BÁO VỀ VIỆC KIỂM TRA CHẤT LƯỢNG ĐẦU VÀO LỚP [GUITAR-NC-8.0-10.03.2025-17:00]',
-      date: '13/12/2025',
-    ),
-  ];
-  List<NotificationItem> filteredNotifications = [];
+  List<FeedbackNotification> feedbackNotifications = [];
+  List<FeedbackNotification> filteredNotifications = [];
+  bool isLoading = true;
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
-    filteredNotifications = notifications;
+    _tabController = TabController(length: 2, vsync: this);
+    _fetchFeedbackNotifications();
+  }
+
+  Future<void> _fetchFeedbackNotifications() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      final learnerId = prefs.getInt('learnerId');
+
+      print('Token: $token');
+      print('LearnerId: $learnerId');
+
+      if (token == null || learnerId == null) {
+        print('Token hoặc learnerId null');
+        _showErrorMessage('Vui lòng đăng nhập lại');
+        return;
+      }
+
+      final url =
+          'https://instrulearnapplication.azurewebsites.net/api/FeedbackNotification/check-notifications/$learnerId';
+      print('API URL: $url');
+
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      print('Response status code: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['isSucceed'] == true) {
+          setState(() {
+            feedbackNotifications = (data['data'] as List)
+                .map((item) => FeedbackNotification.fromJson(item))
+                .toList();
+            filteredNotifications = feedbackNotifications;
+            isLoading = false;
+          });
+          print('Số lượng feedback: ${feedbackNotifications.length}');
+        } else {
+          setState(() {
+            isLoading = false;
+          });
+          _showErrorMessage(data['message'] ?? 'Không thể tải thông báo');
+        }
+      } else if (response.statusCode == 401) {
+        _showErrorMessage(
+            'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+      } else {
+        setState(() {
+          isLoading = false;
+        });
+        _showErrorMessage('Lỗi kết nối: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error: $e');
+      setState(() {
+        isLoading = false;
+      });
+      _showErrorMessage('Lỗi: ${e.toString()}');
+    }
+  }
+
+  void _showErrorMessage(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
+    }
   }
 
   void _filterNotifications(String query) {
     setState(() {
       if (query.isEmpty) {
-        filteredNotifications = notifications;
+        filteredNotifications = feedbackNotifications;
       } else {
-        filteredNotifications =
-            notifications
-                .where(
-                  (notification) => notification.title.toLowerCase().contains(
-                    query.toLowerCase(),
-                  ),
-                )
-                .toList();
+        filteredNotifications = feedbackNotifications
+            .where((notification) => notification.teacherName
+                .toLowerCase()
+                .contains(query.toLowerCase()))
+            .toList();
       }
     });
   }
@@ -51,69 +118,96 @@ class _NotificationScreenState extends State<NotificationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Notification'),
+        title: const Text('Thông báo'),
         backgroundColor: const Color(0xFF8C9EFF),
-      ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [const Color(0xFF8C9EFF).withOpacity(0.2), Colors.white],
-          ),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: 'Đánh giá'),
+            Tab(text: 'Lưu ý'),
+          ],
         ),
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey[200],
-                  borderRadius: BorderRadius.circular(25),
-                ),
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: _filterNotifications,
-                  decoration: InputDecoration(
-                    hintText: 'Search.....',
-                    prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 15,
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  const Color(0xFF8C9EFF).withOpacity(0.2),
+                  Colors.white
+                ],
+              ),
+            ),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey[200],
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: _filterNotifications,
+                      decoration: InputDecoration(
+                        hintText: 'Tìm kiếm theo tên giáo viên...',
+                        prefixIcon:
+                            const Icon(Icons.search, color: Colors.grey),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 15,
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
+                Expanded(
+                  child: isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : filteredNotifications.isEmpty
+                          ? const Center(
+                              child: Text('Không có thông báo đánh giá nào'),
+                            )
+                          : ListView.builder(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
+                              itemCount: filteredNotifications.length,
+                              itemBuilder: (context, index) {
+                                return _buildFeedbackCard(
+                                    filteredNotifications[index]);
+                              },
+                            ),
+                ),
+              ],
             ),
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: filteredNotifications.length,
-                itemBuilder: (context, index) {
-                  return _buildNotificationCard(filteredNotifications[index]);
-                },
-              ),
-            ),
-          ],
-        ),
+          ),
+          const LearnerNotificationScreen(),
+        ],
       ),
     );
   }
 
-  Widget _buildNotificationCard(NotificationItem notification) {
+  Widget _buildFeedbackCard(FeedbackNotification notification) {
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
+      onTap: () async {
+        final result = await Navigator.push(
           context,
           MaterialPageRoute(
-            builder:
-                (context) => NotificationDetailScreen(
-                  title: notification.title,
-                  date: notification.date,
-                ),
+            builder: (context) => NotificationDetailScreen(
+              feedbackNotification: notification,
+            ),
           ),
         );
+
+        if (result == true) {
+          _fetchFeedbackNotifications();
+        }
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
@@ -134,34 +228,46 @@ class _NotificationScreenState extends State<NotificationScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              RichText(
-                text: TextSpan(
-                  children: [
-                    TextSpan(
-                      text: '[Trung tâm âm nhạc InstruLearn]',
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Giáo viên: ${notification.teacherName}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.red[50],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      'Cần thanh toán: ${notification.remainingPayment} VND',
                       style: TextStyle(
+                        fontSize: 12,
                         color: Colors.red[700],
                         fontWeight: FontWeight.bold,
-                        fontSize: 14,
                       ),
                     ),
-                    TextSpan(
-                      text: notification.title.substring(
-                        notification.title.indexOf(']') + 1,
-                      ),
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
               const SizedBox(height: 8),
               Text(
-                'date: ${notification.date}',
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                'Nhấn để xem chi tiết và đánh giá',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                  fontStyle: FontStyle.italic,
+                ),
               ),
             ],
           ),
@@ -172,14 +278,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
   @override
   void dispose() {
+    _tabController.dispose();
     _searchController.dispose();
     super.dispose();
   }
-}
-
-class NotificationItem {
-  final String title;
-  final String date;
-
-  NotificationItem({required this.title, required this.date});
 }

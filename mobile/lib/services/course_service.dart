@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/course_package.dart';
+import '../models/course_progress.dart';
+import '../models/course_content_progress.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class CourseService {
@@ -37,8 +39,8 @@ class CourseService {
               if (item['coursePackage'] != null) {
                 final coursePackage = item['coursePackage'];
                 courses.add(CoursePackage(
-                  coursePackageId: coursePackage['coursePackageId'],
-                  typeName: coursePackage['typeName'] ?? '',
+                  coursePackageId: item['coursePackageId'],
+                  typeName: coursePackage['courseTypeName'] ?? '',
                   courseName: coursePackage['courseName'] ?? '',
                   courseDescription: coursePackage['courseDescription'] ?? '',
                   headline: coursePackage['headline'] ?? '',
@@ -132,6 +134,181 @@ class CourseService {
     } catch (e) {
       print('Lỗi khi tải thông tin khóa học: $e');
       return null;
+    }
+  }
+
+  Future<List<CourseProgress>> getCourseProgress(int learnerId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      if (token == null) {
+        throw Exception('Vui lòng đăng nhập lại');
+      }
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/CourseProgress/learner/$learnerId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> jsonResponse = json.decode(response.body);
+
+        if (jsonResponse['isSucceed'] == true && jsonResponse['data'] != null) {
+          final List<dynamic> progressList = jsonResponse['data'];
+          return progressList
+              .map((json) => CourseProgress.fromJson(json))
+              .toList();
+        } else {
+          return [];
+        }
+      } else if (response.statusCode == 401) {
+        throw Exception('Phiên đăng nhập đã hết hạn');
+      } else {
+        throw Exception('Không thể tải tiến độ khóa học');
+      }
+    } catch (e) {
+      throw Exception('Lỗi khi tải tiến độ khóa học: $e');
+    }
+  }
+
+  Future<CourseContentProgress?> getCourseContentProgress(
+      int learnerId, int coursePackageId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      if (token == null) {
+        throw Exception('Vui lòng đăng nhập lại');
+      }
+
+      final response = await http.get(
+        Uri.parse(
+            '$baseUrl/CourseProgress/all-course-packages/$learnerId/$coursePackageId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> jsonResponse = json.decode(response.body);
+
+        if (jsonResponse['isSucceed'] == true && jsonResponse['data'] != null) {
+          return CourseContentProgress.fromJson(jsonResponse['data']);
+        }
+      } else if (response.statusCode == 401) {
+        throw Exception('Phiên đăng nhập đã hết hạn');
+      }
+      return null;
+    } catch (e) {
+      throw Exception('Lỗi khi tải tiến độ chi tiết: $e');
+    }
+  }
+
+  Future<bool> updateVideoDuration(
+      int learnerId, int itemId, int totalDuration) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      if (token == null) {
+        throw Exception('Vui lòng đăng nhập lại');
+      }
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/CourseProgress/update-video-duration'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode({
+          'learnerId': learnerId,
+          'itemId': itemId,
+          'totalDuration': totalDuration,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> jsonResponse = json.decode(response.body);
+        return jsonResponse['isSucceed'] == true;
+      }
+      return false;
+    } catch (e) {
+      print('Lỗi khi cập nhật thời lượng video: $e');
+      return false;
+    }
+  }
+
+  Future<bool> updateVideoWatchTime(
+      int learnerId, int itemId, int watchTimeInSeconds) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      if (token == null) {
+        throw Exception('Vui lòng đăng nhập lại');
+      }
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/CourseProgress/update-video-watchtime'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode({
+          'learnerId': learnerId,
+          'itemId': itemId,
+          'watchTimeInSeconds': watchTimeInSeconds,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> jsonResponse = json.decode(response.body);
+        return jsonResponse['isSucceed'] == true;
+      }
+      return false;
+    } catch (e) {
+      print('Lỗi khi cập nhật thời gian xem video: $e');
+      return false;
+    }
+  }
+
+  Future<bool> updateContentItemProgress(int learnerId, int itemId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      if (token == null) {
+        throw Exception('Vui lòng đăng nhập lại');
+      }
+
+      final uri =
+          Uri.parse('$baseUrl/CourseProgress/update-content-item').replace(
+        queryParameters: {
+          'learnerId': learnerId.toString(),
+          'itemId': itemId.toString(),
+        },
+      );
+
+      final response = await http.post(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> jsonResponse = json.decode(response.body);
+        return jsonResponse['isSucceed'] == true;
+      }
+      return false;
+    } catch (e) {
+      print('Lỗi khi cập nhật tiến độ học tập: $e');
+      return false;
     }
   }
 }

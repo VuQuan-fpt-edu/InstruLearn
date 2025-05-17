@@ -25,7 +25,9 @@ class _WalletScreenState extends State<WalletScreen> {
   final TextEditingController _withdrawController = TextEditingController();
 
   String _formatCurrency(num amount) {
-    final formatted = amount.toStringAsFixed(0);
+    final isNegative = amount < 0;
+    final absoluteAmount = amount.abs();
+    final formatted = absoluteAmount.toStringAsFixed(0);
     final chars = formatted.split('').reversed.toList();
     final withCommas = <String>[];
     for (var i = 0; i < chars.length; i++) {
@@ -34,15 +36,14 @@ class _WalletScreenState extends State<WalletScreen> {
       }
       withCommas.add(chars[i]);
     }
-    return withCommas.reversed.join('');
+    final result = withCommas.reversed.join('');
+    return isNegative ? '-$result' : result;
   }
 
   String _formatInputCurrency(String text) {
-    // Loại bỏ tất cả các ký tự không phải số
     final numbers = text.replaceAll(RegExp(r'[^\d]'), '');
     if (numbers.isEmpty) return '';
 
-    // Chuyển đổi thành số và format
     final amount = int.parse(numbers);
     return _formatCurrency(amount);
   }
@@ -149,6 +150,7 @@ class _WalletScreenState extends State<WalletScreen> {
                   date: DateTime.parse(transactionData['transactionDate']),
                   status: transactionData['status'],
                   signedAmount: transactionData['signedAmount'].toDouble(),
+                  paymentType: transactionData['paymentType'] ?? '',
                 ),
               )
               .toList();
@@ -263,7 +265,6 @@ class _WalletScreenState extends State<WalletScreen> {
 
       Navigator.of(context).pop();
 
-      // Hiển thị dialog chọn phương thức thanh toán
       showDialog(
         context: context,
         builder: (BuildContext context) {
@@ -651,16 +652,13 @@ class _WalletScreenState extends State<WalletScreen> {
                                             ? 'Thanh toán'
                                             : transaction.type;
 
-                                // Xác định màu sắc dựa trên trạng thái và loại giao dịch
                                 Color iconColor;
                                 Color backgroundColor;
 
                                 if (!isComplete) {
-                                  // Nếu đang pending thì hiển thị màu cam
                                   iconColor = Colors.orange;
                                   backgroundColor = Colors.orange[100]!;
                                 } else {
-                                  // Nếu complete thì dựa vào dấu cộng/trừ
                                   iconColor =
                                       isPositive ? Colors.green : Colors.red;
                                   backgroundColor = isPositive
@@ -691,6 +689,12 @@ class _WalletScreenState extends State<WalletScreen> {
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text('$formattedDate $formattedTime'),
+                                        Text(
+                                          transaction.paymentType,
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                          ),
+                                        ),
                                         Text(
                                           transaction.status,
                                           style: TextStyle(
@@ -736,6 +740,7 @@ class Transaction {
   final DateTime date;
   final String status;
   final double signedAmount;
+  final String paymentType;
 
   Transaction({
     required this.id,
@@ -744,5 +749,6 @@ class Transaction {
     required this.date,
     required this.status,
     required this.signedAmount,
+    required this.paymentType,
   });
 }

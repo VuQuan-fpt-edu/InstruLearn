@@ -898,7 +898,7 @@ class _TeacherCenterScheduleScreenState
               backgroundColor: status == 1 ? Colors.green : Colors.red,
             ),
           );
-          await _fetchSchedules(); // Refresh data
+          await _fetchSchedules();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
