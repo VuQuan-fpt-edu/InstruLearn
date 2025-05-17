@@ -33,6 +33,13 @@ import { useParams, useNavigate } from "react-router-dom";
 import StaffSidebar from "../../components/staff/StaffSidebar";
 import StaffHeader from "../../components/staff/StaffHeader";
 import axios from "axios";
+import Box from "@mui/material/Box";
+import Paper from "@mui/material/Paper";
+import LinearProgress from "@mui/material/LinearProgress";
+import List from "@mui/material/List";
+import ListItem from "@mui/material/ListItem";
+import ListItemAvatar from "@mui/material/ListItemAvatar";
+import ListItemText from "@mui/material/ListItemText";
 
 const { Content } = Layout;
 const { Title } = Typography;
@@ -45,6 +52,7 @@ const ClassDetail = () => {
   const [classData, setClassData] = useState(null);
   const { id } = useParams();
   const navigate = useNavigate();
+  const [isSyllabusModalVisible, setIsSyllabusModalVisible] = useState(false);
 
   useEffect(() => {
     fetchClassDetail();
@@ -330,184 +338,239 @@ const ClassDetail = () => {
 
             <Spin spinning={loading}>
               {classData && (
-                <>
-                  <Row gutter={[24, 24]}>
-                    <Col xs={24} lg={16}>
-                      <Card title="Thông tin cơ bản" className="mb-6">
-                        <Descriptions column={1} bordered>
-                          <Descriptions.Item
-                            label={
-                              <Space>
-                                <BookOutlined /> Tên lớp
-                              </Space>
-                            }
-                          >
-                            {classData.className}
-                          </Descriptions.Item>
-                          <Descriptions.Item
-                            label={
-                              <Space>
-                                <BookOutlined /> Khóa học
-                              </Space>
-                            }
-                          >
-                            {classData.coursePackageName}
-                          </Descriptions.Item>
-                          <Descriptions.Item
-                            label={
-                              <Space>
-                                <UserOutlined /> Giáo viên
-                              </Space>
-                            }
-                          >
-                            {classData.teacherName}
-                          </Descriptions.Item>
-                          <Descriptions.Item
-                            label={
-                              <Space>
-                                <CalendarOutlined /> Ngày bắt đầu
-                              </Space>
-                            }
-                          >
-                            {new Date(classData.startDate).toLocaleDateString(
-                              "vi-VN"
-                            )}
-                          </Descriptions.Item>
-                          <Descriptions.Item
-                            label={
-                              <Space>
-                                <CalendarOutlined /> Ngày kết thúc
-                              </Space>
-                            }
-                          >
-                            {new Date(classData.endDate).toLocaleDateString(
-                              "vi-VN"
-                            )}
-                          </Descriptions.Item>
-                          <Descriptions.Item
-                            label={
-                              <Space>
-                                <ClockCircleOutlined /> Thời gian học
-                              </Space>
-                            }
-                          >
-                            {`${
-                              classData.classTime?.substring(0, 5) || "N/A"
-                            } - ${
-                              classData.classEndTime?.substring(0, 5) || "N/A"
-                            }`}
-                          </Descriptions.Item>
-                          <Descriptions.Item
-                            label={
-                              <Space>
-                                <CalendarOutlined /> Lịch học
-                              </Space>
-                            }
-                          >
-                            {formatClassDays(classData.classDays)}
-                          </Descriptions.Item>
-                        </Descriptions>
-                      </Card>
-
-                      <Card title="Thông tin bổ sung">
-                        <Descriptions column={1} bordered>
-                          <Descriptions.Item
-                            label={
-                              <Space>
-                                <TeamOutlined /> Số học viên tối đa
-                              </Space>
-                            }
-                          >
-                            {classData.maxStudents}
-                          </Descriptions.Item>
-                          <Descriptions.Item
-                            label={
-                              <Space>
-                                <CalendarOutlined /> Tổng số buổi học
-                              </Space>
-                            }
-                          >
-                            {classData.totalDays}
-                          </Descriptions.Item>
-                          <Descriptions.Item
-                            label={
-                              <Space>
-                                <DollarOutlined /> Học phí
-                              </Space>
-                            }
-                          >
-                            {formatPrice(classData.price)}
-                          </Descriptions.Item>
-                          <Descriptions.Item label="Trạng thái">
-                            <div className="flex items-center">
-                              <Tag color={getStatusColor(classData.status)}>
-                                {getStatusText(classData.status)}
-                              </Tag>
-                            </div>
-                          </Descriptions.Item>
-                        </Descriptions>
-                      </Card>
-                    </Col>
-
-                    <Col xs={24} lg={8}>
-                      <Card title="Thống kê">
-                        <Descriptions column={1} bordered>
-                          <Descriptions.Item label="Số học viên hiện tại">
-                            <span className="text-2xl font-bold">
-                              {classData.studentCount || 0}/
-                              {classData.maxStudents}
-                            </span>
-                          </Descriptions.Item>
-                          <Descriptions.Item label="Tỷ lệ lấp đầy">
-                            <span className="text-2xl font-bold">
-                              {classData.maxStudents > 0
-                                ? `${Math.round(
-                                    ((classData.studentCount || 0) /
-                                      classData.maxStudents) *
-                                      100
-                                  )}%`
-                                : "0%"}
-                            </span>
-                          </Descriptions.Item>
-                        </Descriptions>
-                      </Card>
-
-                      {classData.students && classData.students.length > 0 && (
-                        <Card title="Danh sách học viên" className="mt-6">
-                          {classData.students.map((student) => (
-                            <div
-                              key={student.learnerId}
-                              className="border-b py-3 last:border-0"
+                <Row gutter={[24, 24]}>
+                  <Col xs={24} lg={16}>
+                    <Box
+                      component={Paper}
+                      elevation={3}
+                      sx={{ p: 3, mb: 3, borderRadius: 2 }}
+                    >
+                      <Typography
+                        variant="h5"
+                        sx={{ fontWeight: 700, mb: 2, color: "#1976d2" }}
+                      >
+                        {classData.className}
+                      </Typography>
+                      <Descriptions column={2} bordered size="middle">
+                        <Descriptions.Item label="Chuyên ngành">
+                          {classData.majorName}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Trình độ">
+                          {classData.levelName}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Giáo trình">
+                          {classData.syllabusName}
+                          {classData.syllabusLink && (
+                            <Button
+                              type="link"
+                              size="small"
+                              style={{ marginLeft: 8, padding: 0 }}
+                              onClick={() => setIsSyllabusModalVisible(true)}
                             >
-                              <div className="flex items-center">
-                                <Avatar
-                                  src={student.avatar}
-                                  icon={!student.avatar && <UserOutlined />}
-                                  size={40}
-                                  className="mr-3"
+                              Xem giáo trình
+                            </Button>
+                          )}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Giáo viên">
+                          {classData.teacherName}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Ngày bắt đầu">
+                          {new Date(classData.startDate).toLocaleDateString(
+                            "vi-VN"
+                          )}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Thời gian học">
+                          {classData.classTime?.substring(0, 5) || "N/A"}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Số học viên tối đa">
+                          {classData.maxStudents}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Tổng số buổi học">
+                          {classData.totalDays}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Học phí">
+                          <span style={{ color: "#d32f2f", fontWeight: 600 }}>
+                            {classData.price?.toLocaleString()} VND
+                          </span>
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Trạng thái">
+                          <Tag color={getStatusColor(classData.status)}>
+                            {getStatusText(classData.status)}
+                          </Tag>
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Lịch học" span={2}>
+                          {formatClassDays(classData.classDays)}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Ngày học cụ thể" span={2}>
+                          <Box
+                            sx={{
+                              maxHeight: 140,
+                              overflowY: "auto",
+                              display: "flex",
+                              flexWrap: "wrap",
+                              gap: 1,
+                              p: 1,
+                              background: "#fafbfc",
+                              borderRadius: 2,
+                            }}
+                          >
+                            {classData.sessionDates &&
+                            classData.sessionDates.length > 0
+                              ? classData.sessionDates.map((date, idx) => (
+                                  <Tag
+                                    key={idx}
+                                    color="blue"
+                                    style={{
+                                      marginBottom: 6,
+                                      fontSize: 13,
+                                      padding: "2px 10px",
+                                      borderRadius: 8,
+                                      background: "#e6f4ff",
+                                      color: "#1677ff",
+                                      border: "none",
+                                    }}
+                                  >
+                                    {new Date(date).toLocaleDateString("vi-VN")}
+                                  </Tag>
+                                ))
+                              : "Không có"}
+                          </Box>
+                        </Descriptions.Item>
+                      </Descriptions>
+                    </Box>
+                  </Col>
+                  <Col xs={24} lg={8}>
+                    <Box
+                      component={Paper}
+                      elevation={3}
+                      sx={{ p: 3, mb: 3, borderRadius: 2 }}
+                    >
+                      <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+                        Thống kê học viên
+                      </Typography>
+                      <Box sx={{ mb: 2 }}>
+                        <Typography variant="body1">
+                          Số học viên hiện tại:{" "}
+                          <b>
+                            {classData.studentCount || 0}/
+                            {classData.maxStudents}
+                          </b>
+                        </Typography>
+                        <Box
+                          sx={{ display: "flex", alignItems: "center", mt: 1 }}
+                        >
+                          <LinearProgress
+                            variant="determinate"
+                            value={
+                              classData.maxStudents > 0
+                                ? ((classData.studentCount || 0) /
+                                    classData.maxStudents) *
+                                  100
+                                : 0
+                            }
+                            sx={{
+                              width: "80%",
+                              mr: 2,
+                              height: 10,
+                              borderRadius: 5,
+                            }}
+                            color="primary"
+                          />
+                          <Typography variant="body2" color="text.secondary">
+                            {classData.maxStudents > 0
+                              ? `${Math.round(
+                                  ((classData.studentCount || 0) /
+                                    classData.maxStudents) *
+                                    100
+                                )}%`
+                              : "0%"}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </Box>
+
+                    {classData.students && classData.students.length > 0 && (
+                      <Box
+                        component={Paper}
+                        elevation={3}
+                        sx={{ p: 3, borderRadius: 2 }}
+                      >
+                        <Typography
+                          variant="h6"
+                          sx={{ fontWeight: 600, mb: 2 }}
+                        >
+                          Danh sách học viên
+                        </Typography>
+                        <List>
+                          {classData.students.map((student, idx) => (
+                            <React.Fragment key={student.learnerId}>
+                              <ListItem alignItems="flex-start">
+                                <ListItemAvatar>
+                                  <Avatar
+                                    src={student.avatar}
+                                    alt={student.fullName}
+                                    sx={{
+                                      width: 48,
+                                      height: 48,
+                                      bgcolor: "#1976d2",
+                                      mr: 2,
+                                    }}
+                                  >
+                                    {!student.avatar && <UserOutlined />}
+                                  </Avatar>
+                                </ListItemAvatar>
+                                <ListItemText
+                                  primary={
+                                    <span style={{ fontWeight: 500 }}>
+                                      {student.fullName}
+                                    </span>
+                                  }
+                                  secondary={
+                                    <>
+                                      <span style={{ color: "#555" }}>
+                                        {student.email}
+                                      </span>
+                                      <br />
+                                      <span style={{ color: "#888" }}>
+                                        {student.phoneNumber}
+                                      </span>
+                                    </>
+                                  }
                                 />
-                                <div>
-                                  <div className="font-medium">
-                                    {student.fullName}
-                                  </div>
-                                  <div className="text-xs text-gray-500">
-                                    {student.email}
-                                  </div>
-                                  <div className="text-xs text-gray-500">
-                                    {student.phoneNumber}
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
+                              </ListItem>
+                              {idx < classData.students.length - 1 && (
+                                <Divider variant="inset" component="li" />
+                              )}
+                            </React.Fragment>
                           ))}
-                        </Card>
-                      )}
-                    </Col>
-                  </Row>
-                </>
+                        </List>
+                      </Box>
+                    )}
+                  </Col>
+                </Row>
               )}
             </Spin>
           </Card>
+          {/* Modal xem giáo trình PDF */}
+          <Modal
+            title={classData?.syllabusName || "Xem giáo trình"}
+            open={isSyllabusModalVisible}
+            onCancel={() => setIsSyllabusModalVisible(false)}
+            width={900}
+            footer={null}
+            bodyStyle={{ padding: 0, height: 700 }}
+            destroyOnClose
+          >
+            {classData?.syllabusLink && (
+              <iframe
+                src={`https://docs.google.com/viewer?url=${encodeURIComponent(
+                  classData.syllabusLink
+                )}&embedded=true`}
+                style={{ width: "100%", height: "100%", border: "none" }}
+                title="Syllabus PDF Viewer"
+              />
+            )}
+          </Modal>
         </Content>
       </Layout>
     </Layout>

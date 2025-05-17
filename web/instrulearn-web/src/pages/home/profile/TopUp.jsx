@@ -368,7 +368,11 @@ const TopUp = () => {
                         Thanh toán qua PayOS
                       </Text>
                     </div>
-                    <img src="/payos-logo.png" alt="PayOS" className="h-8" />
+                    <img
+                      src="https://payos.vn/docs/img/logo.svg"
+                      alt="PayOS"
+                      className="h-6"
+                    />
                   </div>
                 </Radio>
                 <Radio value="vnpay" className="w-full">
@@ -379,7 +383,11 @@ const TopUp = () => {
                         Thanh toán qua VNPay
                       </Text>
                     </div>
-                    <img src="/vnpay-logo.png" alt="VNPay" className="h-8" />
+                    <img
+                      src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSutP9weqAPNNrV0V616bloZn2fwAdAOHqnFQ&s"
+                      alt="VNPay"
+                      className="h-6"
+                    />
                   </div>
                 </Radio>
               </Space>

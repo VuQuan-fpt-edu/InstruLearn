@@ -2,388 +2,345 @@ import React, { useState, useEffect } from "react";
 import {
   Layout,
   Card,
-  Table,
+  Typography,
   Space,
   Button,
+  Select,
+  message,
+  Calendar,
+  Radio,
+  Popover,
+  Avatar,
+  Tag,
+  Spin,
   Modal,
   Form,
+  Empty,
   Input,
-  Select,
-  DatePicker,
-  TimePicker,
-  message,
-  Typography,
-  Badge,
-  Tooltip,
-  Drawer,
-  Descriptions,
-  Divider,
-  Tag,
 } from "antd";
 import {
-  PlusOutlined,
-  CheckOutlined,
-  CloseOutlined,
-  EyeOutlined,
-  ClockCircleOutlined,
-  BookOutlined,
-  TeamOutlined,
   UserOutlined,
   CalendarOutlined,
-  InfoCircleOutlined,
+  ClockCircleOutlined,
+  EnvironmentOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  QuestionCircleOutlined,
+  EditOutlined,
 } from "@ant-design/icons";
+import axios from "axios";
+import dayjs from "dayjs";
 import StaffSidebar from "../../components/staff/StaffSidebar";
 import StaffHeader from "../../components/staff/StaffHeader";
-import dayjs from "dayjs";
-import "dayjs/locale/vi";
-import locale from "antd/es/date-picker/locale/vi_VN";
 
 const { Content } = Layout;
-const { Title } = Typography;
+const { Title, Text } = Typography;
 const { Option } = Select;
-const { TextArea } = Input;
-
-// Định nghĩa các thời lượng học
-const durations = [
-  { id: 1, value: 45, label: "45 phút" },
-  { id: 2, value: 90, label: "90 phút" },
-  { id: 3, value: 120, label: "120 phút" },
-];
-
-// Định nghĩa danh sách giáo viên
-const teachers = [
-  {
-    teacherId: 1,
-    teacherName: "Nguyễn Văn A",
-    specialization: "Piano",
-    status: "active",
-  },
-  {
-    teacherId: 2,
-    teacherName: "Trần Thị B",
-    specialization: "Guitar",
-    status: "active",
-  },
-  {
-    teacherId: 3,
-    teacherName: "Lê Văn C",
-    specialization: "Violin",
-    status: "active",
-  },
-];
-
-// Định nghĩa danh sách học viên
-const students = [
-  {
-    studentId: 1,
-    studentName: "Lê Văn X",
-    phone: "0909123456",
-    email: "studentx@gmail.com",
-  },
-  {
-    studentId: 2,
-    studentName: "Phạm Thị Y",
-    phone: "0909123457",
-    email: "studenty@gmail.com",
-  },
-  {
-    studentId: 3,
-    studentName: "Trần Văn Z",
-    phone: "0909123458",
-    email: "studentz@gmail.com",
-  },
-];
-
-// Định nghĩa danh sách khóa học
-const courses = [
-  {
-    courseId: 1,
-    courseName: "Khóa học Piano cơ bản",
-    courseType: "Piano",
-  },
-  {
-    courseId: 2,
-    courseName: "Khóa học Guitar nâng cao",
-    courseType: "Guitar",
-  },
-  {
-    courseId: 3,
-    courseName: "Khóa học Violin cơ bản",
-    courseType: "Violin",
-  },
-];
-
-// Định nghĩa dữ liệu mẫu cho đơn học bù
-const initialRequests = [
-  {
-    requestId: 1,
-    teacherId: 1,
-    teacherName: "Nguyễn Văn A",
-    studentId: 1,
-    studentName: "Lê Văn X",
-    courseId: 1,
-    courseName: "Khóa học Piano cơ bản",
-    originalDate: "2024-03-15",
-    originalTime: "14:00",
-    proposedDate: "2024-03-20",
-    proposedTime: "15:00",
-    duration: 90,
-    reason: "Giáo viên bị ốm",
-    status: "pending",
-    requestDate: "2024-03-14",
-  },
-  {
-    requestId: 2,
-    teacherId: 2,
-    teacherName: "Trần Thị B",
-    studentId: 2,
-    studentName: "Phạm Thị Y",
-    courseId: 2,
-    courseName: "Khóa học Guitar nâng cao",
-    originalDate: "2024-03-16",
-    originalTime: "09:00",
-    proposedDate: "2024-03-21",
-    proposedTime: "09:00",
-    duration: 120,
-    reason: "Sự cố giao thông",
-    status: "approved",
-    requestDate: "2024-03-15",
-    approvalDate: "2024-03-15",
-    approvalNote: "Đã xác nhận với phụ huynh",
-  },
-  {
-    requestId: 3,
-    teacherId: 3,
-    teacherName: "Lê Văn C",
-    studentId: 3,
-    studentName: "Trần Văn Z",
-    courseId: 3,
-    courseName: "Khóa học Violin cơ bản",
-    originalDate: "2024-03-17",
-    originalTime: "16:00",
-    proposedDate: "2024-03-22",
-    proposedTime: "16:00",
-    duration: 45,
-    reason: "Lịch trình cá nhân",
-    status: "rejected",
-    requestDate: "2024-03-16",
-    approvalDate: "2024-03-16",
-    approvalNote: "Thời gian đề xuất không phù hợp với lịch học viên",
-  },
-];
 
 const MakeupClassRequests = () => {
   const [collapsed, setCollapsed] = useState(false);
-  const [requests, setRequests] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [drawerVisible, setDrawerVisible] = useState(false);
-  const [selectedRequest, setSelectedRequest] = useState(null);
-  const [approvalModalVisible, setApprovalModalVisible] = useState(false);
-  const [form] = Form.useForm();
-  const [approvalForm] = Form.useForm();
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [students, setStudents] = useState([]);
+  const [schedules, setSchedules] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [viewMode, setViewMode] = useState("month");
+  const [teachers, setTeachers] = useState([]);
+  const [selectedTeacher, setSelectedTeacher] = useState(null);
+  const [makeupModalVisible, setMakeupModalVisible] = useState(false);
+  const [selectedSchedule, setSelectedSchedule] = useState(null);
+  const [makeupForm] = Form.useForm();
+  const [teachersFromSchedules, setTeachersFromSchedules] = useState([]);
 
   useEffect(() => {
-    setLoading(true);
-    setTimeout(() => {
-      setRequests(initialRequests);
-      setLoading(false);
-    }, 500);
+    fetchStudents();
+    fetchTeachers();
   }, []);
 
-  const handleAddRequest = (values) => {
-    try {
-      const student = students.find((s) => s.studentId === values.studentId);
-      const teacher = teachers.find((t) => t.teacherId === values.teacherId);
-      const course = courses.find((c) => c.courseId === values.courseId);
+  useEffect(() => {
+    if (schedules.length > 0) {
+      const uniqueTeachers = [];
+      const teacherIds = new Set();
 
-      const newRequest = {
-        requestId: requests.length + 1,
-        ...values,
-        teacherName: teacher.teacherName,
-        studentName: student.studentName,
-        courseName: course.courseName,
-        originalTime: dayjs(values.originalTime).format("HH:mm"),
-        proposedTime: dayjs(values.proposedTime).format("HH:mm"),
-        status: "pending",
-        requestDate: dayjs().format("YYYY-MM-DD"),
+      schedules.forEach((schedule) => {
+        if (!teacherIds.has(schedule.teacherId)) {
+          teacherIds.add(schedule.teacherId);
+          uniqueTeachers.push({
+            teacherId: schedule.teacherId,
+            fullName: schedule.teacherName,
+          });
+        }
+      });
+
+      setTeachersFromSchedules(uniqueTeachers);
+    }
+  }, [schedules]);
+
+  const fetchStudents = async () => {
+    try {
+      const response = await axios.get(
+        "https://instrulearnapplication.azurewebsites.net/api/Learner/get-all"
+      );
+      if (response.data?.isSucceed) {
+        const activeStudents = response.data.data.filter(
+          (student) => student.isActive === 1
+        );
+        setStudents(activeStudents);
+      }
+    } catch (error) {
+      console.error("Error fetching students:", error);
+      message.error("Không thể tải danh sách học viên");
+    }
+  };
+
+  const fetchTeachers = async () => {
+    try {
+      const response = await axios.get(
+        "https://instrulearnapplication.azurewebsites.net/api/Teacher/get-all"
+      );
+
+      const processedTeachers = [];
+
+      if (Array.isArray(response.data)) {
+        response.data.forEach((item) => {
+          if (item.isSucceed && item.data) {
+            const teacherData = {
+              ...item.data,
+              fullName: item.data.fullname,
+            };
+
+            if (teacherData.isActive === 1) {
+              processedTeachers.push(teacherData);
+            }
+          }
+        });
+      }
+
+      setTeachers(processedTeachers);
+    } catch (error) {
+      console.error("Error fetching teachers:", error);
+      message.error("Không thể tải danh sách giáo viên");
+    }
+  };
+
+  const handleStudentChange = async (learnerId) => {
+    setSchedules([]);
+    setSelectedTeacher(null);
+    const student = students.find((s) => s.learnerId === learnerId);
+    setSelectedStudent(student);
+
+    if (learnerId) {
+      try {
+        setLoading(true);
+        const response = await axios.get(
+          `https://instrulearnapplication.azurewebsites.net/api/Schedules/learner/${learnerId}/schedules`
+        );
+
+        if (response.data?.isSucceed) {
+          const processedSchedules = response.data.data.map((schedule) => ({
+            ...schedule,
+            formattedTime: `${schedule.timeStart} - ${schedule.timeEnd}`,
+            formattedDate: dayjs(schedule.startDay).format("DD/MM/YYYY"),
+            formattedDayOfWeek: convertDayToVietnamese(schedule.dayOfWeek),
+            isSessionCompleted: schedule.isSessionCompleted || false,
+            majorName: schedule.majorName || "N/A",
+            timeLearning: schedule.timeLearning || 45,
+          }));
+          setSchedules(processedSchedules);
+        } else {
+          setSchedules([]);
+          message.error("Không thể tải lịch học của học viên");
+        }
+      } catch (error) {
+        console.error("Error fetching schedules:", error);
+        message.error("Không thể tải lịch học của học viên");
+        setSchedules([]);
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      setSchedules([]);
+    }
+  };
+
+  const handleTeacherFilterChange = (teacherId) => {
+    setSelectedTeacher(teacherId);
+  };
+
+  const getFilteredSchedules = () => {
+    if (!selectedTeacher) return schedules;
+    return schedules.filter(
+      (schedule) => schedule.teacherId === selectedTeacher
+    );
+  };
+
+  const handleMakeup = (schedule) => {
+    setSelectedSchedule(schedule);
+    makeupForm.resetFields();
+    setMakeupModalVisible(true);
+  };
+
+  const submitMakeup = async () => {
+    try {
+      const values = await makeupForm.validateFields();
+      setLoading(true);
+      const payload = {
+        newDate: values.newDate,
+        newTimeStart:
+          values.newTimeStart.length === 5
+            ? values.newTimeStart + ":00"
+            : values.newTimeStart,
+        timeLearning: selectedSchedule.timeLearning || 45,
+        changeReason: values.changeReason,
       };
-
-      setRequests([...requests, newRequest]);
-      message.success("Thêm đơn học bù thành công");
-      setModalVisible(false);
-      form.resetFields();
-    } catch (error) {
-      console.error("Error adding request:", error);
-      message.error("Thêm đơn học bù thất bại");
-    }
-  };
-
-  const showApprovalModal = (record) => {
-    setSelectedRequest(record);
-    setApprovalModalVisible(true);
-  };
-
-  const handleApproveRequest = (values) => {
-    try {
-      const updatedRequests = requests.map((request) =>
-        request.requestId === selectedRequest.requestId
-          ? {
-              ...request,
-              status: "approved",
-              approvalDate: dayjs().format("YYYY-MM-DD"),
-              approvalNote: values.approvalNote,
-            }
-          : request
+      console.log("Payload gửi lên API makeup:", payload);
+      const response = await axios.put(
+        `https://instrulearnapplication.azurewebsites.net/api/Schedules/makeup/${selectedSchedule.scheduleId}`,
+        payload
       );
-      setRequests(updatedRequests);
-      message.success("Phê duyệt đơn học bù thành công");
-      setApprovalModalVisible(false);
-      approvalForm.resetFields();
+      if (response.data && response.data.isSucceed) {
+        message.success("Đã đổi ngày học bù thành công");
+        setMakeupModalVisible(false);
+        if (selectedStudent) handleStudentChange(selectedStudent.learnerId);
+      } else {
+        message.error(response.data?.message || "Không thể đổi ngày học bù");
+      }
     } catch (error) {
-      console.error("Error approving request:", error);
-      message.error("Phê duyệt đơn học bù thất bại");
+      message.error("Đã xảy ra lỗi khi đổi ngày học bù");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleRejectRequest = (values) => {
-    try {
-      const updatedRequests = requests.map((request) =>
-        request.requestId === selectedRequest.requestId
-          ? {
-              ...request,
-              status: "rejected",
-              approvalDate: dayjs().format("YYYY-MM-DD"),
-              approvalNote: values.approvalNote,
-            }
-          : request
-      );
-      setRequests(updatedRequests);
-      message.success("Từ chối đơn học bù thành công");
-      setApprovalModalVisible(false);
-      approvalForm.resetFields();
-    } catch (error) {
-      console.error("Error rejecting request:", error);
-      message.error("Từ chối đơn học bù thất bại");
+  const isPastDate = (startDay) => {
+    const today = dayjs().startOf("day");
+    const classDate = dayjs(startDay).startOf("day");
+    return classDate.isBefore(today);
+  };
+
+  const getAttendanceStatus = (status, startDay) => {
+    const pastDate = isPastDate(startDay);
+
+    const statusMap = {
+      0: {
+        color: "default",
+        text: pastDate ? "Đã quá hạn điểm danh" : "Chưa điểm danh",
+        icon: pastDate ? <ClockCircleOutlined /> : <QuestionCircleOutlined />,
+      },
+      1: { color: "success", text: "Có mặt", icon: <CheckCircleOutlined /> },
+      2: { color: "error", text: "Vắng mặt", icon: <CloseCircleOutlined /> },
+    };
+    return (
+      statusMap[status] || {
+        color: "default",
+        text: "Không xác định",
+        icon: <QuestionCircleOutlined />,
+      }
+    );
+  };
+
+  const getPreferenceStatusTag = (attendanceStatus, preferenceStatus) => {
+    if (attendanceStatus !== 2) return null;
+    if (preferenceStatus === 2) {
+      return <Tag color="blue">Đánh dấu học bù</Tag>;
     }
+    return <Tag color="default">Không học bù</Tag>;
   };
 
-  const showDrawer = (record) => {
-    setSelectedRequest(record);
-    setDrawerVisible(true);
-  };
+  const dateCellRender = (value) => {
+    const date = value.format("YYYY-MM-DD");
+    const filteredSchedules = getFilteredSchedules();
+    const daySchedules = filteredSchedules.filter(
+      (schedule) => schedule.startDay === date
+    );
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "pending":
-        return "processing";
-      case "approved":
-        return "success";
-      case "rejected":
-        return "error";
-      default:
-        return "default";
+    if (daySchedules.length === 0) return null;
+
+    const hasAttendance = daySchedules.some(
+      (schedule) => schedule.attendanceStatus > 0
+    );
+    const allPresent = daySchedules.every(
+      (schedule) => schedule.attendanceStatus === 1
+    );
+    const allAbsent = daySchedules.every(
+      (schedule) => schedule.attendanceStatus === 2
+    );
+
+    let bgColor = "bg-blue-50";
+    if (hasAttendance) {
+      if (allPresent) {
+        bgColor = "bg-green-50";
+      } else if (allAbsent) {
+        bgColor = "bg-red-50";
+      } else {
+        bgColor = "bg-yellow-50";
+      }
     }
+
+    return (
+      <div className="h-full">
+        <div className={`${bgColor} rounded-lg p-2`}>
+          <div className="space-y-1">
+            {daySchedules.map((schedule, index) => (
+              <div key={index} className="text-xs">
+                <div className="font-medium text-gray-800 truncate">
+                  {schedule.teacherName}
+                </div>
+                <div className="text-gray-500">
+                  {schedule.timeStart} - {schedule.timeEnd}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   };
 
-  const getStatusText = (status) => {
-    switch (status) {
-      case "pending":
-        return "Chờ duyệt";
-      case "approved":
-        return "Đã duyệt";
-      case "rejected":
-        return "Đã từ chối";
-      default:
-        return "Không xác định";
-    }
+  const convertDayToVietnamese = (day) => {
+    const dayMap = {
+      Monday: "Thứ 2",
+      Tuesday: "Thứ 3",
+      Wednesday: "Thứ 4",
+      Thursday: "Thứ 5",
+      Friday: "Thứ 6",
+      Saturday: "Thứ 7",
+      Sunday: "Chủ nhật",
+    };
+    return dayMap[day] || day;
   };
 
-  const columns = [
-    {
-      title: "Giáo viên",
-      dataIndex: "teacherName",
-      key: "teacherName",
-      sorter: (a, b) => a.teacherName.localeCompare(b.teacherName),
-    },
-    {
-      title: "Học viên",
-      dataIndex: "studentName",
-      key: "studentName",
-      sorter: (a, b) => a.studentName.localeCompare(b.studentName),
-    },
-    {
-      title: "Khóa học",
-      dataIndex: "courseName",
-      key: "courseName",
-    },
-    {
-      title: "Buổi học cũ",
-      key: "originalSchedule",
-      render: (_, record) => (
-        <Space direction="vertical" size={0}>
-          <span>{dayjs(record.originalDate).format("DD/MM/YYYY")}</span>
-          <Tag color="blue">{record.originalTime}</Tag>
-        </Space>
-      ),
-    },
-    {
-      title: "Đề xuất học bù",
-      key: "proposedSchedule",
-      render: (_, record) => (
-        <Space direction="vertical" size={0}>
-          <span>{dayjs(record.proposedDate).format("DD/MM/YYYY")}</span>
-          <Tag color="green">{record.proposedTime}</Tag>
-        </Space>
-      ),
-    },
-    {
-      title: "Thời lượng",
-      dataIndex: "duration",
-      key: "duration",
-      render: (duration) => `${duration} phút`,
-    },
-    {
-      title: "Trạng thái",
-      key: "status",
-      render: (_, record) => (
-        <Badge
-          status={getStatusColor(record.status)}
-          text={getStatusText(record.status)}
-        />
-      ),
-      filters: [
-        { text: "Chờ duyệt", value: "pending" },
-        { text: "Đã duyệt", value: "approved" },
-        { text: "Đã từ chối", value: "rejected" },
-      ],
-      onFilter: (value, record) => record.status === value,
-    },
-    {
-      title: "Thao tác",
-      key: "action",
-      render: (_, record) => (
-        <Space size="middle">
-          <Tooltip title="Xem chi tiết">
-            <Button
-              type="text"
-              icon={<EyeOutlined />}
-              onClick={() => showDrawer(record)}
-            />
-          </Tooltip>
-          {record.status === "pending" && (
-            <Tooltip title="Phê duyệt/Từ chối">
-              <Button
-                type="text"
-                icon={<CheckOutlined />}
-                onClick={() => showApprovalModal(record)}
-              />
-            </Tooltip>
-          )}
-        </Space>
-      ),
-    },
-  ];
+  const getModeTag = (mode) => {
+    const modeMap = {
+      Center: {
+        color: "green",
+        text: "Tại trung tâm",
+        icon: <EnvironmentOutlined />,
+      },
+      OneOnOne: { color: "blue", text: "1-1", icon: <UserOutlined /> },
+    };
+
+    const modeInfo = modeMap[mode] || {
+      color: "default",
+      text: mode,
+      icon: null,
+    };
+    return (
+      <Tag color={modeInfo.color} icon={modeInfo.icon}>
+        {modeInfo.text}
+      </Tag>
+    );
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Spin size="large" />
+      </div>
+    );
+  }
+
+  const filteredSchedules = getFilteredSchedules();
+  const hasNoData = selectedStudent && filteredSchedules.length === 0;
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
@@ -407,343 +364,330 @@ const MakeupClassRequests = () => {
         >
           <Card>
             <div className="flex justify-between items-center mb-4">
-              <Title level={4}>Quản lý đơn xin học bù</Title>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => setModalVisible(true)}
-              >
-                Thêm đơn học bù
-              </Button>
+              <Title level={4}>Quản lý học bù</Title>
+              <Space>
+                <Select
+                  placeholder="Lọc theo giáo viên"
+                  style={{ width: 180 }}
+                  onChange={handleTeacherFilterChange}
+                  value={selectedTeacher}
+                  allowClear
+                  disabled={!selectedStudent || schedules.length === 0}
+                >
+                  {teachersFromSchedules.map((teacher) => (
+                    <Option key={teacher.teacherId} value={teacher.teacherId}>
+                      {teacher.fullName}
+                    </Option>
+                  ))}
+                </Select>
+                <Select
+                  placeholder="Chọn học viên"
+                  style={{ width: 180 }}
+                  onChange={handleStudentChange}
+                >
+                  {students.map((student) => (
+                    <Option key={student.learnerId} value={student.learnerId}>
+                      {student.fullName}
+                    </Option>
+                  ))}
+                </Select>
+              </Space>
             </div>
 
-            <Table
-              columns={columns}
-              dataSource={requests}
-              rowKey="requestId"
-              loading={loading}
-              pagination={{
-                showSizeChanger: true,
-                showTotal: (total) => `Tổng cộng ${total} đơn`,
-              }}
-            />
+            {selectedStudent && (
+              <div className="mb-4">
+                <div className="text-gray-600">
+                  <UserOutlined className="mr-2" />
+                  Học viên: {selectedStudent.fullName}
+                </div>
+              </div>
+            )}
+
+            <Card>
+              {hasNoData ? (
+                <div className="flex justify-center items-center p-8">
+                  <Empty
+                    description={
+                      selectedTeacher
+                        ? "Không có lịch học cho giáo viên này"
+                        : "Chưa có lịch học"
+                    }
+                  />
+                </div>
+              ) : (
+                <>
+                  <div className="mb-4">
+                    <Radio.Group
+                      value={viewMode}
+                      onChange={(e) => setViewMode(e.target.value)}
+                    >
+                      <Radio.Button value="month">Tháng</Radio.Button>
+                      <Radio.Button value="week">Tuần</Radio.Button>
+                    </Radio.Group>
+                  </div>
+
+                  <Calendar
+                    mode={viewMode}
+                    fullscreen={false}
+                    className="custom-calendar"
+                    cellRender={(value) => {
+                      const dateStr = value.format("YYYY-MM-DD");
+                      const filteredSchedules = getFilteredSchedules();
+                      const daySchedules = filteredSchedules.filter(
+                        (schedule) => schedule.startDay === dateStr
+                      );
+
+                      if (daySchedules.length === 0) return null;
+
+                      return (
+                        <Popover
+                          content={
+                            <div className="w-[500px]">
+                              <div className="flex items-center justify-between border-b pb-3 mb-4">
+                                <div>
+                                  <div className="text-lg font-medium">
+                                    Lịch học ngày {value.format("DD/MM/YYYY")}
+                                  </div>
+                                  <div className="text-gray-500 text-sm mt-1">
+                                    {daySchedules.length} buổi học
+                                  </div>
+                                </div>
+                                <Tag color="blue">
+                                  {daySchedules[0]?.formattedDayOfWeek}
+                                </Tag>
+                              </div>
+
+                              <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                                {daySchedules.map((schedule, index) => (
+                                  <div
+                                    key={schedule.scheduleId}
+                                    className={`bg-white rounded-lg border ${
+                                      schedule.attendanceStatus === 1
+                                        ? "border-green-200 bg-green-50"
+                                        : schedule.attendanceStatus === 2
+                                        ? "border-red-200 bg-red-50"
+                                        : "border-gray-200"
+                                    } p-4`}
+                                  >
+                                    <div className="flex items-center justify-between mb-3">
+                                      <div className="flex items-center gap-3">
+                                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-500 text-white font-medium">
+                                          {schedule.sessionNumber}
+                                        </div>
+                                        <div className="flex-1">
+                                          <div className="font-medium text-gray-900">
+                                            {schedule.sessionTitle}
+                                          </div>
+                                          {schedule.sessionDescription && (
+                                            <div className="text-sm text-gray-600 mt-1">
+                                              {schedule.sessionDescription}
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <Tag
+                                        color={
+                                          getAttendanceStatus(
+                                            schedule.attendanceStatus,
+                                            schedule.startDay
+                                          ).color
+                                        }
+                                        icon={
+                                          getAttendanceStatus(
+                                            schedule.attendanceStatus,
+                                            schedule.startDay
+                                          ).icon
+                                        }
+                                      >
+                                        {
+                                          getAttendanceStatus(
+                                            schedule.attendanceStatus,
+                                            schedule.startDay
+                                          ).text
+                                        }
+                                      </Tag>
+                                      {getPreferenceStatusTag(
+                                        schedule.attendanceStatus,
+                                        schedule.preferenceStatus
+                                      )}
+                                    </div>
+
+                                    <div className="flex items-center justify-between mb-3 p-2 bg-white rounded border border-gray-100">
+                                      <div className="flex items-center gap-3">
+                                        <Avatar icon={<UserOutlined />} />
+                                        <div>
+                                          <div className="font-medium">
+                                            {schedule.teacherName}
+                                          </div>
+                                          <div className="text-xs text-gray-500">
+                                            Giảng viên
+                                          </div>
+                                        </div>
+                                      </div>
+                                      <div className="flex gap-2">
+                                        {schedule.attendanceStatus === 2 &&
+                                          schedule.preferenceStatus === 2 && (
+                                            <Button
+                                              type="default"
+                                              icon={<EditOutlined />}
+                                              size="small"
+                                              onClick={() =>
+                                                handleMakeup(schedule)
+                                              }
+                                            >
+                                              Đổi ngày học (học bù)
+                                            </Button>
+                                          )}
+                                      </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                      <div className="flex items-center gap-2 text-gray-600 text-sm">
+                                        <div className="flex items-center gap-2">
+                                          <ClockCircleOutlined />
+                                          <span>
+                                            {schedule.timeStart} -{" "}
+                                            {schedule.timeEnd}
+                                          </span>
+                                        </div>
+                                        {getModeTag(schedule.mode)}
+                                      </div>
+
+                                      {schedule.mode === "OneOnOne" &&
+                                        schedule.learnerAddress && (
+                                          <div className="flex items-center text-sm text-gray-600">
+                                            <EnvironmentOutlined className="mr-2" />
+                                            <span>
+                                              {schedule.learnerAddress}
+                                            </span>
+                                          </div>
+                                        )}
+                                      {schedule.className &&
+                                        schedule.className !== "N/A" && (
+                                          <div className="flex items-center text-sm text-gray-600">
+                                            <EnvironmentOutlined className="mr-2" />
+                                            <span>
+                                              Lớp: {schedule.className}
+                                            </span>
+                                          </div>
+                                        )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          }
+                          trigger="click"
+                          placement="right"
+                          overlayClassName="custom-popover"
+                        >
+                          <div className="h-full cursor-pointer">
+                            {dateCellRender(value)}
+                          </div>
+                        </Popover>
+                      );
+                    }}
+                  />
+                </>
+              )}
+            </Card>
           </Card>
 
+          {/* Modal học bù */}
           <Modal
-            title="Thêm đơn học bù mới"
-            open={modalVisible}
-            onCancel={() => {
-              setModalVisible(false);
-              form.resetFields();
-            }}
-            footer={[
-              <Button
-                key="cancel"
-                onClick={() => {
-                  setModalVisible(false);
-                  form.resetFields();
-                }}
-              >
-                Hủy
-              </Button>,
-              <Button key="submit" type="primary" onClick={() => form.submit()}>
-                Thêm
-              </Button>,
-            ]}
-            width={720}
+            title="Đổi ngày học (học bù)"
+            open={makeupModalVisible}
+            onOk={submitMakeup}
+            onCancel={() => setMakeupModalVisible(false)}
+            okText="Xác nhận"
+            cancelText="Hủy"
+            confirmLoading={loading}
           >
-            <Form form={form} layout="vertical" onFinish={handleAddRequest}>
+            {selectedSchedule && (
+              <div className="mb-4">
+                <div className="text-sm mb-2">Thông tin buổi học cũ:</div>
+                <div className="p-3 bg-gray-50 rounded-md">
+                  <div>
+                    <strong>Buổi học:</strong> {selectedSchedule.sessionTitle}
+                  </div>
+                  <div>
+                    <strong>Ngày cũ:</strong>{" "}
+                    {dayjs(selectedSchedule.startDay).format("DD/MM/YYYY")}
+                  </div>
+                  <div>
+                    <strong>Thời gian cũ:</strong> {selectedSchedule.timeStart}{" "}
+                    - {selectedSchedule.timeEnd}
+                  </div>
+                  <div>
+                    <strong>Giáo viên:</strong> {selectedSchedule.teacherName}
+                  </div>
+                </div>
+              </div>
+            )}
+            <Form form={makeupForm} layout="vertical">
               <Form.Item
-                name="teacherId"
-                label="Giáo viên"
-                rules={[{ required: true, message: "Vui lòng chọn giáo viên" }]}
+                name="newDate"
+                label="Ngày học bù"
+                rules={[
+                  { required: true, message: "Vui lòng chọn ngày học bù" },
+                ]}
               >
-                <Select placeholder="Chọn giáo viên">
-                  {teachers.map((teacher) => (
-                    <Option key={teacher.teacherId} value={teacher.teacherId}>
-                      {teacher.teacherName} - {teacher.specialization}
-                    </Option>
-                  ))}
-                </Select>
+                <Input type="date" />
               </Form.Item>
-
               <Form.Item
-                name="studentId"
-                label="Học viên"
-                rules={[{ required: true, message: "Vui lòng chọn học viên" }]}
-              >
-                <Select placeholder="Chọn học viên">
-                  {students.map((student) => (
-                    <Option key={student.studentId} value={student.studentId}>
-                      {student.studentName}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-
-              <Form.Item
-                name="courseId"
-                label="Khóa học"
-                rules={[{ required: true, message: "Vui lòng chọn khóa học" }]}
-              >
-                <Select placeholder="Chọn khóa học">
-                  {courses.map((course) => (
-                    <Option key={course.courseId} value={course.courseId}>
-                      {course.courseName}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-
-              <Space style={{ width: "100%", justifyContent: "space-between" }}>
-                <Form.Item
-                  name="originalDate"
-                  label="Ngày học cũ"
-                  rules={[
-                    { required: true, message: "Vui lòng chọn ngày học cũ" },
-                  ]}
-                  style={{ width: "300px" }}
-                >
-                  <DatePicker
-                    locale={locale}
-                    format="DD/MM/YYYY"
-                    style={{ width: "100%" }}
-                  />
-                </Form.Item>
-
-                <Form.Item
-                  name="originalTime"
-                  label="Giờ học cũ"
-                  rules={[
-                    { required: true, message: "Vui lòng chọn giờ học cũ" },
-                  ]}
-                  style={{ width: "300px" }}
-                >
-                  <TimePicker format="HH:mm" style={{ width: "100%" }} />
-                </Form.Item>
-              </Space>
-
-              <Space style={{ width: "100%", justifyContent: "space-between" }}>
-                <Form.Item
-                  name="proposedDate"
-                  label="Ngày học bù"
-                  rules={[
-                    { required: true, message: "Vui lòng chọn ngày học bù" },
-                  ]}
-                  style={{ width: "300px" }}
-                >
-                  <DatePicker
-                    locale={locale}
-                    format="DD/MM/YYYY"
-                    style={{ width: "100%" }}
-                  />
-                </Form.Item>
-
-                <Form.Item
-                  name="proposedTime"
-                  label="Giờ học bù"
-                  rules={[
-                    { required: true, message: "Vui lòng chọn giờ học bù" },
-                  ]}
-                  style={{ width: "300px" }}
-                >
-                  <TimePicker format="HH:mm" style={{ width: "100%" }} />
-                </Form.Item>
-              </Space>
-
-              <Form.Item
-                name="duration"
-                label="Thời lượng"
+                name="newTimeStart"
+                label="Giờ bắt đầu học bù"
                 rules={[
                   {
                     required: true,
-                    message: "Vui lòng chọn thời lượng buổi học",
+                    message: "Vui lòng nhập giờ bắt đầu học bù (hh:mm)",
                   },
                 ]}
               >
-                <Select placeholder="Chọn thời lượng">
-                  {durations.map((duration) => (
-                    <Option key={duration.id} value={duration.value}>
-                      {duration.label}
-                    </Option>
-                  ))}
-                </Select>
+                <Input placeholder="hh:mm" />
               </Form.Item>
-
               <Form.Item
-                name="reason"
+                name="changeReason"
                 label="Lý do học bù"
                 rules={[
                   { required: true, message: "Vui lòng nhập lý do học bù" },
                 ]}
               >
-                <TextArea rows={3} placeholder="Nhập lý do học bù" />
+                <Input.TextArea rows={3} placeholder="Nhập lý do học bù" />
               </Form.Item>
             </Form>
           </Modal>
-
-          <Modal
-            title="Phê duyệt đơn học bù"
-            open={approvalModalVisible}
-            onCancel={() => {
-              setApprovalModalVisible(false);
-              approvalForm.resetFields();
-            }}
-            footer={[
-              <Button
-                key="reject"
-                danger
-                icon={<CloseOutlined />}
-                onClick={() => approvalForm.submit()}
-              >
-                Từ chối
-              </Button>,
-              <Button
-                key="approve"
-                type="primary"
-                icon={<CheckOutlined />}
-                onClick={() =>
-                  handleApproveRequest(approvalForm.getFieldsValue())
-                }
-              >
-                Phê duyệt
-              </Button>,
-            ]}
-          >
-            <Form form={approvalForm} layout="vertical">
-              <Form.Item name="approvalNote" label="Ghi chú">
-                <TextArea
-                  rows={4}
-                  placeholder="Nhập ghi chú cho quyết định phê duyệt/từ chối"
-                />
-              </Form.Item>
-            </Form>
-          </Modal>
-
-          <Drawer
-            title="Chi tiết đơn học bù"
-            placement="right"
-            onClose={() => setDrawerVisible(false)}
-            open={drawerVisible}
-            width={600}
-          >
-            {selectedRequest && (
-              <>
-                <Descriptions title="Thông tin chung" bordered column={1}>
-                  <Descriptions.Item
-                    label={
-                      <>
-                        <TeamOutlined /> Giáo viên
-                      </>
-                    }
-                  >
-                    {selectedRequest.teacherName}
-                  </Descriptions.Item>
-                  <Descriptions.Item
-                    label={
-                      <>
-                        <UserOutlined /> Học viên
-                      </>
-                    }
-                  >
-                    {selectedRequest.studentName}
-                  </Descriptions.Item>
-                  <Descriptions.Item
-                    label={
-                      <>
-                        <BookOutlined /> Khóa học
-                      </>
-                    }
-                  >
-                    {selectedRequest.courseName}
-                  </Descriptions.Item>
-                </Descriptions>
-
-                <Divider orientation="left">Thông tin buổi học</Divider>
-                <Descriptions bordered column={1}>
-                  <Descriptions.Item
-                    label={
-                      <>
-                        <CalendarOutlined /> Buổi học cũ
-                      </>
-                    }
-                  >
-                    {dayjs(selectedRequest.originalDate).format("DD/MM/YYYY")}{" "}
-                    {selectedRequest.originalTime}
-                  </Descriptions.Item>
-                  <Descriptions.Item
-                    label={
-                      <>
-                        <CalendarOutlined /> Đề xuất học bù
-                      </>
-                    }
-                  >
-                    {dayjs(selectedRequest.proposedDate).format("DD/MM/YYYY")}{" "}
-                    {selectedRequest.proposedTime}
-                  </Descriptions.Item>
-                  <Descriptions.Item
-                    label={
-                      <>
-                        <ClockCircleOutlined /> Thời lượng
-                      </>
-                    }
-                  >
-                    {selectedRequest.duration} phút
-                  </Descriptions.Item>
-                </Descriptions>
-
-                <Divider orientation="left">Trạng thái đơn</Divider>
-                <Descriptions bordered column={1}>
-                  <Descriptions.Item
-                    label={
-                      <>
-                        <InfoCircleOutlined /> Trạng thái
-                      </>
-                    }
-                  >
-                    <Badge
-                      status={getStatusColor(selectedRequest.status)}
-                      text={getStatusText(selectedRequest.status)}
-                    />
-                  </Descriptions.Item>
-                  <Descriptions.Item
-                    label={
-                      <>
-                        <CalendarOutlined /> Ngày yêu cầu
-                      </>
-                    }
-                  >
-                    {dayjs(selectedRequest.requestDate).format("DD/MM/YYYY")}
-                  </Descriptions.Item>
-                  {selectedRequest.approvalDate && (
-                    <Descriptions.Item
-                      label={
-                        <>
-                          <CalendarOutlined /> Ngày phê duyệt
-                        </>
-                      }
-                    >
-                      {dayjs(selectedRequest.approvalDate).format("DD/MM/YYYY")}
-                    </Descriptions.Item>
-                  )}
-                </Descriptions>
-
-                <Divider orientation="left">Lý do và ghi chú</Divider>
-                <Descriptions bordered column={1}>
-                  <Descriptions.Item label="Lý do học bù">
-                    {selectedRequest.reason}
-                  </Descriptions.Item>
-                  {selectedRequest.approvalNote && (
-                    <Descriptions.Item label="Ghi chú phê duyệt">
-                      {selectedRequest.approvalNote}
-                    </Descriptions.Item>
-                  )}
-                </Descriptions>
-              </>
-            )}
-          </Drawer>
         </Content>
       </Layout>
+      <style jsx global>{`
+        .custom-calendar .ant-picker-calendar-date-content {
+          height: ${viewMode === "month" ? "80px" : "120px"};
+          overflow-y: auto;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #888;
+          border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #555;
+        }
+        .custom-popover {
+          max-width: 90vw;
+        }
+        .custom-popover .ant-popover-inner {
+          padding: 0;
+        }
+        .custom-popover .ant-popover-inner-content {
+          padding: 16px;
+        }
+      `}</style>
     </Layout>
   );
 };

@@ -1,9 +1,21 @@
 import React, { useState, useEffect } from "react";
-import { Layout, Card, Typography, List, Tag, Spin, Empty, Button } from "antd";
+import {
+  Layout,
+  Card,
+  Typography,
+  List,
+  Tag,
+  Spin,
+  Empty,
+  Button,
+  message,
+} from "antd";
 import StaffSidebar from "../../components/staff/StaffSidebar";
 import StaffHeader from "../../components/staff/StaffHeader";
 import axios from "axios";
 import dayjs from "dayjs";
+import { CheckCircleOutlined, EyeOutlined } from "@ant-design/icons";
+import { useNavigate } from "react-router-dom";
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
@@ -13,6 +25,7 @@ const StudentNotification = () => {
   const [selectedMenu, setSelectedMenu] = useState("student-notification");
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchNotifications();
@@ -36,6 +49,17 @@ const StudentNotification = () => {
     }
   };
 
+  const markAsRead = async (notificationId) => {
+    try {
+      await axios.put(
+        `https://instrulearnapplication.azurewebsites.net/api/StaffNotification/mark-as-read/${notificationId}`
+      );
+      fetchNotifications();
+    } catch (error) {
+      message.error("Không thể đánh dấu đã đọc");
+    }
+  };
+
   return (
     <Layout className="min-h-screen bg-gray-50">
       <StaffSidebar
@@ -55,7 +79,7 @@ const StudentNotification = () => {
             <Card className="shadow-lg rounded-lg overflow-hidden">
               <div className="bg-blue-600 p-6 text-white">
                 <Title level={2} className="text-center mb-0">
-                  Thông báo từ học viên
+                  Thông báo đổi giáo viên
                 </Title>
                 <p className="text-center text-blue-100 mt-2">
                   Danh sách các yêu cầu thay đổi giáo viên từ học viên
@@ -85,8 +109,29 @@ const StudentNotification = () => {
                               <span className="font-medium text-blue-600">
                                 {item.title}
                               </span>
-                              <Tag color={item.status === 0 ? "blue" : "green"}>
-                                {item.status === 0 ? "Chưa xử lý" : "Đã xử lý"}
+                              <Tag
+                                color={
+                                  item.status === 0
+                                    ? "blue"
+                                    : item.status === 1
+                                    ? "gold"
+                                    : "green"
+                                }
+                                icon={
+                                  item.status === 0 ? (
+                                    <EyeOutlined />
+                                  ) : item.status === 1 ? (
+                                    <CheckCircleOutlined />
+                                  ) : (
+                                    <CheckCircleOutlined />
+                                  )
+                                }
+                              >
+                                {item.status === 0
+                                  ? "Chưa đọc"
+                                  : item.status === 1
+                                  ? "Đã đọc"
+                                  : "Đã xử lý"}
                               </Tag>
                             </div>
                           }
@@ -95,6 +140,12 @@ const StudentNotification = () => {
                               <div className="mb-2 text-gray-700">
                                 {item.message}
                               </div>
+                              {item.teacherChangeReason && (
+                                <div className="mb-2 text-red-500">
+                                  <b>Lý do thay đổi giáo viên:</b>{" "}
+                                  {item.teacherChangeReason}
+                                </div>
+                              )}
                               <div className="flex flex-wrap gap-4 text-xs text-gray-500">
                                 <span>
                                   Học viên: <b>{item.learnerName}</b>
@@ -105,8 +156,32 @@ const StudentNotification = () => {
                                     "DD/MM/YYYY HH:mm"
                                   )}
                                 </span>
-                                <span>Mã đăng ký: {item.learningRegisId}</span>
+                                {/* <span>Mã đăng ký: {item.learningRegisId}</span> */}
                               </div>
+                              {item.status === 0 && (
+                                <div className="flex gap-2 mt-3">
+                                  <Button
+                                    type="primary"
+                                    size="small"
+                                    onClick={() =>
+                                      markAsRead(item.notificationId)
+                                    }
+                                  >
+                                    Đánh dấu đã đọc
+                                  </Button>
+                                  <Button
+                                    type="default"
+                                    size="small"
+                                    onClick={() =>
+                                      navigate(
+                                        `/staff/change-all-teacher?learningRegisId=${item.learningRegisId}`
+                                      )
+                                    }
+                                  >
+                                    Xử lý đơn
+                                  </Button>
+                                </div>
+                              )}
                             </>
                           }
                         />

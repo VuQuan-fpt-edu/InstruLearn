@@ -28,6 +28,7 @@ import {
   CalendarOutlined,
   FileTextOutlined,
   DollarOutlined,
+  SwapOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
 import dayjs from "dayjs";
@@ -50,10 +51,21 @@ const MyLibrary = () => {
   const [lastWatchTimeUpdate, setLastWatchTimeUpdate] = useState(0);
   const [videoStartTime, setVideoStartTime] = useState(0);
   const [isVideoLearned, setIsVideoLearned] = useState(false);
+  const [pdfViewerVisible, setPdfViewerVisible] = useState(false);
+  const [currentPdfUrl, setCurrentPdfUrl] = useState("");
+  const [maxWatchedTime, setMaxWatchedTime] = useState(0);
 
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (selectedVideoItemId && contentProgress) {
+      const progress = getVideoProgress(selectedVideoItemId);
+      setIsVideoLearned(progress?.isLearned || false);
+    }
+    // eslint-disable-next-line
+  }, [selectedVideoItemId, contentProgress]);
 
   const fetchData = async () => {
     try {
@@ -255,10 +267,8 @@ const MyLibrary = () => {
     setIsVideoLoaded(true);
     console.log(`Video đã tải, tổng thời lượng: ${duration} giây`);
 
+    // Chỉ set về vị trí đã xem nếu có
     if (videoStartTime > 0 && videoStartTime < duration) {
-      console.log(
-        `Thiết lập thời gian bắt đầu video thành: ${videoStartTime} giây`
-      );
       video.currentTime = videoStartTime;
     }
 
@@ -297,8 +307,12 @@ const MyLibrary = () => {
         console.log("Cập nhật thời lượng video thành công:", response.data);
         message.success("Đã cập nhật thời lượng video");
 
-        // Nếu đang xem chi tiết khóa học, cập nhật lại tiến độ
-        if (selectedCourse && selectedCourse.coursePackageId) {
+        // Nếu đang xem chi tiết khóa học, chỉ fetch lại khi KHÔNG mở modal video
+        if (
+          selectedCourse &&
+          selectedCourse.coursePackageId &&
+          !videoModalVisible
+        ) {
           console.log(
             "Cập nhật lại dữ liệu tiến độ sau khi cập nhật thời lượng"
           );
@@ -321,6 +335,9 @@ const MyLibrary = () => {
   const handleVideoTimeUpdate = (e) => {
     const video = e.target;
     const currentTime = Math.floor(video.currentTime);
+
+    // Lưu lại vị trí đã xem lớn nhất
+    setMaxWatchedTime((prev) => Math.max(prev, currentTime));
 
     // Cập nhật thời gian xem cho UI
     if (currentTime % 10 === 0 && currentTime > 0) {
@@ -349,19 +366,29 @@ const MyLibrary = () => {
   const handleVideoSeeking = (e) => {
     const video = e.target;
     const currentTime = video.currentTime;
-    const duration = video.duration;
+    const progress = getVideoProgress(selectedVideoItemId);
 
-    // Nếu video chưa được học xong (isLearned = false)
-    if (!isVideoLearned) {
-      // Chỉ cho phép tua ngược
-      if (currentTime > lastWatchTimeUpdate) {
-        e.preventDefault();
-        video.currentTime = lastWatchTimeUpdate;
-        message.warning(
-          "Bạn chỉ có thể tua ngược video cho đến khi xem hoàn thành"
-        );
-      }
+    if (!isVideoLoaded) {
+      e.preventDefault();
+      video.currentTime = 0;
+      message.warning("Vui lòng chờ video tải xong trước khi tua.");
+      return;
     }
+
+    if (progress?.isLearned) {
+      return; // Cho phép tua tự do nếu đã học xong
+    }
+
+    const lastWatch = progress?.watchTimeInSeconds || 0;
+
+    // Nếu tua tới vượt quá vùng đã học thì chặn và cảnh báo
+    if (currentTime > lastWatch + 1) {
+      video.currentTime = lastWatch;
+      message.warning(
+        "Bạn chỉ có thể tua ngược, không được tua tới khi chưa học xong."
+      );
+    }
+    // Nếu tua ngược (currentTime < lastWatch) thì cho phép tự do, KHÔNG set lại vị trí
   };
 
   const handleCourseClick = (course) => {
@@ -532,9 +559,8 @@ const MyLibrary = () => {
                               <Text strong>
                                 {item.itemTypeId === 2 ? "Video" : "Tài liệu"}
                               </Text>
-                              {(item.status === 1 ||
-                                getVideoProgress(item.itemId)?.isLearned ===
-                                  true) && (
+                              {getVideoProgress(item.itemId)?.isLearned ===
+                                true && (
                                 <Tag
                                   color="success"
                                   icon={<CheckCircleOutlined />}
@@ -631,8 +657,9 @@ const MyLibrary = () => {
   const handleViewDocument = (documentUrl, itemId) => {
     console.log(`Xem tài liệu: ${documentUrl}, itemId: ${itemId}`);
 
-    // Mở tài liệu trong tab mới
-    window.open(documentUrl, "_blank", "noopener,noreferrer");
+    // Hiển thị PDF trong modal
+    setCurrentPdfUrl(documentUrl);
+    setPdfViewerVisible(true);
 
     // Gọi API để đánh dấu đã xem tài liệu
     updateContentItemStatus(itemId);
@@ -689,8 +716,12 @@ const MyLibrary = () => {
           `${response.data.message} (${documentInfo} ${completionStatus})`
         );
 
-        // Nếu đang xem chi tiết khóa học, cập nhật lại tiến độ
-        if (selectedCourse && selectedCourse.coursePackageId) {
+        // Nếu đang xem chi tiết khóa học, chỉ fetch lại khi KHÔNG mở modal video
+        if (
+          selectedCourse &&
+          selectedCourse.coursePackageId &&
+          !videoModalVisible
+        ) {
           console.log("Cập nhật lại dữ liệu tiến độ sau khi đánh dấu tài liệu");
           fetchContentProgress(selectedCourse.coursePackageId);
         }
@@ -766,8 +797,12 @@ const MyLibrary = () => {
         // Lưu lại thời gian đã cập nhật
         setLastWatchTimeUpdate(watchTimeInSeconds);
 
-        // Nếu đang xem chi tiết khóa học, cập nhật lại tiến độ
-        if (selectedCourse && selectedCourse.coursePackageId) {
+        // Nếu đang xem chi tiết khóa học, chỉ fetch lại khi KHÔNG mở modal video
+        if (
+          selectedCourse &&
+          selectedCourse.coursePackageId &&
+          !videoModalVisible
+        ) {
           console.log(
             "Cập nhật lại dữ liệu tiến độ sau khi cập nhật thời gian xem"
           );
@@ -966,14 +1001,15 @@ const MyLibrary = () => {
         open={videoModalVisible}
         onCancel={() => {
           // Lưu thời gian xem cuối cùng khi đóng modal
-          const videoElement = document.querySelector("#videoPlayer");
-          if (videoElement) {
-            const currentTime = Math.floor(videoElement.currentTime);
-            if (currentTime > lastWatchTimeUpdate) {
-              updateVideoWatchTime(currentTime);
-            }
+          if (maxWatchedTime > lastWatchTimeUpdate) {
+            updateVideoWatchTime(maxWatchedTime);
           }
           setVideoModalVisible(false);
+          // Chỉ fetch lại khi modal đóng
+          if (selectedCourse && selectedCourse.coursePackageId) {
+            fetchContentProgress(selectedCourse.coursePackageId);
+          }
+          setMaxWatchedTime(0); // reset cho lần xem tiếp theo
         }}
         footer={null}
         width={800}
@@ -987,22 +1023,35 @@ const MyLibrary = () => {
               src={selectedVideo}
               controls
               className="w-full h-full"
-              controlsList="nodownload"
+              controlsList="nodownload noplaybackrate"
               onLoadedMetadata={handleVideoLoad}
               onTimeUpdate={handleVideoTimeUpdate}
               onEnded={handleVideoEnded}
-              onSeeking={handleVideoSeeking}
               autoPlay
+              onSeeking={handleVideoSeeking}
             >
               Trình duyệt của bạn không hỗ trợ phát video.
             </video>
-            {!isVideoLoaded && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
-                <Spin size="large" />
-              </div>
-            )}
           </div>
         )}
+      </Modal>
+
+      {/* PDF Viewer Modal */}
+      <Modal
+        title="Xem tài liệu"
+        open={pdfViewerVisible}
+        onCancel={() => setPdfViewerVisible(false)}
+        width={800}
+        footer={null}
+        bodyStyle={{ padding: 0 }}
+      >
+        <iframe
+          src={`${currentPdfUrl}#toolbar=0`}
+          width="100%"
+          height="600px"
+          style={{ border: "none" }}
+          title="PDF Viewer"
+        />
       </Modal>
     </div>
   );

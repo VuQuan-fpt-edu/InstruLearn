@@ -23,6 +23,7 @@ import {
   FileOutlined,
   DownloadOutlined,
   CheckCircleOutlined,
+  EyeOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
 import ManagerSidebar from "../../components/manager/ManagerSidebar";
@@ -65,6 +66,8 @@ const Syllabus11Management = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [fileURL, setFileURL] = useState("");
+  const [previewVisible, setPreviewVisible] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState("");
 
   useEffect(() => {
     fetchLevels();
@@ -115,14 +118,8 @@ const Syllabus11Management = () => {
     if (e.target.files[0]) {
       const selectedFile = e.target.files[0];
       const fileType = selectedFile.type;
-      if (
-        !fileType.includes("pdf") &&
-        !fileType.includes("msword") &&
-        !fileType.includes(
-          "openxmlformats-officedocument.wordprocessingml.document"
-        )
-      ) {
-        message.error("Vui lòng chỉ chọn file PDF hoặc Word");
+      if (!fileType.includes("pdf")) {
+        message.error("Vui lòng chỉ chọn file PDF");
         return;
       }
       if (selectedFile.size > 10 * 1024 * 1024) {
@@ -131,13 +128,14 @@ const Syllabus11Management = () => {
       }
       setFile(selectedFile);
       setFileURL("");
-      setFileType(fileType.includes("pdf") ? "pdf" : "word");
-      message.info(
-        `Đã chọn file ${fileType.includes("pdf") ? "PDF" : "Word"}: ${
-          selectedFile.name
-        }`
-      );
+      setFileType("pdf");
+      message.info(`Đã chọn file PDF: ${selectedFile.name}`);
     }
+  };
+
+  const handlePreview = (url) => {
+    setPreviewUrl(url);
+    setPreviewVisible(true);
   };
 
   const uploadFileToFirebase = async () => {
@@ -274,23 +272,30 @@ const Syllabus11Management = () => {
         if (!syllabusLink) {
           return <Tag color="warning">Chưa có</Tag>;
         }
-        const extension = syllabusLink.split(".").pop().toLowerCase();
-        const isPdf = extension === "pdf";
-        const isWord = ["doc", "docx"].includes(extension);
         return (
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <FileOutlined style={{ color: isPdf ? "#ff4d4f" : "#1890ff" }} />
-            <span style={{ color: isPdf ? "#ff4d4f" : "#1890ff" }}>
-              {isPdf ? "Tài liệu PDF" : isWord ? "Tài liệu Word" : "Tệp"}
-            </span>
+            <FileOutlined style={{ color: "#ff4d4f" }} />
+            <span style={{ color: "#ff4d4f" }}>Tài liệu PDF</span>
+            <Button
+              type="primary"
+              size="small"
+              icon={<EyeOutlined />}
+              onClick={() => handlePreview(syllabusLink)}
+              style={{
+                background: "#ff4d4f",
+                borderColor: "#ff4d4f",
+              }}
+            >
+              Xem
+            </Button>
             <Button
               type="primary"
               size="small"
               icon={<DownloadOutlined />}
               onClick={() => window.open(syllabusLink, "_blank")}
               style={{
-                background: isPdf ? "#ff4d4f" : "#1890ff",
-                borderColor: isPdf ? "#ff4d4f" : "#1890ff",
+                background: "#ff4d4f",
+                borderColor: "#ff4d4f",
               }}
             >
               Tải xuống
@@ -393,11 +398,11 @@ const Syllabus11Management = () => {
                 <input
                   type="file"
                   onChange={handleFileSelect}
-                  accept=".pdf,.doc,.docx"
+                  accept=".pdf"
                   className="block w-full text-sm border border-gray-300 rounded-md p-2 hover:border-blue-500 transition-colors"
                 />
                 <div className="mt-1 text-xs text-gray-500">
-                  Hỗ trợ file PDF và Word (doc, docx). Tối đa 10MB.
+                  Chỉ hỗ trợ file PDF. Tối đa 10MB.
                 </div>
                 {file && !isUploading && !fileURL && (
                   <div className="mt-2">
@@ -425,16 +430,56 @@ const Syllabus11Management = () => {
               </Form.Item>
               {editingLevel?.syllabusLink && !file && !fileURL && (
                 <Form.Item label="Giáo trình hiện tại">
-                  <a
-                    href={editingLevel.syllabusLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <DownloadOutlined /> Xem file hiện tại
-                  </a>
+                  <div className="flex gap-2">
+                    <Button
+                      type="primary"
+                      icon={<EyeOutlined />}
+                      onClick={() => handlePreview(editingLevel.syllabusLink)}
+                      style={{
+                        background: "#ff4d4f",
+                        borderColor: "#ff4d4f",
+                      }}
+                    >
+                      Xem
+                    </Button>
+                    <Button
+                      type="primary"
+                      icon={<DownloadOutlined />}
+                      onClick={() =>
+                        window.open(editingLevel.syllabusLink, "_blank")
+                      }
+                      style={{
+                        background: "#ff4d4f",
+                        borderColor: "#ff4d4f",
+                      }}
+                    >
+                      Tải xuống
+                    </Button>
+                  </div>
                 </Form.Item>
               )}
             </Form>
+          </Modal>
+
+          {/* Modal xem PDF */}
+          <Modal
+            title="Xem giáo trình"
+            open={previewVisible}
+            onCancel={() => setPreviewVisible(false)}
+            width="80%"
+            footer={null}
+            style={{ top: 20 }}
+            bodyStyle={{ height: "80vh", padding: 0 }}
+          >
+            <iframe
+              src={previewUrl}
+              style={{
+                width: "100%",
+                height: "100%",
+                border: "none",
+              }}
+              title="PDF Viewer"
+            />
           </Modal>
         </Content>
       </Layout>

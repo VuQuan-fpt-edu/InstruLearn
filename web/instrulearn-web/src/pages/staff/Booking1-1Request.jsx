@@ -207,9 +207,9 @@ const convertBookingDataToVietnamese = (booking) => {
   return {
     ...booking,
     majorName: convertInstrumentToVietnamese(booking.majorName),
-    learningDays: booking.learningDays.map((day) =>
-      convertDayToVietnamese(day)
-    ),
+    learningDays: Array.isArray(booking.learningDays)
+      ? booking.learningDays.map((day) => convertDayToVietnamese(day))
+      : [],
   };
 };
 
@@ -298,20 +298,56 @@ const Booking11Management = () => {
       const response = await axios.get(
         "https://instrulearnapplication.azurewebsites.net/api/LearningRegis/get-all"
       );
-      if (response.data?.isSucceed) {
+      if (response.data?.isSucceed && Array.isArray(response.data.data)) {
         const bookings = response.data.data.map((booking) => ({
           ...booking,
-          learningDays: booking.learningDays.map((day) =>
-            convertDayToVietnamese(day)
-          ),
+          SessionDates: booking.SessionDates || [],
+          learningRegisId: booking.LearningRegisId,
+          learnerId: booking.LearnerId,
+          fullName: booking.FullName,
+          phoneNumber: booking.PhoneNumber,
+          teacherId: booking.TeacherId,
+          teacherName: booking.TeacherName,
+          regisTypeId: booking.RegisTypeId,
+          regisTypeName: booking.RegisTypeName,
+          majorId: booking.MajorId,
+          majorName: booking.MajorName,
+          responseTypeId: booking.ResponseTypeId,
+          responseTypeName: booking.ResponseTypeName,
+          responseId: booking.ResponseId,
+          responseDescription: booking.ResponseDescription,
+          levelId: booking.LevelId,
+          levelName: booking.LevelName,
+          levelPrice: booking.LevelPrice,
+          syllabusLink: booking.SyllabusLink,
+          startDay: booking.StartDay,
+          timeStart: booking.TimeStart,
+          timeLearning: booking.TimeLearning,
+          timeEnd: booking.TimeEnd,
+          requestDate: booking.RequestDate,
+          numberOfSession: booking.NumberOfSession,
+          selfAssessment: booking.SelfAssessment,
+          videoUrl: booking.VideoUrl,
+          learningRequest: booking.LearningRequest,
+          learningDays: Array.isArray(booking.LearningDays)
+            ? booking.LearningDays.map((day) => convertDayToVietnamese(day))
+            : [],
+          price: booking.Price,
+          remainingAmount: booking.RemainingAmount,
+          status: booking.Status,
+          acceptedDate: booking.AcceptedDate,
+          paymentDeadline: booking.PaymentDeadline,
+          daysRemaining: booking.DaysRemaining,
+          paymentStatus: booking.PaymentStatus,
+          firstPaymentPeriod: booking.firstPaymentPeriod,
+          secondPaymentPeriod: booking.secondPaymentPeriod,
         }));
         setBookings(bookings);
       } else {
-        throw new Error(
-          response.data?.message || "Không thể tải danh sách yêu cầu"
-        );
+        setBookings([]);
       }
     } catch (error) {
+      setBookings([]);
       console.error("Error fetching bookings:", error);
       message.error("Không thể tải danh sách yêu cầu đặt lịch");
     } finally {
@@ -372,15 +408,15 @@ const Booking11Management = () => {
           teacherId: booking.teacherId,
           fullname: booking.teacherName,
         };
-
-        // Đặt giáo viên hiện tại làm giá trị mặc định cho danh sách
         setFilteredTeachers([currentTeacher]);
         setSelectedTeacher(booking.teacherId);
-
-        // Fetch lịch của giáo viên hiện tại
         fetchTeacherSchedule(booking.teacherId);
       }
-
+      // Lấy danh sách ngày từ SessionDates, chỉ lấy phần ngày
+      const sessionDays = (booking.SessionDates || []).map(
+        (s) => s.split(" ")[0]
+      );
+      const startDayParam = sessionDays.join(",");
       // Sau đó mới kiểm tra các giáo viên có lịch trống
       const response = await axios.get(
         "https://instrulearnapplication.azurewebsites.net/api/Schedules/available-teachers",
@@ -389,19 +425,16 @@ const Booking11Management = () => {
             majorId: booking.majorId,
             timeStart: booking.timeStart,
             timeLearning: booking.timeLearning,
-            startDay: booking.startDay,
+            startDay: startDayParam,
           },
         }
       );
       console.log("Available teachers:", response.data);
       if (Array.isArray(response.data)) {
         setAvailableTeachers(response.data);
-
-        // Thêm giáo viên có lịch trống vào danh sách, nhưng loại bỏ giáo viên hiện tại nếu đã có
         const availableTeachersWithoutCurrent = response.data.filter(
           (teacher) => teacher.teacherId !== booking.teacherId
         );
-
         setFilteredTeachers((prevTeachers) => [
           ...prevTeachers,
           ...availableTeachersWithoutCurrent,
@@ -461,12 +494,6 @@ const Booking11Management = () => {
             Từ chối
           </Tag>
         );
-      case "Completed":
-        return (
-          <Tag icon={<CheckCircleOutlined />} color="processing">
-            Đã thanh toán
-          </Tag>
-        );
       case "Fourty":
         return (
           <Tag icon={<CheckCircleOutlined />} color="processing">
@@ -483,12 +510,6 @@ const Booking11Management = () => {
         return (
           <Tag icon={<CloseCircleOutlined />} color="error">
             Đã hủy
-          </Tag>
-        );
-      case "FourtyFeedbackDone":
-        return (
-          <Tag icon={<CheckCircleOutlined />} color="blue">
-            Đã phản hồi
           </Tag>
         );
       default:
@@ -864,6 +885,16 @@ const Booking11Management = () => {
       key: "numberOfSession",
       width: 100,
     },
+    // {
+    //   title: "Học phí",
+    //   key: "price",
+    //   render: (_, record) => (
+    //     <span className="font-medium text-blue-600">
+    //       {record.price?.toLocaleString("vi-VN")} VNĐ
+    //     </span>
+    //   ),
+    //   width: 150,
+    // },
     {
       title: "Trạng thái",
       dataIndex: "status",
@@ -873,7 +904,6 @@ const Booking11Management = () => {
         { text: "Chờ xác nhận", value: "Pending" },
         { text: "Đã chấp nhận", value: "Accepted" },
         { text: "Từ chối", value: "Rejected" },
-        { text: "Đã thanh toán", value: "Completed" },
         { text: "Đã thanh toán 40%", value: "Fourty" },
         { text: "Đã thanh toán đầy đủ", value: "Sixty" },
         { text: "Đã hủy", value: "Cancelled" },
@@ -1235,6 +1265,12 @@ const Booking11Management = () => {
                   </p>
                 </div>
                 <div>
+                  <p className="text-gray-500">Trình độ của học viên</p>
+                  <p className="font-medium">
+                    {selectedBooking.selfAssessment || "Chưa cung cấp"}
+                  </p>
+                </div>
+                <div>
                   <p className="text-gray-500">Học phí/buổi</p>
                   <p className="font-medium text-blue-600">
                     {selectedBooking.levelPrice?.toLocaleString("vi-VN")} VNĐ
@@ -1290,12 +1326,12 @@ const Booking11Management = () => {
                           {selectedBooking.daysRemaining !== null && (
                             <Tag
                               color={
-                                selectedBooking.daysRemaining > 0
+                                selectedBooking.daysRemaining >= 0
                                   ? "warning"
                                   : "error"
                               }
                             >
-                              {selectedBooking.daysRemaining > 0
+                              {selectedBooking.daysRemaining >= 0
                                 ? `Còn ${selectedBooking.daysRemaining} ngày`
                                 : "Đã quá hạn"}
                             </Tag>
