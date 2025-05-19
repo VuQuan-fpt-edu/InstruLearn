@@ -32,6 +32,7 @@ export default function EmailVerification() {
   const [email, setEmail] = useState("");
   const [timeoutModalVisible, setTimeoutModalVisible] = useState(false);
   const [verificationCountdown, setVerificationCountdown] = useState(120); // 2 phút cho xác minh email
+  const [errorMessage, setErrorMessage] = useState(""); // Thêm state mới
 
   useEffect(() => {
     // Lấy email từ state của location (được truyền từ trang Register)
@@ -71,6 +72,7 @@ export default function EmailVerification() {
   const handleVerify = async (values) => {
     try {
       setLoading(true);
+      setErrorMessage("");
       const response = await axios.post(
         "https://instrulearnapplication.azurewebsites.net/api/Auth/verify-email",
         {
@@ -88,15 +90,12 @@ export default function EmailVerification() {
           navigate("/login");
         }, 3000);
       } else {
-        throw new Error(response.data?.message || "Xác minh không thành công");
+        setErrorMessage(response.data?.message || "Xác minh không thành công");
       }
     } catch (error) {
-      message.error({
-        content: `Xác minh thất bại: ${
-          error.response?.data?.message || "Mã xác minh không hợp lệ"
-        }`,
-        duration: 5,
-      });
+      setErrorMessage(
+        error.response?.data?.message || "Mã xác minh không hợp lệ"
+      );
     } finally {
       setLoading(false);
     }
@@ -212,6 +211,15 @@ export default function EmailVerification() {
                 className="rounded-lg py-2 px-4 h-12 text-center text-2xl tracking-widest"
               />
             </Form.Item>
+
+            {errorMessage && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <Text type="danger" className="flex items-center">
+                  <span className="mr-2">⚠️</span>
+                  {errorMessage}
+                </Text>
+              </div>
+            )}
 
             <Form.Item className="mb-4">
               <Button
