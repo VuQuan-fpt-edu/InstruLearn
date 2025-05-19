@@ -12,6 +12,9 @@ class FeedbackNotification {
   final String createdAt;
   final List<Question> questions;
   final String message;
+  final String? deadlineDate;
+  final int daysRemaining;
+  final String? deadlineMessage;
 
   FeedbackNotification({
     required this.feedbackId,
@@ -27,6 +30,9 @@ class FeedbackNotification {
     required this.createdAt,
     required this.questions,
     required this.message,
+    required this.deadlineDate,
+    required this.daysRemaining,
+    required this.deadlineMessage,
   });
 
   factory FeedbackNotification.fromJson(Map<String, dynamic> json) {
@@ -47,6 +53,9 @@ class FeedbackNotification {
               .toList() ??
           [],
       message: json['message'] ?? '',
+      deadlineDate: json['deadlineDate']?.toString(),
+      daysRemaining: json['daysRemaining']?.toInt() ?? 0,
+      deadlineMessage: json['deadlineMessage']?.toString(),
     );
   }
 

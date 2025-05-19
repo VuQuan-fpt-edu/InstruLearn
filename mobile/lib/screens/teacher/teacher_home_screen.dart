@@ -9,6 +9,7 @@ import 'teacher_student_performance_screen.dart';
 import 'teacher_profile_screen.dart';
 import 'teacher_center_schedule_screen.dart';
 import 'application_screen_teacher.dart';
+import 'teacher_evaluation_screen.dart';
 
 class TeacherHomeScreen extends StatefulWidget {
   const TeacherHomeScreen({Key? key}) : super(key: key);
@@ -288,8 +289,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) =>
-                            const TeacherStudentPerformanceScreen(),
+                        builder: (context) => const TeacherEvaluationScreen(),
                       ),
                     );
                   },

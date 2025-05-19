@@ -5,7 +5,7 @@ class LearnerNotification {
   final DateTime sentDate;
   final int notificationType;
   final int status;
-  final int learningRegisId;
+  final int? learningRegisId;
   final String? learningRequest;
   final int? amount;
   final DateTime? deadline;
@@ -17,7 +17,7 @@ class LearnerNotification {
     required this.sentDate,
     required this.notificationType,
     required this.status,
-    required this.learningRegisId,
+    this.learningRegisId,
     this.learningRequest,
     this.amount,
     this.deadline,

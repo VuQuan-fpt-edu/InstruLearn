@@ -88,15 +88,17 @@ class LearnerNotificationDetailScreen extends StatelessWidget {
                       style: const TextStyle(fontSize: 15)),
                   const SizedBox(height: 12),
                 ],
-                Row(
-                  children: [
-                    const Text('Mã đơn học:',
-                        style: TextStyle(fontWeight: FontWeight.bold)),
-                    const SizedBox(width: 8),
-                    Text(notification.learningRegisId.toString()),
-                  ],
-                ),
-                const SizedBox(height: 8),
+                if (notification.learningRegisId != null) ...[
+                  Row(
+                    children: [
+                      const Text('Mã đơn học:',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      const SizedBox(width: 8),
+                      Text(notification.learningRegisId.toString()),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                ],
               ],
             ),
           ),
