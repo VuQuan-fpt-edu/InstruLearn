@@ -522,6 +522,14 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
                   style: const TextStyle(fontWeight: FontWeight.w500),
                 ),
                 if (_getMapValue(widget.registration.firstPaymentPeriod,
+                        'paymentDate') !=
+                    null)
+                  Text(
+                    'Ngày thanh toán: ${_getMapValue(widget.registration.firstPaymentPeriod, 'paymentDate')}',
+                    style: const TextStyle(
+                        color: Colors.green, fontWeight: FontWeight.w500),
+                  ),
+                if (_getMapValue(widget.registration.firstPaymentPeriod,
                         'paymentDeadline') !=
                     null)
                   Text(

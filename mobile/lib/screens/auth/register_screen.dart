@@ -248,6 +248,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       if (value == null || value.trim().isEmpty) {
                         return 'Vui lòng nhập số điện thoại';
                       }
+                      if (value.length != 10 ||
+                          !RegExp(r'^[0-9]+$').hasMatch(value)) {
+                        return 'Số điện thoại phải có đúng 10 số';
+                      }
                       return null;
                     },
                   ),

@@ -14,6 +14,7 @@ import '../service/library_screen.dart';
 import '../service/class_registration.dart';
 import '../service/learner_schedule_center_screen.dart';
 import '../service/attendance_checking.dart';
+import '../service/teacher_evaluation_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -529,6 +530,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   context: context,
                   title: 'Báo cáo điểm',
                   icon: Icons.assessment,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            TeacherEvaluationScreen(learnerId: learnerId),
+                      ),
+                    );
+                  },
                 ),
                 _buildMenuItem(
                   context: context,

@@ -876,13 +876,13 @@ class _TeacherCenterScheduleScreenState
 
       final response = await http.put(
         Uri.parse(
-          'https://instrulearnapplication.azurewebsites.net/api/Schedules/update-attendance/$scheduleId',
+          'https://instrulearnapplication.azurewebsites.net/api/Schedules/check-attendance/$scheduleId',
         ),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
           'Authorization': 'Bearer $token',
         },
-        body: json.encode(status),
+        body: json.encode({"status": status}),
       );
 
       if (response.statusCode == 200) {
