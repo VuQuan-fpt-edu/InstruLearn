@@ -283,30 +283,32 @@ const AddCourse = () => {
                               message: "Vui lòng nhập tên khóa học!",
                             },
                             {
-                              max: 100,
-                              message: "Tên khóa học không quá 100 ký tự!",
+                              max: 50,
+                              message: "Tên khóa học không quá 50 ký tự!",
                             },
                           ]}
                         >
                           <Input
                             placeholder="Nhập tên khóa học"
                             className="rounded-md"
+                            maxLength={50}
                           />
                         </Form.Item>
 
                         <Form.Item
                           name="headline"
-                          label="Tiêu đề ngắn gọn"
+                          label="Tiêu đề"
                           rules={[
                             {
-                              max: 120,
-                              message: "Tiêu đề không quá 120 ký tự!",
+                              max: 50,
+                              message: "Tiêu đề không quá 50 ký tự!",
                             },
                           ]}
                         >
                           <Input
                             placeholder="Mô tả ngắn gọn về khóa học"
                             className="rounded-md"
+                            maxLength={50}
                           />
                         </Form.Item>
 
@@ -318,12 +320,17 @@ const AddCourse = () => {
                               required: true,
                               message: "Vui lòng nhập mô tả khóa học!",
                             },
+                            {
+                              max: 250,
+                              message: "Mô tả chi tiết không quá 250 ký tự!",
+                            },
                           ]}
                         >
                           <Input.TextArea
                             rows={6}
                             placeholder="Mô tả chi tiết về nội dung và lợi ích của khóa học"
                             className="rounded-md"
+                            maxLength={250}
                           />
                         </Form.Item>
                       </Card>

@@ -392,7 +392,7 @@ const CourseDetail = () => {
           }}
         >
           <Breadcrumb className="mb-4">
-            <Breadcrumb.Item href="/dashboard">
+            <Breadcrumb.Item href="/staff">
               <HomeOutlined />
               <span className="ml-1">Trang chủ</span>
             </Breadcrumb.Item>
@@ -845,10 +845,14 @@ const CourseDetail = () => {
                   }
                   rules={[
                     { required: true, message: "Vui lòng nhập tên khóa học" },
+                    {
+                      max: 50,
+                      message: "Tên khóa học không được vượt quá 50 ký tự!",
+                    },
                   ]}
                   className="md:col-span-2"
                 >
-                  <Input placeholder="Nhập tên khóa học" />
+                  <Input placeholder="Nhập tên khóa học" maxLength={50} />
                 </Form.Item>
 
                 <Form.Item
@@ -858,10 +862,16 @@ const CourseDetail = () => {
                       <EyeOutlined /> Tiêu đề
                     </Space>
                   }
-                  rules={[{ required: true, message: "Vui lòng nhập tiêu đề" }]}
+                  rules={[
+                    { required: true, message: "Vui lòng nhập tiêu đề" },
+                    {
+                      max: 50,
+                      message: "Tiêu đề không được vượt quá 50 ký tự!",
+                    },
+                  ]}
                   className="md:col-span-2"
                 >
-                  <Input placeholder="Nhập tiêu đề hiển thị" />
+                  <Input placeholder="Nhập tiêu đề hiển thị" maxLength={50} />
                 </Form.Item>
 
                 <Form.Item
@@ -869,12 +879,17 @@ const CourseDetail = () => {
                   label="Mô tả"
                   rules={[
                     { required: true, message: "Vui lòng nhập mô tả khóa học" },
+                    {
+                      max: 250,
+                      message: "Mô tả không được vượt quá 250 ký tự!",
+                    },
                   ]}
                   className="md:col-span-2"
                 >
                   <Input.TextArea
                     rows={4}
                     placeholder="Nhập mô tả chi tiết về khóa học"
+                    maxLength={250}
                   />
                 </Form.Item>
 

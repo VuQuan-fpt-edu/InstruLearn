@@ -17,6 +17,9 @@ import {
   Col,
   Card,
   Avatar,
+  DatePicker,
+  Progress,
+  Typography,
 } from "antd";
 import {
   PlusOutlined,
@@ -28,13 +31,37 @@ import {
   MailOutlined,
   UnlockOutlined,
   PhoneOutlined,
+  PictureOutlined,
+  FileImageOutlined,
+  UploadOutlined,
 } from "@ant-design/icons";
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import AdminHeader from "../../components/admin/AdminHeader";
 import axios from "axios";
+import dayjs from "dayjs";
+import { initializeApp } from "firebase/app";
+import {
+  getStorage,
+  ref,
+  uploadBytesResumable,
+  getDownloadURL,
+} from "firebase/storage";
 
 const { Content } = Layout;
 const { Option } = Select;
+const { Text } = Typography;
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB4EaRe-CrB3u7lYm2HZmHqIjE6E_PtaFM",
+  authDomain: "sdn-project-aba8a.firebaseapp.com",
+  projectId: "sdn-project-aba8a",
+  storageBucket: "sdn-project-aba8a.appspot.com",
+  messagingSenderId: "953028355031",
+  appId: "1:953028355031:web:7dfc4f2a85c932e507e192",
+  measurementId: "G-63KQ2X3RCL",
+};
+const app = initializeApp(firebaseConfig);
+const storage = getStorage(app);
 
 const StaffManagement = () => {
   const [staffs, setStaffs] = useState([]);
@@ -45,6 +72,11 @@ const StaffManagement = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [selectedMenu, setSelectedMenu] = useState("staff");
   const [form] = Form.useForm();
+  const [uploadFile, setUploadFile] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStatus, setUploadStatus] = useState("");
+  const [previewImage, setPreviewImage] = useState(null);
 
   useEffect(() => {
     fetchStaffs();
@@ -72,7 +104,14 @@ const StaffManagement = () => {
 
   const handleEdit = (record) => {
     setEditingStaff(record);
-    form.setFieldsValue(record);
+    const formValues = {
+      ...record,
+      dateOfEmployment: record.dateOfEmployment
+        ? dayjs(record.dateOfEmployment)
+        : null,
+    };
+    form.setFieldsValue(formValues);
+    setPreviewImage("");
     setIsModalOpen(true);
   };
 
@@ -81,9 +120,9 @@ const StaffManagement = () => {
       const endpoint =
         isActive === 0
           ? `https://instrulearnapplication.azurewebsites.net/api/Staff/unban/${staffId}`
-          : `https://instrulearnapplication.azurewebsites.net/api/Staff/delete/${staffId}`;
+          : `https://instrulearnapplication.azurewebsites.net/api/Staff/ban/${staffId}`;
 
-      const response = await axios.delete(endpoint);
+      const response = await axios.put(endpoint);
 
       if (response.data.isSucceed) {
         message.success(
@@ -105,9 +144,37 @@ const StaffManagement = () => {
     try {
       const values = await form.validateFields();
       if (editingStaff) {
-        // TODO: Implement update API call
-        console.log("Update staff:", values);
-        message.success("Cập nhật thông tin nhân viên thành công!");
+        try {
+          const response = await axios.put(
+            `https://instrulearnapplication.azurewebsites.net/api/Staff/update/${editingStaff.staffId}`,
+            {
+              fullname: values.fullname,
+              password: values.password,
+              email: values.email,
+              phoneNumber: values.phoneNumber,
+              gender: values.gender,
+              address: values.address,
+              avatar: values.avatar,
+              dateOfEmployment: values.dateOfEmployment
+                ? dayjs(values.dateOfEmployment).format("YYYY-MM-DD")
+                : null,
+            }
+          );
+          if (response.data.isSucceed) {
+            message.success("Cập nhật thông tin nhân viên thành công!");
+            setIsModalOpen(false);
+            setEditingStaff(null);
+            form.resetFields();
+            fetchStaffs();
+          } else {
+            message.error(
+              response.data.message || "Không thể cập nhật thông tin nhân viên!"
+            );
+          }
+        } catch (error) {
+          console.error("Error updating staff:", error);
+          message.error("Không thể cập nhật thông tin nhân viên!");
+        }
       } else {
         try {
           const response = await axios.post(
@@ -145,6 +212,64 @@ const StaffManagement = () => {
 
   const toggleCollapsed = () => {
     setCollapsed(!collapsed);
+  };
+
+  const handleFileSelect = (e) => {
+    if (e.target.files[0]) {
+      const file = e.target.files[0];
+      if (!file.type.startsWith("image/")) {
+        message.error("Vui lòng chỉ chọn file hình ảnh");
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        message.error("Kích thước file không được vượt quá 5MB");
+        return;
+      }
+      setUploadFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setPreviewImage(reader.result);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleUploadImage = () => {
+    if (!uploadFile) {
+      message.error("Vui lòng chọn file hình ảnh trước");
+      return;
+    }
+    setIsUploading(true);
+    setUploadProgress(0);
+    setUploadStatus("Đang tải ảnh lên...");
+    const storageRef = ref(
+      storage,
+      `staff-avatars/${editingStaff?.staffId || "new"}-${Date.now()}-${
+        uploadFile.name
+      }`
+    );
+    const uploadTask = uploadBytesResumable(storageRef, uploadFile);
+    uploadTask.on(
+      "state_changed",
+      (snapshot) => {
+        const progress = Math.round(
+          (snapshot.bytesTransferred / snapshot.totalBytes) * 100
+        );
+        setUploadProgress(progress);
+      },
+      (error) => {
+        console.error("Upload error:", error);
+        message.error("Tải ảnh lên thất bại");
+        setUploadStatus("Tải ảnh thất bại");
+        setIsUploading(false);
+      },
+      () => {
+        getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+          form.setFieldsValue({ avatar: downloadURL });
+          setUploadStatus("Tải ảnh thành công!");
+          setIsUploading(false);
+          message.success("Tải ảnh lên thành công");
+        });
+      }
+    );
   };
 
   const columns = [
@@ -268,26 +393,236 @@ const StaffManagement = () => {
             onOk={handleSave}
             onCancel={() => {
               setIsModalOpen(false);
+              setUploadFile(null);
+              setPreviewImage(null);
             }}
             width={700}
           >
             <Form form={form} layout="vertical">
-              <Row gutter={16}>
-                <Col span={12}>
+              {editingStaff ? (
+                <>
                   <Form.Item
                     name="fullname"
                     label="Họ và tên"
                     rules={[
+                      { required: true, message: "Vui lòng nhập họ và tên!" },
                       {
-                        required: true,
-                        message: "Vui lòng nhập họ và tên!",
+                        max: 50,
+                        message: "Họ và tên không được vượt quá 50 ký tự!",
+                      },
+                      {
+                        pattern: /^[a-zA-Z0-9\s]*$/,
+                        message: "Họ và tên không được chứa ký tự đặc biệt!",
                       },
                     ]}
                   >
-                    <Input prefix={<UserOutlined />} />
+                    <Input prefix={<UserOutlined />} maxLength={50} />
                   </Form.Item>
-                </Col>
-                <Col span={12}>
+
+                  <Form.Item
+                    name="email"
+                    label="Email"
+                    rules={[
+                      { required: true, message: "Vui lòng nhập email!" },
+                      { type: "email", message: "Email không hợp lệ!" },
+                      {
+                        max: 50,
+                        message: "Email không được vượt quá 50 ký tự!",
+                      },
+                    ]}
+                  >
+                    <Input prefix={<MailOutlined />} maxLength={50} />
+                  </Form.Item>
+
+                  <Form.Item
+                    name="password"
+                    label="Mật khẩu"
+                    rules={[
+                      { required: true, message: "Vui lòng nhập mật khẩu!" },
+                      { min: 8, message: "Mật khẩu phải có ít nhất 8 ký tự!" },
+                      {
+                        max: 50,
+                        message: "Mật khẩu không được vượt quá 50 ký tự!",
+                      },
+                    ]}
+                  >
+                    <Input.Password prefix={<LockOutlined />} maxLength={50} />
+                  </Form.Item>
+
+                  <Form.Item
+                    name="phoneNumber"
+                    label="Số điện thoại"
+                    rules={[
+                      {
+                        required: true,
+                        message: "Vui lòng nhập số điện thoại!",
+                      },
+                      {
+                        pattern: /^[0-9]{10}$/,
+                        message: "Số điện thoại phải có 10 chữ số!",
+                      },
+                    ]}
+                  >
+                    <Input prefix={<PhoneOutlined />} maxLength={10} />
+                  </Form.Item>
+
+                  <Form.Item
+                    name="gender"
+                    label="Giới tính"
+                    rules={[
+                      { required: true, message: "Vui lòng chọn giới tính!" },
+                    ]}
+                  >
+                    <Select placeholder="Chọn giới tính">
+                      <Option value="Nam">Nam</Option>
+                      <Option value="Nữ">Nữ</Option>
+                      <Option value="Khác">Khác</Option>
+                    </Select>
+                  </Form.Item>
+
+                  <Form.Item
+                    name="address"
+                    label="Địa chỉ"
+                    rules={[
+                      { required: true, message: "Vui lòng nhập địa chỉ!" },
+                      {
+                        max: 100,
+                        message: "Địa chỉ không được vượt quá 100 ký tự!",
+                      },
+                    ]}
+                  >
+                    <Input.TextArea rows={2} maxLength={100} />
+                  </Form.Item>
+
+                  <Form.Item
+                    name="dateOfEmployment"
+                    label="Ngày bắt đầu làm việc"
+                    rules={[
+                      {
+                        required: true,
+                        message: "Vui lòng chọn ngày bắt đầu làm việc!",
+                      },
+                    ]}
+                  >
+                    <DatePicker style={{ width: "100%" }} />
+                  </Form.Item>
+
+                  <Form.Item
+                    name="avatar"
+                    label="Ảnh đại diện"
+                    rules={[
+                      {
+                        required: true,
+                        message: "Vui lòng tải lên ảnh đại diện!",
+                      },
+                    ]}
+                    hidden={true}
+                  >
+                    <Input disabled />
+                  </Form.Item>
+
+                  <div className="mb-4 border rounded-lg p-4 bg-gray-50">
+                    <div className="flex items-center mb-3">
+                      <PictureOutlined className="mr-2 text-blue-600" />
+                      <Typography.Text strong>Tải ảnh đại diện</Typography.Text>
+                    </div>
+
+                    <div className="mb-3">
+                      <input
+                        type="file"
+                        onChange={handleFileSelect}
+                        accept="image/*"
+                        className="block w-full text-sm border border-gray-300 rounded-md p-2 hover:border-blue-500 transition-colors"
+                      />
+                    </div>
+
+                    {uploadFile && !isUploading && (
+                      <Button
+                        type="primary"
+                        onClick={handleUploadImage}
+                        icon={<UploadOutlined />}
+                        block
+                        className="rounded-md"
+                      >
+                        Tải ảnh lên
+                      </Button>
+                    )}
+
+                    {isUploading && (
+                      <div className="mt-2">
+                        <Progress
+                          percent={uploadProgress}
+                          size="small"
+                          status="active"
+                          strokeColor="#1890ff"
+                        />
+                        <Typography.Text
+                          type="secondary"
+                          className="block mt-1 text-center"
+                        >
+                          {uploadStatus}
+                        </Typography.Text>
+                      </div>
+                    )}
+
+                    {uploadStatus === "Tải ảnh thành công!" && !isUploading && (
+                      <div className="mt-2">
+                        <Typography.Text type="success">
+                          Ảnh đã được tải lên thành công!
+                        </Typography.Text>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-4">
+                    {previewImage || editingStaff?.avatar ? (
+                      <div className="text-center">
+                        <img
+                          src={previewImage || editingStaff?.avatar}
+                          alt="Preview"
+                          className="max-w-full h-auto border rounded-lg shadow-sm"
+                          style={{ maxHeight: "200px" }}
+                        />
+                        <Typography.Text
+                          type="secondary"
+                          className="block mt-2"
+                        >
+                          Xem trước ảnh đại diện
+                        </Typography.Text>
+                      </div>
+                    ) : (
+                      <div
+                        className="border rounded-lg flex items-center justify-center bg-gray-50"
+                        style={{ height: "200px" }}
+                      >
+                        <div className="text-center text-gray-400">
+                          <FileImageOutlined style={{ fontSize: "32px" }} />
+                          <p>Chưa có ảnh xem trước</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <Form.Item
+                    name="fullname"
+                    label="Họ và tên"
+                    rules={[
+                      { required: true, message: "Vui lòng nhập họ và tên!" },
+                      {
+                        max: 50,
+                        message: "Họ và tên không được vượt quá 50 ký tự!",
+                      },
+                      {
+                        pattern: /^[a-zA-Z0-9\s]*$/,
+                        message: "Họ và tên không được chứa ký tự đặc biệt!",
+                      },
+                    ]}
+                  >
+                    <Input prefix={<UserOutlined />} maxLength={50} />
+                  </Form.Item>
+
                   <Form.Item
                     name="username"
                     label="Tên đăng nhập"
@@ -296,71 +631,68 @@ const StaffManagement = () => {
                         required: true,
                         message: "Vui lòng nhập tên đăng nhập!",
                       },
+                      {
+                        max: 50,
+                        message: "Tên đăng nhập không được vượt quá 50 ký tự!",
+                      },
+                      {
+                        pattern: /^[a-zA-Z0-9\s]*$/,
+                        message:
+                          "Tên đăng nhập không được chứa ký tự đặc biệt!",
+                      },
                     ]}
                   >
-                    <Input prefix={<UserOutlined />} />
+                    <Input prefix={<UserOutlined />} maxLength={50} />
                   </Form.Item>
-                </Col>
-              </Row>
 
-              <Row gutter={16}>
-                <Col span={12}>
                   <Form.Item
                     name="email"
                     label="Email"
                     rules={[
+                      { required: true, message: "Vui lòng nhập email!" },
+                      { type: "email", message: "Email không hợp lệ!" },
                       {
-                        required: true,
-                        message: "Vui lòng nhập email!",
-                      },
-                      {
-                        type: "email",
-                        message: "Email không hợp lệ!",
+                        max: 50,
+                        message: "Email không được vượt quá 50 ký tự!",
                       },
                     ]}
                   >
-                    <Input prefix={<MailOutlined />} />
+                    <Input prefix={<MailOutlined />} maxLength={50} />
                   </Form.Item>
-                </Col>
-                <Col span={12}>
+
                   <Form.Item
                     name="password"
                     label="Mật khẩu"
                     rules={[
+                      { required: true, message: "Vui lòng nhập mật khẩu!" },
+                      { min: 8, message: "Mật khẩu phải có ít nhất 8 ký tự!" },
                       {
-                        required: true,
-                        message: "Vui lòng nhập mật khẩu!",
-                      },
-                      {
-                        min: 6,
-                        message: "Mật khẩu phải có ít nhất 6 ký tự!",
+                        max: 50,
+                        message: "Mật khẩu không được vượt quá 50 ký tự!",
                       },
                     ]}
                   >
-                    <Input.Password prefix={<LockOutlined />} />
+                    <Input.Password prefix={<LockOutlined />} maxLength={50} />
                   </Form.Item>
-                </Col>
-              </Row>
 
-              <Row gutter={16}>
-                <Col span={24}>
                   <Form.Item
                     name="phoneNumber"
                     label="Số điện thoại"
                     rules={[
                       {
+                        required: true,
+                        message: "Vui lòng nhập số điện thoại!",
+                      },
+                      {
                         pattern: /^[0-9]{10}$/,
-                        message: "Số điện thoại phải có đúng 10 chữ số!",
+                        message: "Số điện thoại phải có 10 chữ số!",
                       },
                     ]}
                   >
-                    <Input
-                      prefix={<PhoneOutlined />}
-                      placeholder="Nhập số điện thoại"
-                    />
+                    <Input prefix={<PhoneOutlined />} maxLength={10} />
                   </Form.Item>
-                </Col>
-              </Row>
+                </>
+              )}
             </Form>
           </Modal>
 
@@ -375,10 +707,19 @@ const StaffManagement = () => {
             {selectedStaff && (
               <>
                 <div className="text-center mb-6">
-                  <Avatar
-                    size={100}
-                    icon={!selectedStaff.avatar && <UserOutlined />}
-                  />
+                  {selectedStaff.avatar ? (
+                    <Avatar
+                      size={100}
+                      src={selectedStaff.avatar}
+                      className="border-2 border-gray-200 shadow-md"
+                    />
+                  ) : (
+                    <Avatar
+                      size={100}
+                      icon={<UserOutlined />}
+                      className="bg-purple-500"
+                    />
+                  )}
                   <h2 className="text-xl font-semibold mt-3">
                     {selectedStaff.fullname}
                   </h2>
@@ -387,11 +728,24 @@ const StaffManagement = () => {
 
                 <Divider />
 
-                <Card title="Thông tin tài khoản" bordered={false}>
+                <Card title="Thông tin chi tiết" bordered={false}>
                   <Descriptions column={2}>
                     <Descriptions.Item label="Email">
                       <MailOutlined className="mr-2" />
                       {selectedStaff.email}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Số điện thoại">
+                      <PhoneOutlined className="mr-2" />
+                      {selectedStaff.phoneNumber}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Giới tính">
+                      {selectedStaff.gender || "Chưa cập nhật"}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Địa chỉ">
+                      {selectedStaff.address || "Chưa cập nhật"}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Ngày bắt đầu làm việc">
+                      {selectedStaff.dateOfEmployment || "Chưa cập nhật"}
                     </Descriptions.Item>
                     <Descriptions.Item label="Trạng thái">
                       <Tag

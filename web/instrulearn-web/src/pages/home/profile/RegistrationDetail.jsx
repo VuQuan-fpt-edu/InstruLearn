@@ -184,6 +184,9 @@ const RegistrationDetail = () => {
   ] = useState(false);
   const [paymentSuccessVisible, setPaymentSuccessVisible] = useState(false);
   const [paymentType, setPaymentType] = useState("initial");
+  const [rejectPaymentLoading, setRejectPaymentLoading] = useState(false);
+  const [rejectPaymentSuccessVisible, setRejectPaymentSuccessVisible] =
+    useState(false);
 
   const fetchRegistrationDetail = async () => {
     try {
@@ -369,6 +372,76 @@ const RegistrationDetail = () => {
       );
     } finally {
       setPaymentLoading(false);
+    }
+  };
+
+  // Xử lý từ chối thanh toán 40%
+  const handleRejectInitialPayment = async () => {
+    try {
+      setRejectPaymentLoading(true);
+      const token = localStorage.getItem("authToken");
+      const regisId = registration.LearningRegisId;
+      const response = await axios({
+        method: "post",
+        url: `https://instrulearnapplication.azurewebsites.net/api/Payment/reject-payment/${regisId}`,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      if (response.data?.isSucceed) {
+        setIsConfirmInitialPaymentVisible(false);
+        setRejectPaymentSuccessVisible(true);
+        fetchRegistrationDetail();
+        message.success("Từ chối thanh toán thành công!");
+      } else {
+        throw new Error(
+          response.data?.message || "Từ chối thanh toán thất bại"
+        );
+      }
+    } catch (error) {
+      message.error(
+        error.response?.data?.message ||
+          error.message ||
+          "Từ chối thanh toán thất bại. Vui lòng thử lại sau."
+      );
+    } finally {
+      setRejectPaymentLoading(false);
+    }
+  };
+
+  // Xử lý từ chối thanh toán phần còn lại (60%)
+  const handleRejectRemainingPayment = async () => {
+    try {
+      setRejectPaymentLoading(true);
+      const token = localStorage.getItem("authToken");
+      const regisId = registration.LearningRegisId;
+      const response = await axios({
+        method: "post",
+        url: `https://instrulearnapplication.azurewebsites.net/api/Payment/reject-payment/${regisId}`,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      if (response.data?.isSucceed) {
+        setIsConfirmRemainingPaymentVisible(false);
+        setRejectPaymentSuccessVisible(true);
+        fetchRegistrationDetail();
+        message.success("Từ chối thanh toán thành công!");
+      } else {
+        throw new Error(
+          response.data?.message || "Từ chối thanh toán thất bại"
+        );
+      }
+    } catch (error) {
+      message.error(
+        error.response?.data?.message ||
+          error.message ||
+          "Từ chối thanh toán thất bại. Vui lòng thử lại sau."
+      );
+    } finally {
+      setRejectPaymentLoading(false);
     }
   };
 
@@ -955,6 +1028,32 @@ const RegistrationDetail = () => {
           className: "bg-green-600 hover:bg-green-700",
           loading: paymentLoading,
         }}
+        footer={[
+          <Button
+            key="reject"
+            danger
+            loading={rejectPaymentLoading}
+            onClick={handleRejectInitialPayment}
+          >
+            Từ chối thanh toán
+          </Button>,
+          <Button
+            key="cancel"
+            onClick={() => setIsConfirmInitialPaymentVisible(false)}
+            className="hover:bg-gray-100 transition-colors duration-300"
+          >
+            Hủy
+          </Button>,
+          <Button
+            key="ok"
+            type="primary"
+            className="bg-green-600 hover:bg-green-700"
+            loading={paymentLoading}
+            onClick={handleConfirmInitialPayment}
+          >
+            Xác nhận thanh toán
+          </Button>,
+        ]}
       >
         <div className="py-4">
           <div className="bg-green-50 rounded-lg p-6 mb-4">
@@ -994,6 +1093,32 @@ const RegistrationDetail = () => {
           className: "bg-blue-600 hover:bg-blue-700",
           loading: paymentLoading,
         }}
+        footer={[
+          <Button
+            key="reject"
+            danger
+            loading={rejectPaymentLoading}
+            onClick={handleRejectRemainingPayment}
+          >
+            Từ chối thanh toán
+          </Button>,
+          <Button
+            key="cancel"
+            onClick={() => setIsConfirmRemainingPaymentVisible(false)}
+            className="hover:bg-gray-100 transition-colors duration-300"
+          >
+            Hủy
+          </Button>,
+          <Button
+            key="ok"
+            type="primary"
+            className="bg-blue-600 hover:bg-blue-700"
+            loading={paymentLoading}
+            onClick={handleConfirmRemainingPayment}
+          >
+            Xác nhận thanh toán
+          </Button>,
+        ]}
       >
         <div className="py-4">
           <div className="bg-blue-50 rounded-lg p-6 mb-4">
@@ -1084,6 +1209,31 @@ const RegistrationDetail = () => {
                 ).toLocaleString("vi-VN")
               : 0}{" "}
             VNĐ
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal thông báo từ chối thanh toán thành công */}
+      <Modal
+        title={
+          <div className="text-center">
+            <div className="text-2xl font-bold text-red-600 mb-2">
+              Đã từ chối thanh toán
+            </div>
+          </div>
+        }
+        open={rejectPaymentSuccessVisible}
+        onOk={() => setRejectPaymentSuccessVisible(false)}
+        okText="Đồng ý"
+        cancelButtonProps={{ style: { display: "none" } }}
+        okButtonProps={{ className: "bg-red-600 hover:bg-red-700" }}
+      >
+        <div className="py-4 text-center">
+          <div className="mb-4">
+            <CloseCircleOutlined className="text-6xl text-red-500" />
+          </div>
+          <div className="text-lg mb-4">
+            Bạn đã từ chối thanh toán 40% học phí cho đơn đăng ký này.
           </div>
         </div>
       </Modal>

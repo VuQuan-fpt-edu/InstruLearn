@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Layout, Table, Button, Modal, Form, Input, message } from "antd";
-import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
+import { PlusOutlined, EditOutlined } from "@ant-design/icons";
 import axios from "axios";
 import StaffSidebar from "../../components/staff/StaffSidebar";
 import StaffHeader from "../../components/staff/StaffHeader";
@@ -90,18 +90,6 @@ const InstrumentManagement = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    try {
-      await axios.delete(
-        `https://instrulearnapplication.azurewebsites.net/api/CourseType/delete/${id}`
-      );
-      message.success("Xóa nhạc cụ thành công!");
-      fetchInstruments();
-    } catch (error) {
-      message.error("Lỗi khi xóa nhạc cụ.");
-    }
-  };
-
   const columns = [
     { title: "ID", dataIndex: "courseTypeId", key: "courseTypeId" },
     {
@@ -124,11 +112,6 @@ const InstrumentManagement = () => {
               setIsModalOpen(true);
             }}
             style={{ marginRight: 8 }}
-          />
-          <Button
-            icon={<DeleteOutlined />}
-            danger
-            onClick={() => handleDelete(record.courseTypeId)}
           />
         </>
       ),
@@ -190,6 +173,7 @@ const InstrumentManagement = () => {
             label="Tên nhạc cụ"
             rules={[
               { required: true, message: "Vui lòng nhập tên nhạc cụ" },
+              { max: 50, message: "Tên nhạc cụ không được vượt quá 50 ký tự" },
               {
                 validator: async (_, value) => {
                   if (value) {
@@ -203,7 +187,7 @@ const InstrumentManagement = () => {
             ]}
             validateTrigger="onBlur"
           >
-            <Input />
+            <Input maxLength={50} />
           </Form.Item>
         </Form>
       </Modal>

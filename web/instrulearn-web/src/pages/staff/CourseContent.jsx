@@ -188,7 +188,7 @@ const CourseContent = ({ courseId }) => {
         bordered={false}
         extra={
           <Button type="primary" onClick={openAddContentModal}>
-            Thêm nội dung
+            Thêm tiêu đề nội dung
           </Button>
         }
       >
@@ -214,25 +214,6 @@ const CourseContent = ({ courseId }) => {
                     >
                       Sửa
                     </Button>,
-                    <Popconfirm
-                      title="Bạn có chắc chắn muốn xóa nội dung này?"
-                      onConfirm={(e) => {
-                        e.stopPropagation();
-                        handleDeleteContent(item.contentId);
-                      }}
-                      onCancel={(e) => e.stopPropagation()}
-                      okText="Có"
-                      cancelText="Không"
-                    >
-                      <Button
-                        key="delete"
-                        type="link"
-                        danger
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        Xóa
-                      </Button>
-                    </Popconfirm>,
                   ]}
                 >
                   <List.Item.Meta
@@ -256,7 +237,7 @@ const CourseContent = ({ courseId }) => {
                         </Tag>
                       </div>
                     }
-                    description={`Content ID: ${item.contentId}`}
+                    // description={`Content ID: ${item.contentId}`}
                   />
                 </List.Item>
               );
@@ -297,15 +278,19 @@ const CourseContent = ({ courseId }) => {
             label="Tiêu đề nội dung"
             rules={[
               { required: true, message: "Vui lòng nhập tiêu đề nội dung" },
+              {
+                max: 50,
+                message: "Tiêu đề nội dung không được vượt quá 50 ký tự!",
+              },
             ]}
           >
-            <Input />
+            <Input maxLength={50} />
           </Form.Item>
         </Form>
       </Modal>
 
       <Modal
-        title="Chỉnh sửa nội dung khóa học"
+        title="Chỉnh sửa tiêu đề nội dung"
         open={editContentModalVisible}
         onCancel={() => setEditContentModalVisible(false)}
         footer={[
@@ -334,9 +319,13 @@ const CourseContent = ({ courseId }) => {
             label="Tiêu đề nội dung"
             rules={[
               { required: true, message: "Vui lòng nhập tiêu đề nội dung" },
+              {
+                max: 50,
+                message: "Tiêu đề nội dung không được vượt quá 50 ký tự!",
+              },
             ]}
           >
-            <Input />
+            <Input maxLength={50} />
           </Form.Item>
         </Form>
       </Modal>

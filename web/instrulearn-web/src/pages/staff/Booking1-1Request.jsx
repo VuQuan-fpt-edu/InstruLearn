@@ -252,6 +252,10 @@ const Booking11Management = () => {
   const [fileURL, setFileURL] = useState("");
   const [learningPathSessions, setLearningPathSessions] = useState([]);
   const [loadingPathSessions, setLoadingPathSessions] = useState(false);
+  const [allowedResponseTypes, setAllowedResponseTypes] = useState([]);
+  const [allowedRejectResponseTypes, setAllowedRejectResponseTypes] = useState(
+    []
+  );
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -450,15 +454,24 @@ const Booking11Management = () => {
     console.log("Selected booking:", record);
     setSelectedBooking(record);
 
-    // Set default values for the form
+    // Reset form và các state liên quan
     form.setFieldsValue({
       teacherId: record.teacherId,
-      responseId: record.responseId,
+      responseId: undefined,
+      responseTypeId: undefined,
       levelId: record.levelId,
     });
+    setSelectedResponseType(undefined);
+    setSelectedResponse(null);
+    setSelectedLevel(undefined); // Reset selectedLevel khi mở modal
 
     // Kiểm tra giáo viên có lịch trống
     await checkAvailableTeachers(record);
+
+    // Xác định allowedResponseTypes ban đầu dựa vào giáo viên hiện tại
+    setAllowedResponseTypes([
+      ...getResponseTypes().filter((type) => type.responseName === "Đồng ý"),
+    ]);
 
     setStatusModalVisible(true);
   };
@@ -504,6 +517,12 @@ const Booking11Management = () => {
         return (
           <Tag icon={<CheckCircleOutlined />} color="success">
             Đã thanh toán đầy đủ
+          </Tag>
+        );
+      case "FourtyFeedbackDone":
+        return (
+          <Tag icon={<CheckCircleOutlined />} color="cyan">
+            Đã phản hồi
           </Tag>
         );
       case "Cancelled":
@@ -727,11 +746,28 @@ const Booking11Management = () => {
   };
 
   const handleTeacherChange = (value) => {
-    console.log("Giáo viên được chọn:", value);
     setSelectedTeacher(value);
     form.setFieldsValue({ teacherId: value });
-    // Lấy lịch của giáo viên mới ngay khi thay đổi
     fetchTeacherSchedule(value);
+
+    // Xác định allowedResponseTypes dựa vào lựa chọn giáo viên
+    if (selectedBooking) {
+      if (value === selectedBooking.teacherId) {
+        setAllowedResponseTypes([
+          ...getResponseTypes().filter(
+            (type) => type.responseName === "Đồng ý"
+          ),
+        ]);
+      } else {
+        setAllowedResponseTypes([
+          ...getResponseTypes().filter((type) => type.responseName === "Gợi ý"),
+        ]);
+      }
+      // Reset cả hai trường khi đổi giáo viên
+      form.setFieldsValue({ responseTypeId: undefined, responseId: undefined });
+      setSelectedResponseType(undefined);
+      setSelectedResponse(null);
+    }
   };
 
   const handleViewSchedule = () => {
@@ -905,6 +941,7 @@ const Booking11Management = () => {
         { text: "Đã chấp nhận", value: "Accepted" },
         { text: "Từ chối", value: "Rejected" },
         { text: "Đã thanh toán 40%", value: "Fourty" },
+        { text: "Đã phản hồi", value: "FourtyFeedbackDone" },
         { text: "Đã thanh toán đầy đủ", value: "Sixty" },
         { text: "Đã hủy", value: "Cancelled" },
       ],
@@ -1046,8 +1083,18 @@ const Booking11Management = () => {
   const showRejectModal = (record) => {
     console.log("Selected booking for rejection:", record);
     setSelectedBooking(record);
-    // Reset form
-    rejectForm.resetFields();
+
+    // Reset form và các state liên quan
+    rejectForm.setFieldsValue({
+      responseTypeId: undefined,
+      responseId: undefined,
+    });
+    setSelectedResponseType(undefined);
+    setSelectedResponse(null);
+
+    setAllowedRejectResponseTypes([
+      ...getResponseTypes().filter((type) => type.responseName === "Từ chối"),
+    ]);
     setRejectModalVisible(true);
   };
 
@@ -1088,6 +1135,16 @@ const Booking11Management = () => {
       setLoading(false);
     }
   };
+
+  // Trong useEffect, khi showStatusModal được gọi, cần set allowedResponseTypes đúng theo mặc định giáo viên hiện tại
+  useEffect(() => {
+    if (statusModalVisible && selectedBooking) {
+      setAllowedResponseTypes([
+        ...getResponseTypes().filter((type) => type.responseName === "Đồng ý"),
+      ]);
+    }
+    // eslint-disable-next-line
+  }, [statusModalVisible, selectedBooking]);
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
@@ -1687,11 +1744,16 @@ const Booking11Management = () => {
               onChange={handleResponseTypeChange}
               className="w-full"
             >
-              {getResponseTypes().map((type) => (
-                <Option key={type.responseTypeId} value={type.responseTypeId}>
-                  {type.responseName}
-                </Option>
-              ))}
+              {allowedResponseTypes.length > 0
+                ? allowedResponseTypes.map((type) => (
+                    <Option
+                      key={type.responseTypeId}
+                      value={type.responseTypeId}
+                    >
+                      {type.responseName}
+                    </Option>
+                  ))
+                : null}
             </Select>
           </Form.Item>
 
@@ -1771,13 +1833,17 @@ const Booking11Management = () => {
             </Select>
           </Form.Item>
 
-          {selectedLevel && (
-            <Form.Item name="levelDetails" label="Chi tiết cấp độ">
-              <div className="p-3 bg-gray-50 rounded border">
-                {getSelectedLevelContent()}
-              </div>
-            </Form.Item>
-          )}
+          {/* Chỉ hiển thị Chi tiết cấp độ khi selectedLevel là giá trị hợp lệ */}
+          {selectedLevel !== undefined &&
+            selectedLevel !== null &&
+            selectedLevel !== "" &&
+            selectedLevel !== 0 && (
+              <Form.Item name="levelDetails" label="Chi tiết cấp độ">
+                <div className="p-3 bg-gray-50 rounded border">
+                  {getSelectedLevelContent()}
+                </div>
+              </Form.Item>
+            )}
         </Form>
       </Modal>
 
@@ -1914,11 +1980,16 @@ const Booking11Management = () => {
                 onChange={handleResponseTypeChange}
                 className="w-full"
               >
-                {getResponseTypes().map((type) => (
-                  <Option key={type.responseTypeId} value={type.responseTypeId}>
-                    {type.responseName}
-                  </Option>
-                ))}
+                {allowedRejectResponseTypes.length > 0
+                  ? allowedRejectResponseTypes.map((type) => (
+                      <Option
+                        key={type.responseTypeId}
+                        value={type.responseTypeId}
+                      >
+                        {type.responseName}
+                      </Option>
+                    ))
+                  : null}
               </Select>
             </Form.Item>
 

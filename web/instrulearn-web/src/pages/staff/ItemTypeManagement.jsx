@@ -37,6 +37,7 @@ const ItemTypeManagement = () => {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [selectedItemType, setSelectedItemType] = useState(null);
+  const [showNote, setShowNote] = useState(false);
 
   useEffect(() => {
     fetchItemTypes();
@@ -62,7 +63,26 @@ const ItemTypeManagement = () => {
     }
   };
 
-  const handleAddItemType = () => {
+  const handleAddItemType = async () => {
+    try {
+      const response = await axios.get(
+        "https://instrulearnapplication.azurewebsites.net/api/ItemType/get-all"
+      );
+      if (response.data?.isSucceed && response.data.data) {
+        const itemTypesApi = response.data.data;
+        const hasVideos = itemTypesApi.some(
+          (item) => item.itemTypeName.trim().toLowerCase() === "video"
+        );
+        const hasPDF = itemTypesApi.some(
+          (item) => item.itemTypeName.trim().toLowerCase() === "pdf"
+        );
+        setShowNote(hasVideos && hasPDF);
+      } else {
+        setShowNote(false);
+      }
+    } catch (e) {
+      setShowNote(false);
+    }
     form.resetFields();
     setAddModalVisible(true);
   };
@@ -143,27 +163,6 @@ const ItemTypeManagement = () => {
     }
   };
 
-  const handleDeleteItemType = async (id) => {
-    try {
-      setLoading(true);
-      const response = await axios.delete(
-        `https://instrulearnapplication.azurewebsites.net/api/ItemType/delete/${id}`
-      );
-
-      if (response.data?.isSucceed) {
-        message.success("Xóa loại nội dung thành công");
-        fetchItemTypes();
-      } else {
-        message.error(response.data?.message || "Xóa loại nội dung thất bại");
-      }
-    } catch (error) {
-      message.error("Lỗi khi xóa loại nội dung");
-      console.error("Error deleting item type:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const columns = [
     {
       title: "ID",
@@ -193,16 +192,6 @@ const ItemTypeManagement = () => {
           >
             Sửa
           </Button>
-          <Popconfirm
-            title="Bạn có chắc chắn muốn xóa loại nội dung này?"
-            onConfirm={() => handleDeleteItemType(record.itemTypeId)}
-            okText="Có"
-            cancelText="Không"
-          >
-            <Button icon={<DeleteOutlined />} type="text" danger>
-              Xóa
-            </Button>
-          </Popconfirm>
         </Space>
       ),
     },
@@ -282,6 +271,12 @@ const ItemTypeManagement = () => {
               </Button>,
             ]}
           >
+            {showNote && (
+              <div style={{ color: "orange", marginBottom: 12 }}>
+                Lưu ý: Hệ thống chỉ sử dụng 2 loại nội dung là <b>Video</b> và{" "}
+                <b>PDF</b>. Nếu đã có đủ 2 loại này, bạn không cần tạo thêm!
+              </div>
+            )}
             <Form form={form} layout="vertical">
               <Form.Item
                 name="itemTypeName"
@@ -291,9 +286,29 @@ const ItemTypeManagement = () => {
                     required: true,
                     message: "Vui lòng nhập tên loại nội dung",
                   },
+                  {
+                    max: 20,
+                    message: "Tên loại nội dung không được vượt quá 20 ký tự!",
+                  },
+                  {
+                    validator: (_, value) => {
+                      if (!value) return Promise.resolve();
+                      const isExist = itemTypes.some(
+                        (item) =>
+                          item.itemTypeName.trim().toLowerCase() ===
+                          value.trim().toLowerCase()
+                      );
+                      if (isExist) {
+                        return Promise.reject(
+                          "Tên loại nội dung này đã tồn tại!"
+                        );
+                      }
+                      return Promise.resolve();
+                    },
+                  },
                 ]}
               >
-                <Input placeholder="Nhập tên loại nội dung" />
+                <Input placeholder="Nhập tên loại nội dung" maxLength={20} />
               </Form.Item>
             </Form>
           </Modal>
@@ -324,9 +339,13 @@ const ItemTypeManagement = () => {
                     required: true,
                     message: "Vui lòng nhập tên loại nội dung",
                   },
+                  {
+                    max: 20,
+                    message: "Tên loại nội dung không được vượt quá 20 ký tự!",
+                  },
                 ]}
               >
-                <Input placeholder="Nhập tên loại nội dung" />
+                <Input placeholder="Nhập tên loại nội dung" maxLength={20} />
               </Form.Item>
             </Form>
           </Modal>

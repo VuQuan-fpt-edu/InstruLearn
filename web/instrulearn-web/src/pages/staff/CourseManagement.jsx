@@ -69,19 +69,6 @@ const CourseManagement = () => {
     }
   };
 
-  const handleDelete = async (coursePackageId, e) => {
-    e.stopPropagation();
-    try {
-      await axios.delete(
-        `https://instrulearnapplication.azurewebsites.net/api/Course/delete/${coursePackageId}`
-      );
-      message.success("Xóa khóa học thành công");
-      fetchCourses();
-    } catch (error) {
-      message.error("Xóa khóa học thất bại");
-    }
-  };
-
   const handleRowClick = (record) => {
     navigate(`/staff/course-detail/${record.coursePackageId}`);
   };
@@ -169,14 +156,6 @@ const CourseManagement = () => {
               icon={<EyeOutlined />}
               size="small"
               onClick={() => handleRowClick(record)}
-            />
-          </Tooltip>
-          <Tooltip title="Xóa">
-            <Button
-              icon={<DeleteOutlined />}
-              size="small"
-              danger
-              onClick={(e) => handleDelete(record.coursePackageId, e)}
             />
           </Tooltip>
         </Space>

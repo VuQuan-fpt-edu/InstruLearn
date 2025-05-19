@@ -260,38 +260,19 @@ const StudentBookingForm = () => {
         setBookingDetails(bookingInfo);
         setSuccessModalVisible(true);
       } else {
-        // Xử lý trường hợp API trả về isSucceed: false
-        if (response.data?.message?.includes("Schedule conflict detected")) {
-          const conflictData = response.data.data;
-          setErrorMessage(
-            `Bạn đã đăng ký một buổi học từ ${conflictData.existingStart} đến ${conflictData.existingEnd} vào ngày này. Vui lòng chọn thời gian khác.`
-          );
-          setErrorModalVisible(true);
-        } else {
-          throw new Error(response.data?.message || "Đăng ký không thành công");
-        }
+        setErrorMessage(response.data?.message || "Đăng ký không thành công");
+        setErrorModalVisible(true);
+        return;
       }
     } catch (error) {
       console.error("Error submitting form:", error);
-      // Xử lý lỗi từ axios error response
-      if (
-        error.response?.data?.message?.includes("Schedule conflict detected")
-      ) {
-        const conflictData = error.response.data.data;
-        setErrorMessage(
-          `Bạn đã đăng ký một buổi học từ ${conflictData.existingStart} đến ${conflictData.existingEnd} vào ngày này. Vui lòng chọn thời gian khác.`
-        );
-        setErrorModalVisible(true);
-      } else {
-        message.error({
-          content: `Đăng ký thất bại: ${
-            error.response?.data?.message ||
-            error.message ||
-            "Vui lòng kiểm tra lại thông tin"
-          }`,
-          duration: 5,
-        });
-      }
+      // Luôn lấy message từ response body nếu có, show ra popup
+      const apiMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Đã xảy ra lỗi, vui lòng thử lại!";
+      setErrorMessage(apiMessage);
+      setErrorModalVisible(true);
     } finally {
       setIsSubmitting(false);
     }
@@ -366,7 +347,11 @@ const StudentBookingForm = () => {
             title={
               <div className="text-center">
                 <CloseCircleOutlined className="text-red-500 text-3xl mb-3" />
-                <div className="text-xl font-medium">Lỗi Đăng Ký</div>
+                <div className="text-xl font-medium">
+                  {errorMessage?.includes("pending registration for this major")
+                    ? "Đơn đăng ký bị trùng"
+                    : "Lỗi Đăng Ký"}
+                </div>
               </div>
             }
             open={errorModalVisible}
@@ -386,39 +371,54 @@ const StudentBookingForm = () => {
             className="custom-modal"
           >
             <div className="py-4">
-              <Result
-                status="error"
-                title="Trùng lịch học"
-                subTitle={
-                  <div className="text-center space-y-4 mt-4">
-                    <div className="text-gray-600">{errorMessage}</div>
-                    <div className="bg-red-50 p-4 rounded-lg border border-red-100">
-                      <div className="flex items-center text-red-600 mb-2">
-                        <ClockCircleOutlined className="mr-2" />
-                        <span>Thời gian trùng lịch</span>
-                      </div>
-                      <div className="text-gray-600 pl-6">
-                        {formValues?.bookingSlot && (
-                          <div>
-                            {dayjs(formValues.bookingSlot).format("HH:mm")} -{" "}
-                            {dayjs(formValues.bookingSlot)
-                              .add(formValues.timeLearning, "minutes")
-                              .format("HH:mm")}
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex items-center text-red-600 mt-3 mb-2">
-                        <CalendarOutlined className="mr-2" />
-                        <span>Ngày học</span>
-                      </div>
-                      <div className="text-gray-600 pl-6">
-                        {formValues?.startDay &&
-                          dayjs(formValues.startDay).format("DD/MM/YYYY")}
+              {errorMessage?.includes("pending registration for this major") ? (
+                <Result
+                  status="error"
+                  title="Bạn đã có đơn đăng ký đang chờ xử lý cho nhạc cụ này"
+                  subTitle={<div className="text-gray-600">{errorMessage}</div>}
+                />
+              ) : errorMessage?.includes("trùng lịch") ||
+                errorMessage?.includes("Schedule conflict detected") ? (
+                <Result
+                  status="error"
+                  title="Trùng lịch học"
+                  subTitle={
+                    <div className="text-center space-y-4 mt-4">
+                      <div className="text-gray-600">{errorMessage}</div>
+                      <div className="bg-red-50 p-4 rounded-lg border border-red-100">
+                        <div className="flex items-center text-red-600 mb-2">
+                          <ClockCircleOutlined className="mr-2" />
+                          <span>Thời gian trùng lịch</span>
+                        </div>
+                        <div className="text-gray-600 pl-6">
+                          {formValues?.bookingSlot && (
+                            <div>
+                              {dayjs(formValues.bookingSlot).format("HH:mm")} -{" "}
+                              {dayjs(formValues.bookingSlot)
+                                .add(formValues.timeLearning, "minutes")
+                                .format("HH:mm")}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex items-center text-red-600 mt-3 mb-2">
+                          <CalendarOutlined className="mr-2" />
+                          <span>Ngày học</span>
+                        </div>
+                        <div className="text-gray-600 pl-6">
+                          {formValues?.startDay &&
+                            dayjs(formValues.startDay).format("DD/MM/YYYY")}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                }
-              />
+                  }
+                />
+              ) : (
+                <Result
+                  status="error"
+                  title="Lỗi đăng ký"
+                  subTitle={<div className="text-gray-600">{errorMessage}</div>}
+                />
+              )}
             </div>
           </Modal>
 
