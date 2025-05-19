@@ -87,7 +87,7 @@ class _FilterScreenState extends State<FilterScreen> {
 
   Widget _buildRatingRadio(String label, double value) {
     return RadioListTile<double>(
-      title: Text(label, style: const TextStyle(color: Colors.white)),
+      title: Text(label, style: const TextStyle(color: Colors.black87)),
       value: value,
       groupValue: filters.minRating,
       onChanged: (double? newValue) {
@@ -95,23 +95,7 @@ class _FilterScreenState extends State<FilterScreen> {
           filters = filters.copyWith(minRating: newValue);
         });
       },
-      activeColor: Colors.white,
-      contentPadding: EdgeInsets.zero,
-      dense: true,
-    );
-  }
-
-  Widget _buildDurationRadio(String label, String value) {
-    return RadioListTile<String>(
-      title: Text(label, style: const TextStyle(color: Colors.white)),
-      value: value,
-      groupValue: filters.selectedDuration,
-      onChanged: (String? newValue) {
-        setState(() {
-          filters = filters.copyWith(selectedDuration: newValue);
-        });
-      },
-      activeColor: Colors.white,
+      activeColor: const Color(0xFF8C9EFF),
       contentPadding: EdgeInsets.zero,
       dense: true,
     );
@@ -120,7 +104,7 @@ class _FilterScreenState extends State<FilterScreen> {
   Widget _buildInstrumentTypeSection() {
     if (isLoading) {
       return const Center(
-        child: CircularProgressIndicator(color: Colors.white),
+        child: CircularProgressIndicator(color: Color(0xFF8C9EFF)),
       );
     }
 
@@ -129,7 +113,7 @@ class _FilterScreenState extends State<FilterScreen> {
         children: [
           Text(
             'Error: $errorMessage',
-            style: const TextStyle(color: Colors.white),
+            style: const TextStyle(color: Colors.black87),
           ),
           ElevatedButton(
             onPressed: () {
@@ -150,7 +134,7 @@ class _FilterScreenState extends State<FilterScreen> {
         return RadioListTile<String>(
           title: Text(
             type.courseTypeName,
-            style: const TextStyle(color: Colors.white),
+            style: const TextStyle(color: Colors.black87),
           ),
           value: type.courseTypeName,
           groupValue: filters.selectedType,
@@ -159,7 +143,7 @@ class _FilterScreenState extends State<FilterScreen> {
               filters = filters.copyWith(selectedType: value);
             });
           },
-          activeColor: Colors.white,
+          activeColor: const Color(0xFF8C9EFF),
           contentPadding: EdgeInsets.zero,
           dense: true,
         );
@@ -171,7 +155,13 @@ class _FilterScreenState extends State<FilterScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        color: const Color(0xFF8C9EFF),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [const Color(0xFF8C9EFF).withOpacity(0.2), Colors.white],
+          ),
+        ),
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(16.0),
@@ -181,13 +171,14 @@ class _FilterScreenState extends State<FilterScreen> {
                 Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      icon: const Icon(Icons.arrow_back,
+                          color: Color(0xFF8C9EFF)),
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                     Text(
                       '${widget.courseCount} Khóa Học',
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: Colors.black87,
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
@@ -204,7 +195,7 @@ class _FilterScreenState extends State<FilterScreen> {
                           'Giá',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: Colors.black87,
                           ),
                         ),
                         RangeSlider(
@@ -227,19 +218,20 @@ class _FilterScreenState extends State<FilterScreen> {
                               );
                             });
                           },
-                          activeColor: Colors.red,
-                          inactiveColor: Colors.white,
+                          activeColor: const Color(0xFF8C9EFF),
+                          inactiveColor:
+                              const Color(0xFF8C9EFF).withOpacity(0.3),
                         ),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             const Text(
                               '0đ',
-                              style: TextStyle(color: Colors.white),
+                              style: TextStyle(color: Colors.black87),
                             ),
                             const Text(
                               '5,000,000đ',
-                              style: TextStyle(color: Colors.white),
+                              style: TextStyle(color: Colors.black87),
                             ),
                           ],
                         ),
@@ -248,7 +240,7 @@ class _FilterScreenState extends State<FilterScreen> {
                           'Loại Nhạc Cụ',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: Colors.black87,
                           ),
                         ),
                         const SizedBox(height: 10),
@@ -258,7 +250,7 @@ class _FilterScreenState extends State<FilterScreen> {
                           'Xếp hạng',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: Colors.black87,
                           ),
                         ),
                         const SizedBox(height: 10),
@@ -272,30 +264,10 @@ class _FilterScreenState extends State<FilterScreen> {
                         ),
                         const SizedBox(height: 20),
                         const Text(
-                          'Thời lượng video',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Column(
-                          children: [
-                            _buildDurationRadio('0-1 giờ (70)', '0-1 giờ'),
-                            _buildDurationRadio('1-3 giờ (76)', '1-3 giờ'),
-                            _buildDurationRadio('6-17 giờ (10)', '6-17 giờ'),
-                            _buildDurationRadio(
-                              'Hơn 17 giờ (30)',
-                              'Hơn 17 giờ',
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                        const Text(
                           'Sắp xếp theo',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: Colors.black87,
                           ),
                         ),
                         Container(
@@ -305,17 +277,17 @@ class _FilterScreenState extends State<FilterScreen> {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            color: const Color(0xFF8C9EFF).withOpacity(0.1),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: DropdownButton<String>(
                             isExpanded: true,
                             value: filters.sortOption,
-                            dropdownColor: const Color(0xFF8C9EFF),
-                            style: const TextStyle(color: Colors.white),
+                            dropdownColor: Colors.white,
+                            style: const TextStyle(color: Colors.black87),
                             icon: const Icon(
                               Icons.arrow_drop_down,
-                              color: Colors.white,
+                              color: Color(0xFF8C9EFF),
                             ),
                             underline: Container(),
                             onChanged: (String? newValue) {
@@ -356,7 +328,7 @@ class _FilterScreenState extends State<FilterScreen> {
                         child: const Text(
                           'Thiết Lập lại',
                           style: TextStyle(
-                            color: Colors.pink,
+                            color: Color(0xFF8C9EFF),
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -366,7 +338,7 @@ class _FilterScreenState extends State<FilterScreen> {
                           Navigator.of(context).pop(filters);
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.pink,
+                          backgroundColor: const Color(0xFF8C9EFF),
                           padding: const EdgeInsets.symmetric(
                             horizontal: 20,
                             vertical: 10,

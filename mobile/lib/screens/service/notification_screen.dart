@@ -5,6 +5,7 @@ import 'dart:convert';
 import '../../models/feedback_notification.dart';
 import 'detail/notification_detail_screen.dart';
 import 'learner_notification_screen.dart';
+import 'center_notification_screen.dart';
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({Key? key}) : super(key: key);
@@ -24,7 +25,7 @@ class _NotificationScreenState extends State<NotificationScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _fetchFeedbackNotifications();
   }
 
@@ -114,6 +115,16 @@ class _NotificationScreenState extends State<NotificationScreen>
     });
   }
 
+  String _formatDateTime(String? dateTimeStr) {
+    if (dateTimeStr == null || dateTimeStr.isEmpty) return '';
+    try {
+      final dt = DateTime.parse(dateTimeStr);
+      return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+    } catch (e) {
+      return dateTimeStr ?? '';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -123,71 +134,121 @@ class _NotificationScreenState extends State<NotificationScreen>
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
-            Tab(text: 'Đánh giá'),
-            Tab(text: 'Lưu ý'),
+            Tab(text: 'Feedback học theo yêu cầu'),
+            Tab(text: 'Lưu ý đơn học học theo yêu cầu'),
+            Tab(text: 'Lưu ý tại trung tâm'),
           ],
         ),
       ),
       body: TabBarView(
         controller: _tabController,
         children: [
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  const Color(0xFF8C9EFF).withOpacity(0.2),
-                  Colors.white
-                ],
+          // Tab 1: Đánh giá học kèm 1:1
+          Column(
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                color: Colors.blue[50],
+                child: const Text(
+                  'Đây là các thông báo feedback dành cho học viên học theo yêu cầu',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, color: Colors.blue),
+                ),
               ),
-            ),
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.grey[200],
-                      borderRadius: BorderRadius.circular(25),
-                    ),
-                    child: TextField(
-                      controller: _searchController,
-                      onChanged: _filterNotifications,
-                      decoration: InputDecoration(
-                        hintText: 'Tìm kiếm theo tên giáo viên...',
-                        prefixIcon:
-                            const Icon(Icons.search, color: Colors.grey),
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 15,
-                        ),
-                      ),
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        const Color(0xFF8C9EFF).withOpacity(0.2),
+                        Colors.white
+                      ],
                     ),
                   ),
-                ),
-                Expanded(
-                  child: isLoading
-                      ? const Center(child: CircularProgressIndicator())
-                      : filteredNotifications.isEmpty
-                          ? const Center(
-                              child: Text('Không có thông báo đánh giá nào'),
-                            )
-                          : ListView.builder(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 16),
-                              itemCount: filteredNotifications.length,
-                              itemBuilder: (context, index) {
-                                return _buildFeedbackCard(
-                                    filteredNotifications[index]);
-                              },
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            borderRadius: BorderRadius.circular(25),
+                          ),
+                          child: TextField(
+                            controller: _searchController,
+                            onChanged: _filterNotifications,
+                            decoration: InputDecoration(
+                              hintText: 'Tìm kiếm theo tên giáo viên...',
+                              prefixIcon:
+                                  const Icon(Icons.search, color: Colors.grey),
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 15,
+                              ),
                             ),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: isLoading
+                            ? const Center(child: CircularProgressIndicator())
+                            : filteredNotifications.isEmpty
+                                ? const Center(
+                                    child:
+                                        Text('Không có thông báo đánh giá nào'),
+                                  )
+                                : ListView.builder(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 16),
+                                    itemCount: filteredNotifications.length,
+                                    itemBuilder: (context, index) {
+                                      return _buildFeedbackCard(
+                                          filteredNotifications[index]);
+                                    },
+                                  ),
+                      ),
+                    ],
+                  ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-          const LearnerNotificationScreen(),
+          // Tab 2: Lưu ý đơn học kèm 1:1
+          Column(
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                color: Colors.purple[50],
+                child: const Text(
+                  'Đây là các lưu ý liên quan đến đơn học theo yêu cầu của bạn',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, color: Colors.purple),
+                ),
+              ),
+              const Expanded(child: LearnerNotificationScreen()),
+            ],
+          ),
+          // Tab 3: Lưu ý tại trung tâm
+          Column(
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                color: Colors.orange[50],
+                child: const Text(
+                  'Đây là các lưu ý, thông báo từ trung tâm (ví dụ: kiểm tra đầu vào, lịch học chung...)',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, color: Colors.orange),
+                ),
+              ),
+              const Expanded(child: CenterNotificationScreen()),
+            ],
+          ),
         ],
       ),
     );
@@ -204,7 +265,6 @@ class _NotificationScreenState extends State<NotificationScreen>
             ),
           ),
         );
-
         if (result == true) {
           _fetchFeedbackNotifications();
         }
@@ -228,38 +288,60 @@ class _NotificationScreenState extends State<NotificationScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Giáo viên: ${notification.teacherName}',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.red[50],
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      'Cần thanh toán: ${notification.remainingPayment} VND',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.red[700],
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
+              Text(
+                'Giáo viên: 	${notification.teacherName}',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
+              const SizedBox(height: 8),
+              Text(
+                'Số buổi đã học: 	${notification.completedSessions}/${notification.totalSessions}',
+                style: const TextStyle(fontSize: 14),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Cần thanh toán: 	${notification.remainingPayment} VND',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.red[700],
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Trạng thái: 	${notification.feedbackStatus}',
+                style: const TextStyle(fontSize: 14),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Hạn chót: \t${_formatDateTime(notification.deadlineDate)} (${notification.deadlineMessage ?? ""})',
+                style: const TextStyle(fontSize: 13, color: Colors.orange),
+              ),
+              const SizedBox(height: 4),
+              if (notification.message.isNotEmpty)
+                Text(
+                  notification.message,
+                  style: const TextStyle(fontSize: 13, color: Colors.blue),
+                ),
+              const SizedBox(height: 8),
+              if (notification.questions.isNotEmpty)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Các câu hỏi đánh giá:',
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                    ...notification.questions.map((q) => Padding(
+                          padding: const EdgeInsets.only(top: 2, left: 8),
+                          child: Text('- ${q.questionText}',
+                              style: const TextStyle(fontSize: 13)),
+                        )),
+                  ],
+                ),
               const SizedBox(height: 8),
               Text(
                 'Nhấn để xem chi tiết và đánh giá',

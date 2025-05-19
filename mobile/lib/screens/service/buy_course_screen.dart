@@ -61,7 +61,6 @@ class FilterOptions {
   int minPrice;
   int maxPrice;
   String? selectedType;
-  String? selectedDuration;
   String sortOption;
   int? selectedTypeId;
 
@@ -70,7 +69,6 @@ class FilterOptions {
     this.minPrice = 0,
     this.maxPrice = 5000000,
     this.selectedType,
-    this.selectedDuration,
     this.sortOption = 'Xếp hạng',
     this.selectedTypeId,
   });
@@ -80,7 +78,6 @@ class FilterOptions {
     int? minPrice,
     int? maxPrice,
     String? selectedType,
-    String? selectedDuration,
     String? sortOption,
     int? selectedTypeId,
   }) {
@@ -89,7 +86,6 @@ class FilterOptions {
       minPrice: minPrice ?? this.minPrice,
       maxPrice: maxPrice ?? this.maxPrice,
       selectedType: selectedType ?? this.selectedType,
-      selectedDuration: selectedDuration ?? this.selectedDuration,
       sortOption: sortOption ?? this.sortOption,
       selectedTypeId: selectedTypeId ?? this.selectedTypeId,
     );
@@ -116,7 +112,6 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
   int minPrice = 0;
   int maxPrice = 5000000;
   String? selectedType;
-  String? selectedDuration;
   String sortOption = 'Xếp hạng';
 
   final TextEditingController _searchController = TextEditingController();
@@ -217,33 +212,14 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
         final matchesType =
             selectedType == null || course.typeName == selectedType;
 
-        final matchesDuration = selectedDuration == null ||
-            _matchesDuration(course.durationInHours, selectedDuration!);
-
         return matchesSearch &&
             matchesRating &&
             matchesMinPrice &&
             matchesMaxPrice &&
-            matchesType &&
-            matchesDuration;
+            matchesType;
       }).toList();
       _applySorting();
     });
-  }
-
-  bool _matchesDuration(int hours, String durationFilter) {
-    switch (durationFilter) {
-      case '0-1 giờ':
-        return hours >= 0 && hours <= 1;
-      case '1-3 giờ':
-        return hours > 1 && hours <= 3;
-      case '6-17 giờ':
-        return hours >= 6 && hours <= 17;
-      case 'Hơn 17 giờ':
-        return hours > 17;
-      default:
-        return true;
-    }
   }
 
   void _applySorting() {
@@ -269,7 +245,6 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
       minPrice: minPrice,
       maxPrice: maxPrice,
       selectedType: selectedType,
-      selectedDuration: selectedDuration,
       sortOption: sortOption,
     );
 
@@ -288,7 +263,6 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
         minPrice = result.minPrice;
         maxPrice = result.maxPrice;
         selectedType = result.selectedType;
-        selectedDuration = result.selectedDuration;
         sortOption = result.sortOption;
       });
       _applyFilters();
@@ -395,7 +369,6 @@ class _BuyCourseScreenState extends State<BuyCourseScreen> {
                                       minPrice = 0;
                                       maxPrice = 5000000;
                                       selectedType = null;
-                                      selectedDuration = null;
                                       searchQuery = '';
                                       _searchController.clear();
                                       filteredCourses = courses

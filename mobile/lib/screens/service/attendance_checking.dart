@@ -84,12 +84,38 @@ class _AttendanceCheckingScreenState extends State<AttendanceCheckingScreen> {
               ? const Center(child: Text('Không có dữ liệu'))
               : ListView.builder(
                   padding: const EdgeInsets.all(16),
-                  itemCount: attendanceData!['registrationStatistics'].length,
+                  itemCount: (attendanceData!['registrationStatistics'] as List)
+                      .length,
                   itemBuilder: (context, index) {
-                    final registration =
-                        attendanceData!['registrationStatistics'][index];
+                    final sortedList = List<Map<String, dynamic>>.from(
+                        attendanceData!['registrationStatistics']);
+                    sortedList.sort((a, b) {
+                      final aId = a['registrationId'] ?? a['classId'] ?? 0;
+                      final bId = b['registrationId'] ?? b['classId'] ?? 0;
+                      return (bId as int).compareTo(aId as int);
+                    });
+                    final registration = sortedList[index];
+                    final isClass = registration['type'] == 'Class';
+                    final total = isClass
+                        ? registration['totalDays']
+                        : registration['totalSessions'];
+                    final attended = isClass
+                        ? registration['attendedDays']
+                        : registration['attendedSessions'];
+                    final absent = isClass
+                        ? registration['absentDays']
+                        : registration['absentSessions'];
+                    final pending = isClass
+                        ? registration['pendingDays']
+                        : registration['pendingSessions'];
+                    final learningRequest =
+                        registration['learningRequest'] ?? '';
                     return Card(
+                      elevation: 4,
                       margin: const EdgeInsets.only(bottom: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       child: InkWell(
                         onTap: () =>
                             _showAttendanceDetails(context, registration),
@@ -143,51 +169,99 @@ class _AttendanceCheckingScreenState extends State<AttendanceCheckingScreen> {
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 12),
+                              const SizedBox(height: 16),
                               Text(
-                                'Yêu cầu: ${registration['learningRequest']}',
+                                isClass &&
+                                        (learningRequest == null ||
+                                            learningRequest.isEmpty)
+                                    ? ''
+                                    : 'Yêu cầu: $learningRequest',
                                 style: const TextStyle(fontSize: 14),
                               ),
-                              const SizedBox(height: 12),
+                              const SizedBox(height: 16),
                               Row(
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
                                 children: [
                                   _buildStatItem(
-                                    'Tổng số buổi',
-                                    registration['totalSessions'].toString(),
+                                    isClass ? 'Tổng số ngày' : 'Tổng số buổi',
+                                    (total ?? 0).toString(),
+                                    Icons.calendar_today,
                                   ),
                                   _buildStatItem(
                                     'Đã điểm danh',
-                                    registration['attendedSessions'].toString(),
+                                    (attended ?? 0).toString(),
+                                    Icons.check_circle,
+                                    color: Colors.green,
                                   ),
                                   _buildStatItem(
                                     'Vắng mặt',
-                                    registration['absentSessions'].toString(),
+                                    (absent ?? 0).toString(),
+                                    Icons.cancel,
+                                    color: Colors.red,
                                   ),
                                   _buildStatItem(
                                     'Chưa điểm danh',
-                                    registration['pendingSessions'].toString(),
+                                    (pending ?? 0).toString(),
+                                    Icons.schedule,
+                                    color: Colors.orange,
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 12),
-                              LinearProgressIndicator(
-                                value: registration['attendanceRate'] / 100,
-                                backgroundColor: Colors.grey[200],
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  _getAttendanceColor(
-                                      registration['attendanceRate']),
+                              const SizedBox(height: 16),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: LinearProgressIndicator(
+                                  value: (registration['attendanceRate'] ?? 0) /
+                                      100,
+                                  backgroundColor: Colors.grey[200],
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    _getAttendanceColor(
+                                        (registration['attendanceRate'] ?? 0)
+                                                is num
+                                            ? (registration['attendanceRate']
+                                                    as num)
+                                                .toInt()
+                                            : 0),
+                                  ),
+                                  minHeight: 8,
                                 ),
                               ),
                               const SizedBox(height: 8),
-                              Text(
-                                'Tỷ lệ điểm danh: ${registration['attendanceRate']}%',
-                                style: TextStyle(
-                                  color: _getAttendanceColor(
-                                      registration['attendanceRate']),
-                                  fontWeight: FontWeight.bold,
-                                ),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Tỷ lệ điểm danh: ${(registration['attendanceRate'] ?? 0)}%',
+                                    style: TextStyle(
+                                      color: _getAttendanceColor(
+                                          (registration['attendanceRate'] ?? 0)
+                                                  is num
+                                              ? (registration['attendanceRate']
+                                                      as num)
+                                                  .toInt()
+                                              : 0),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Icon(
+                                    _getAttendanceIcon(
+                                        (registration['attendanceRate'] ?? 0)
+                                                is num
+                                            ? (registration['attendanceRate']
+                                                    as num)
+                                                .toInt()
+                                            : 0),
+                                    color: _getAttendanceColor(
+                                        (registration['attendanceRate'] ?? 0)
+                                                is num
+                                            ? (registration['attendanceRate']
+                                                    as num)
+                                                .toInt()
+                                            : 0),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
@@ -199,9 +273,12 @@ class _AttendanceCheckingScreenState extends State<AttendanceCheckingScreen> {
     );
   }
 
-  Widget _buildStatItem(String label, String value) {
+  Widget _buildStatItem(String label, String value, IconData icon,
+      {Color? color}) {
     return Column(
       children: [
+        Icon(icon, color: color ?? Colors.blue, size: 20),
+        const SizedBox(height: 4),
         Text(
           value,
           style: const TextStyle(
@@ -226,8 +303,22 @@ class _AttendanceCheckingScreenState extends State<AttendanceCheckingScreen> {
     return Colors.red;
   }
 
+  IconData _getAttendanceIcon(int rate) {
+    if (rate >= 80) return Icons.emoji_events;
+    if (rate >= 50) return Icons.warning;
+    return Icons.error;
+  }
+
   void _showAttendanceDetails(
       BuildContext context, Map<String, dynamic> registration) {
+    final isClass = registration['type'] == 'Class';
+    final attended = isClass
+        ? registration['attendedDays']
+        : registration['attendedSessions'];
+    final absent =
+        isClass ? registration['absentDays'] : registration['absentSessions'];
+    final pending =
+        isClass ? registration['pendingDays'] : registration['pendingSessions'];
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -253,22 +344,34 @@ class _AttendanceCheckingScreenState extends State<AttendanceCheckingScreen> {
                   PieChartData(
                     sections: [
                       PieChartSectionData(
-                        value: registration['attendedSessions'].toDouble(),
+                        value: (attended ?? 0).toDouble(),
                         title: 'Có mặt',
                         color: Colors.green,
                         radius: 50,
+                        titleStyle: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       PieChartSectionData(
-                        value: registration['absentSessions'].toDouble(),
+                        value: (absent ?? 0).toDouble(),
                         title: 'Vắng mặt',
                         color: Colors.red,
                         radius: 50,
+                        titleStyle: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       PieChartSectionData(
-                        value: registration['pendingSessions'].toDouble(),
+                        value: (pending ?? 0).toDouble(),
                         title: 'Chưa điểm danh',
                         color: Colors.grey,
                         radius: 50,
+                        titleStyle: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ],
                     sectionsSpace: 2,
