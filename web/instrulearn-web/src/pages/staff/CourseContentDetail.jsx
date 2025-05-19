@@ -93,6 +93,8 @@ const CourseContentDetail = () => {
     ".pdf,application/pdf"
   );
 
+  const [inputFileKey, setInputFileKey] = useState(Date.now());
+
   useEffect(() => {
     fetchContentDetail();
     fetchItemTypes();
@@ -174,23 +176,8 @@ const CourseContentDetail = () => {
       }
       setFile(selectedFile);
       setFileURL("");
-      // ... existing logic xác định fileType ...
-      if (selectedFile.type.startsWith("image/")) {
-        setFileType("image");
-        form.setFieldsValue({ itemTypeId: 1 });
-        editForm.setFieldsValue({ itemTypeId: 1 });
-      } else if (selectedFile.type.startsWith("video/")) {
-        setFileType("video");
-        form.setFieldsValue({ itemTypeId: 2 });
-        editForm.setFieldsValue({ itemTypeId: 2 });
-      } else if (selectedFile.type === "application/pdf") {
-        setFileType("document");
-        form.setFieldsValue({ itemTypeId: 3 });
-        editForm.setFieldsValue({ itemTypeId: 3 });
-      } else {
-        setFileType("other");
-      }
-      // ... existing preview logic ...
+      // Không set lại itemTypeId ở đây!
+      // ... preview logic ...
       if (selectedFile.type.startsWith("image/")) {
         const reader = new FileReader();
         reader.onloadend = () => {
@@ -260,6 +247,7 @@ const CourseContentDetail = () => {
     setUploadProgress(0);
     setPreviewImage("");
     setAddItemModalVisible(true);
+    setInputFileKey(Date.now());
   };
 
   const handleAddItemSubmit = async () => {
@@ -448,33 +436,6 @@ const CourseContentDetail = () => {
     }
   };
 
-  const showDeleteConfirm = (item) => {
-    setItemToDelete(item);
-    setDeleteConfirmVisible(true);
-  };
-
-  const handleDeleteItem = async (itemId) => {
-    setDeleteLoading(true);
-    try {
-      const response = await axios.delete(
-        `https://instrulearnapplication.azurewebsites.net/api/CourseContentItem/delete/${itemId}`
-      );
-
-      if (response.data?.isSucceed) {
-        message.success("Xóa nội dung thành công");
-        fetchContentDetail();
-      } else {
-        message.error(response.data?.message || "Xóa nội dung thất bại");
-      }
-    } catch (error) {
-      message.error("Lỗi khi xóa nội dung");
-      console.error("Error deleting item:", error);
-    } finally {
-      setDeleteLoading(false);
-      setDeleteConfirmVisible(false);
-    }
-  };
-
   const getItemTypeLabel = (typeId) => {
     const type = itemTypes.find((t) => t.itemTypeId === typeId);
     return type ? type.itemTypeName : "Không xác định";
@@ -508,6 +469,9 @@ const CourseContentDetail = () => {
 
   const renderItemContent = (item) => {
     // Kiểm tra loại nội dung dựa vào itemTypeId
+    const type = itemTypes.find((t) => t.itemTypeId === item.itemTypeId);
+    const isPDF = type && type.itemTypeName.toLowerCase() === "pdf";
+    // Loại docs đã bỏ hoàn toàn
     switch (item.itemTypeId) {
       case 1: // Images
         return (
@@ -533,7 +497,6 @@ const CourseContentDetail = () => {
             </div>
           </div>
         );
-
       case 2: // Video
         return (
           <div className="mt-2">
@@ -557,31 +520,32 @@ const CourseContentDetail = () => {
             </div>
           </div>
         );
-
-      case 3: // Document
-        return (
-          <div className="mt-2">
-            <div className="mb-2 flex gap-2">
-              <Tag color="purple" icon={<FileTextOutlined />}>
-                Tài liệu
-              </Tag>
-              <Tag color={item.status === 0 ? "error" : "success"}>
-                {item.status === 0 ? "Đã khóa" : "Đã mở khóa"}
-              </Tag>
-            </div>
-            <Button
-              type="link"
-              onClick={() => {
-                setCurrentPdfUrl(item.itemDes);
-                setPdfViewerVisible(true);
-              }}
-            >
-              Xem tài liệu
-            </Button>
-          </div>
-        );
-
       default:
+        // Nếu là PDF thì show nút xem tài liệu
+        if (isPDF) {
+          return (
+            <div className="mt-2">
+              <div className="mb-2 flex gap-2">
+                <Tag color="purple" icon={<FileTextOutlined />}>
+                  PDF
+                </Tag>
+                <Tag color={item.status === 0 ? "error" : "success"}>
+                  {item.status === 0 ? "Đã khóa" : "Đã mở khóa"}
+                </Tag>
+              </div>
+              <Button
+                type="link"
+                onClick={() => {
+                  setCurrentPdfUrl(item.itemDes);
+                  setPdfViewerVisible(true);
+                }}
+              >
+                Xem tài liệu
+              </Button>
+            </div>
+          );
+        }
+        // Các loại khác (nếu có)
         return (
           <div className="mt-2">
             <div className="mb-2 flex gap-2">
@@ -722,14 +686,6 @@ const CourseContentDetail = () => {
                           >
                             Sửa
                           </Button>,
-                          <Button
-                            icon={<DeleteOutlined />}
-                            type="text"
-                            danger
-                            onClick={() => showDeleteConfirm(item)}
-                          >
-                            Xóa
-                          </Button>,
                         ]}
                       >
                         <List.Item.Meta
@@ -812,6 +768,7 @@ const CourseContentDetail = () => {
 
               <Form.Item label="Tải lên tệp">
                 <input
+                  key={inputFileKey}
                   type="file"
                   onChange={handleFileSelect}
                   accept={addItemFileAccept}
@@ -888,6 +845,7 @@ const CourseContentDetail = () => {
 
               <Form.Item label="Tải lên tệp mới">
                 <input
+                  key={inputFileKey}
                   type="file"
                   onChange={handleFileSelect}
                   className="block w-full text-sm border border-gray-300 rounded p-2"
@@ -933,46 +891,6 @@ const CourseContentDetail = () => {
                   </div>
                 )}
             </Form>
-          </Modal>
-
-          {/* Delete Confirmation Modal */}
-          <Modal
-            title="Xác nhận xóa nội dung"
-            open={deleteConfirmVisible}
-            onCancel={() => setDeleteConfirmVisible(false)}
-            footer={[
-              <Button
-                key="cancel"
-                onClick={() => setDeleteConfirmVisible(false)}
-              >
-                Hủy
-              </Button>,
-              <Button
-                key="delete"
-                type="primary"
-                danger
-                loading={deleteLoading}
-                onClick={() => {
-                  handleDeleteItem(itemToDelete.itemId);
-                }}
-              >
-                Xóa
-              </Button>,
-            ]}
-          >
-            <div className="flex items-center">
-              <ExclamationCircleOutlined
-                style={{
-                  color: "#ff4d4f",
-                  fontSize: "22px",
-                  marginRight: "12px",
-                }}
-              />
-              <span>
-                Bạn có chắc chắn muốn xóa nội dung #{itemToDelete?.itemId}{" "}
-                không? Hành động này không thể hoàn tác.
-              </span>
-            </div>
           </Modal>
 
           {/* PDF Viewer Modal */}

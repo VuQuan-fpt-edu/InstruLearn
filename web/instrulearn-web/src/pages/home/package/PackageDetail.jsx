@@ -1052,7 +1052,7 @@ export default function PackageDetail() {
 
       {/* Modal xác nhận đăng ký */}
       <Modal
-        title="Xác nhận đăng ký khóa học"
+        title="Xác nhận mua khóa học"
         open={showConfirmModal}
         onOk={handleEnroll}
         onCancel={() => setShowConfirmModal(false)}
@@ -1060,7 +1060,7 @@ export default function PackageDetail() {
         cancelText="Hủy"
       >
         <div className="py-4">
-          <p className="mb-4">Bạn có chắc chắn muốn đăng ký khóa học này?</p>
+          <p className="mb-4">Bạn có chắc chắn muốn mua khóa học này?</p>
           <div className="bg-gray-50 p-4 rounded-lg">
             <div className="flex justify-between mb-2">
               <span className="text-gray-600">Số dư hiện tại:</span>
@@ -1137,7 +1137,7 @@ export default function PackageDetail() {
         title={
           <div className="text-center">
             <div className="text-2xl font-bold text-green-600">
-              Đăng ký khóa học thành công!
+              Mua khóa học thành công!
             </div>
           </div>
         }
@@ -1158,7 +1158,7 @@ export default function PackageDetail() {
             style={{ width: "100%" }}
             className="bg-purple-600 hover:bg-purple-700 h-10 text-base font-medium"
           >
-            Đi đến khóa học của tôi
+            Đi đến thư viện khóa học
           </Button>,
         ]}
       >
@@ -1218,7 +1218,7 @@ export default function PackageDetail() {
                   d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
               </svg>
-              Bạn có thể xem khóa học trong mục "Khóa học của tôi"
+              Bạn có thể xem khóa học trong mục "Thư viện khóa học"
             </div>
           </div>
         )}

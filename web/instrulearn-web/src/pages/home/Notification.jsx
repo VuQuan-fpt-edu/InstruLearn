@@ -218,6 +218,24 @@ const Notification = () => {
         changeTeacher: values.changeTeacher,
       };
 
+      console.log("Payload gửi feedback:", payload);
+
+      if (!payload.learningRegistrationId || !payload.learnerId) {
+        message.error(
+          "Thiếu thông tin đăng ký hoặc học viên. Vui lòng thử lại!"
+        );
+        setFeedbackSubmitting(false);
+        return;
+      }
+      if (
+        !payload.answers.length ||
+        payload.answers.some((a) => !a.questionId || !a.selectedOptionId)
+      ) {
+        message.error("Vui lòng trả lời đầy đủ các câu hỏi!");
+        setFeedbackSubmitting(false);
+        return;
+      }
+
       // Gọi API gửi phản hồi mới
       const response = await axios.post(
         "https://instrulearnapplication.azurewebsites.net/api/LearningRegisFeedback/SubmitFeedback",
@@ -228,7 +246,9 @@ const Notification = () => {
         message.success("Đã gửi phản hồi thành công");
         setFeedbackModalVisible(false);
         // Tải lại thông báo
-        fetchNotifications(currentUser.learnerId);
+        if (currentUser?.learnerId) {
+          fetchNotifications(currentUser.learnerId);
+        }
       } else {
         message.error(response.data?.message || "Không thể gửi phản hồi");
       }
@@ -704,33 +724,48 @@ const Notification = () => {
                                 <Radio value={false}>Không</Radio>
                               </Radio.Group>
                             </Form.Item>
-                            {changeTeacher === true && (
-                              <Form.Item
-                                label="Lý do đổi giáo viên"
-                                name="teacherChangeReason"
-                                rules={[
-                                  {
-                                    required: true,
-                                    message:
-                                      "Vui lòng nhập lý do đổi giáo viên",
-                                  },
-                                ]}
-                              >
-                                <Input.TextArea
-                                  rows={3}
-                                  placeholder="Nhập lý do bạn muốn đổi giáo viên"
-                                />
-                              </Form.Item>
-                            )}
-                            {changeTeacher !== true && (
-                              <Form.Item
-                                name="teacherChangeReason"
-                                initialValue=""
-                                hidden
-                              >
-                                <Input type="hidden" />
-                              </Form.Item>
-                            )}
+                            <Form.Item
+                              noStyle
+                              shouldUpdate={(prev, curr) =>
+                                prev.changeTeacher !== curr.changeTeacher
+                              }
+                            >
+                              {({ getFieldValue, setFieldsValue }) => {
+                                const changeTeacher =
+                                  getFieldValue("changeTeacher");
+                                if (changeTeacher === true) {
+                                  return (
+                                    <Form.Item
+                                      label="Lý do đổi giáo viên"
+                                      name="teacherChangeReason"
+                                      rules={[
+                                        {
+                                          required: true,
+                                          message:
+                                            "Vui lòng nhập lý do đổi giáo viên",
+                                        },
+                                      ]}
+                                    >
+                                      <Input.TextArea
+                                        rows={3}
+                                        placeholder="Nhập lý do bạn muốn đổi giáo viên"
+                                        maxLength={250}
+                                        showCount
+                                      />
+                                    </Form.Item>
+                                  );
+                                } else {
+                                  setTimeout(
+                                    () =>
+                                      setFieldsValue({
+                                        teacherChangeReason: "",
+                                      }),
+                                    0
+                                  );
+                                  return null;
+                                }
+                              }}
+                            </Form.Item>
                           </>
                         );
                       }}
@@ -742,6 +777,8 @@ const Notification = () => {
                       <TextArea
                         rows={4}
                         placeholder="Nhập nhận xét của bạn về khóa học (không bắt buộc)"
+                        maxLength={250}
+                        showCount
                       />
                     </Form.Item>
 

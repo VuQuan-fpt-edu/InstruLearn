@@ -155,13 +155,22 @@ const TeacherManagement = () => {
     setEditingTeacher(record);
     const formValues = {
       ...record,
-      majorId: record.majorIds?.[0], // Lấy majorId đầu tiên vì API chỉ hỗ trợ 1 major
+      gender:
+        record.gender === "male"
+          ? "Nam"
+          : record.gender === "female"
+          ? "Nữ"
+          : record.gender === "other"
+          ? "Khác"
+          : record.gender,
+      majorId: record.majorIds?.[0],
       dateOfEmployment: record.dateOfEmployment
         ? dayjs(record.dateOfEmployment)
         : null,
     };
     form.setFieldsValue(formValues);
     setAvatarUrl(record.avatar);
+    setPreviewImage("");
     setIsModalOpen(true);
   };
 
@@ -198,6 +207,8 @@ const TeacherManagement = () => {
           if (response.data.isSucceed) {
             message.success("Cập nhật thông tin giáo viên thành công!");
             setIsModalOpen(false);
+            setEditingTeacher(null);
+            form.resetFields();
             fetchTeachers();
           } else {
             message.error(
@@ -244,7 +255,10 @@ const TeacherManagement = () => {
   };
 
   const handleViewDetail = (record) => {
-    setSelectedTeacher(record);
+    // Lấy lại thông tin giáo viên mới nhất từ teachers (theo id)
+    const latest =
+      teachers.find((t) => t.teacherId === record.teacherId) || record;
+    setSelectedTeacher(latest);
     setIsDetailModalOpen(true);
   };
 
@@ -567,9 +581,16 @@ const TeacherManagement = () => {
                     label="Kinh nghiệm"
                     rules={[
                       { required: true, message: "Vui lòng nhập kinh nghiệm!" },
+                      {
+                        max: 50,
+                        message: "Kinh nghiệm không được vượt quá 50 ký tự!",
+                      },
                     ]}
                   >
-                    <Input placeholder="Ví dụ: Kinh nghiệm 10 năm giảng dạy" />
+                    <Input
+                      placeholder="Ví dụ: Kinh nghiệm 10 năm giảng dạy"
+                      maxLength={50}
+                    />
                   </Form.Item>
 
                   <Form.Item
@@ -578,9 +599,17 @@ const TeacherManagement = () => {
                     rules={[
                       { required: true, message: "Vui lòng nhập email!" },
                       { type: "email", message: "Email không hợp lệ!" },
+                      {
+                        max: 50,
+                        message: "Email không được vượt quá 50 ký tự!",
+                      },
                     ]}
                   >
-                    <Input prefix={<MailOutlined />} placeholder="Nhập email" />
+                    <Input
+                      prefix={<MailOutlined />}
+                      maxLength={50}
+                      placeholder="Nhập email"
+                    />
                   </Form.Item>
 
                   <Form.Item
@@ -588,11 +617,16 @@ const TeacherManagement = () => {
                     label="Mô tả"
                     rules={[
                       { required: true, message: "Vui lòng nhập mô tả!" },
+                      {
+                        max: 250,
+                        message: "Mô tả không được vượt quá 250 ký tự!",
+                      },
                     ]}
                   >
                     <Input.TextArea
                       rows={4}
                       placeholder="Nhập mô tả về giáo viên"
+                      maxLength={250}
                     />
                   </Form.Item>
 
@@ -622,6 +656,7 @@ const TeacherManagement = () => {
                   >
                     <Input
                       prefix={<PhoneOutlined />}
+                      maxLength={10}
                       placeholder="Nhập số điện thoại"
                     />
                   </Form.Item>
@@ -634,8 +669,9 @@ const TeacherManagement = () => {
                     ]}
                   >
                     <Select placeholder="Chọn giới tính">
-                      <Option value="male">Nam</Option>
-                      <Option value="female">Nữ</Option>
+                      <Option value="Nam">Nam</Option>
+                      <Option value="Nữ">Nữ</Option>
+                      <Option value="Khác">Khác</Option>
                     </Select>
                   </Form.Item>
 
@@ -644,11 +680,16 @@ const TeacherManagement = () => {
                     label="Địa chỉ"
                     rules={[
                       { required: true, message: "Vui lòng nhập địa chỉ!" },
+                      {
+                        max: 100,
+                        message: "Địa chỉ không được vượt quá 100 ký tự!",
+                      },
                     ]}
                   >
                     <Input.TextArea
                       rows={2}
                       placeholder="Nhập địa chỉ của giáo viên"
+                      maxLength={100}
                     />
                   </Form.Item>
 
@@ -752,9 +793,17 @@ const TeacherManagement = () => {
                     label="Họ và tên"
                     rules={[
                       { required: true, message: "Vui lòng nhập họ và tên!" },
+                      {
+                        max: 50,
+                        message: "Họ và tên không được vượt quá 50 ký tự!",
+                      },
+                      {
+                        pattern: /^[a-zA-Z0-9\s]*$/,
+                        message: "Họ và tên không được chứa ký tự đặc biệt!",
+                      },
                     ]}
                   >
-                    <Input prefix={<UserOutlined />} />
+                    <Input prefix={<UserOutlined />} maxLength={50} />
                   </Form.Item>
 
                   <Form.Item
@@ -765,9 +814,18 @@ const TeacherManagement = () => {
                         required: true,
                         message: "Vui lòng nhập tên đăng nhập!",
                       },
+                      {
+                        max: 50,
+                        message: "Tên đăng nhập không được vượt quá 50 ký tự!",
+                      },
+                      {
+                        pattern: /^[a-zA-Z0-9\s]*$/,
+                        message:
+                          "Tên đăng nhập không được chứa ký tự đặc biệt!",
+                      },
                     ]}
                   >
-                    <Input prefix={<UserOutlined />} />
+                    <Input prefix={<UserOutlined />} maxLength={50} />
                   </Form.Item>
 
                   <Form.Item
@@ -776,9 +834,17 @@ const TeacherManagement = () => {
                     rules={[
                       { required: true, message: "Vui lòng nhập email!" },
                       { type: "email", message: "Email không hợp lệ!" },
+                      {
+                        max: 50,
+                        message: "Email không được vượt quá 50 ký tự!",
+                      },
                     ]}
                   >
-                    <Input prefix={<MailOutlined />} />
+                    <Input
+                      prefix={<MailOutlined />}
+                      maxLength={50}
+                      placeholder="Nhập email"
+                    />
                   </Form.Item>
 
                   <Form.Item
@@ -786,10 +852,14 @@ const TeacherManagement = () => {
                     label="Mật khẩu"
                     rules={[
                       { required: true, message: "Vui lòng nhập mật khẩu!" },
-                      { min: 6, message: "Mật khẩu phải có ít nhất 6 ký tự!" },
+                      { min: 8, message: "Mật khẩu phải có ít nhất 8 ký tự!" },
+                      {
+                        max: 50,
+                        message: "Mật khẩu không được vượt quá 50 ký tự!",
+                      },
                     ]}
                   >
-                    <Input.Password prefix={<LockOutlined />} />
+                    <Input.Password prefix={<LockOutlined />} maxLength={50} />
                   </Form.Item>
 
                   <Form.Item
@@ -800,9 +870,17 @@ const TeacherManagement = () => {
                         required: true,
                         message: "Vui lòng nhập số điện thoại!",
                       },
+                      {
+                        pattern: /^[0-9]{10}$/,
+                        message: "Số điện thoại phải có 10 chữ số!",
+                      },
                     ]}
                   >
-                    <Input prefix={<PhoneOutlined />} />
+                    <Input
+                      prefix={<PhoneOutlined />}
+                      maxLength={10}
+                      placeholder="Nhập số điện thoại"
+                    />
                   </Form.Item>
 
                   <Form.Item
@@ -1018,10 +1096,16 @@ const TeacherManagement = () => {
                       {selectedTeacher.phoneNumber}
                     </Descriptions.Item>
                     <Descriptions.Item label="Giới tính">
-                      {selectedTeacher.gender === "male"
+                      {selectedTeacher.gender === "Nam" ||
+                      selectedTeacher.gender === "Nữ" ||
+                      selectedTeacher.gender === "Khác"
+                        ? selectedTeacher.gender
+                        : selectedTeacher.gender === "male"
                         ? "Nam"
                         : selectedTeacher.gender === "female"
                         ? "Nữ"
+                        : selectedTeacher.gender === "other"
+                        ? "Khác"
                         : "Chưa cập nhật"}
                     </Descriptions.Item>
                     <Descriptions.Item label="Địa chỉ">

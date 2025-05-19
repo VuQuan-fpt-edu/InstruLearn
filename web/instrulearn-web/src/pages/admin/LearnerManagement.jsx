@@ -98,18 +98,6 @@ const LearnerManagement = () => {
     }
   };
 
-  const handleAdd = () => {
-    setEditingLearner(null);
-    form.resetFields();
-    setIsModalOpen(true);
-  };
-
-  const handleEdit = (record) => {
-    setEditingLearner(record);
-    form.setFieldsValue(record);
-    setIsModalOpen(true);
-  };
-
   const handleBanUnban = async (learnerId, isActive) => {
     try {
       const endpoint =
@@ -211,43 +199,6 @@ const LearnerManagement = () => {
     );
   };
 
-  const handleSave = async () => {
-    try {
-      const values = await form.validateFields();
-      if (editingLearner) {
-        const updateData = {
-          fullName: values.fullName,
-          phoneNumber: values.phoneNumber,
-          gender: values.gender,
-          address: values.address,
-          avatar: values.avatar,
-        };
-
-        const response = await axios.put(
-          `https://instrulearnapplication.azurewebsites.net/api/Learner/update/${editingLearner.learnerId}`,
-          updateData
-        );
-
-        if (response.data.isSucceed) {
-          message.success("Cập nhật thông tin học viên thành công!");
-          setIsModalOpen(false);
-          fetchLearners();
-        } else {
-          throw new Error(
-            response.data.message || "Không thể cập nhật thông tin!"
-          );
-        }
-      } else {
-        // TODO: Implement create API call
-        console.log("Create learner:", values);
-        message.success("Thêm học viên mới thành công!");
-      }
-    } catch (error) {
-      console.error("Lỗi khi lưu:", error);
-      message.error(error.message || "Không thể lưu thông tin học viên!");
-    }
-  };
-
   const handleViewDetail = async (record) => {
     try {
       const response = await axios.get(
@@ -314,12 +265,6 @@ const LearnerManagement = () => {
       render: (_, record) => (
         <Space>
           <Button
-            type="primary"
-            icon={<EditOutlined />}
-            size="small"
-            onClick={() => handleEdit(record)}
-          />
-          <Button
             icon={<EyeOutlined />}
             size="small"
             onClick={() => handleViewDetail(record)}
@@ -375,9 +320,6 @@ const LearnerManagement = () => {
             <h2 className="text-2xl font-semibold">
               Quản lý tài khoản Học viên
             </h2>
-            <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
-              Thêm học viên
-            </Button>
           </div>
 
           <Table
@@ -392,224 +334,6 @@ const LearnerManagement = () => {
             bordered
             size="middle"
           />
-
-          {/* Modal thêm/sửa học viên */}
-          <Modal
-            title={editingLearner ? "Chỉnh sửa thông tin" : "Thêm học viên mới"}
-            open={isModalOpen}
-            onOk={handleSave}
-            onCancel={() => {
-              setIsModalOpen(false);
-            }}
-            width={700}
-          >
-            <Form form={form} layout="vertical">
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item
-                    name="fullName"
-                    label="Họ và tên"
-                    rules={[
-                      {
-                        required: true,
-                        message: "Vui lòng nhập họ và tên!",
-                      },
-                    ]}
-                  >
-                    <Input prefix={<UserOutlined />} />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item
-                    name="username"
-                    label="Tên đăng nhập"
-                    rules={[
-                      {
-                        required: true,
-                        message: "Vui lòng nhập tên đăng nhập!",
-                      },
-                    ]}
-                  >
-                    <Input
-                      prefix={<UserOutlined />}
-                      disabled={!!editingLearner}
-                    />
-                  </Form.Item>
-                </Col>
-              </Row>
-
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item
-                    name="email"
-                    label="Email"
-                    rules={[
-                      {
-                        required: true,
-                        message: "Vui lòng nhập email!",
-                      },
-                      {
-                        type: "email",
-                        message: "Email không hợp lệ!",
-                      },
-                    ]}
-                  >
-                    <Input prefix={<MailOutlined />} />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item
-                    name="phoneNumber"
-                    label="Số điện thoại"
-                    rules={[
-                      {
-                        required: true,
-                        message: "Vui lòng nhập số điện thoại!",
-                      },
-                      {
-                        pattern: /^[0-9]{10}$/,
-                        message: "Số điện thoại không hợp lệ!",
-                      },
-                    ]}
-                  >
-                    <Input prefix={<PhoneOutlined />} />
-                  </Form.Item>
-                </Col>
-              </Row>
-
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item
-                    name="gender"
-                    label="Giới tính"
-                    rules={[
-                      {
-                        required: true,
-                        message: "Vui lòng chọn giới tính!",
-                      },
-                    ]}
-                  >
-                    <Select prefix={<UserSwitchOutlined />}>
-                      <Option value="male">Nam</Option>
-                      <Option value="female">Nữ</Option>
-                      <Option value="other">Khác</Option>
-                    </Select>
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item
-                    name="address"
-                    label="Địa chỉ"
-                    rules={[
-                      {
-                        required: true,
-                        message: "Vui lòng nhập địa chỉ!",
-                      },
-                    ]}
-                  >
-                    <Input prefix={<EnvironmentOutlined />} />
-                  </Form.Item>
-                </Col>
-              </Row>
-
-              <Form.Item
-                name="avatar"
-                label="Ảnh đại diện"
-                rules={[
-                  {
-                    required: true,
-                    message: "Vui lòng nhập URL ảnh đại diện!",
-                  },
-                ]}
-              >
-                <div className="space-y-4">
-                  <Input
-                    prefix={<PictureOutlined />}
-                    placeholder="URL ảnh đại diện"
-                    value={form.getFieldValue("avatar")}
-                    readOnly
-                  />
-
-                  <div className="border rounded-lg p-4 bg-gray-50">
-                    <div className="flex items-center mb-3">
-                      <PictureOutlined className="mr-2 text-blue-600" />
-                      <span className="font-medium">Tải ảnh lên</span>
-                    </div>
-
-                    <div className="mb-3">
-                      <input
-                        type="file"
-                        onChange={handleFileSelect}
-                        accept="image/*"
-                        className="block w-full text-sm border border-gray-300 rounded-md p-2 hover:border-blue-500 transition-colors"
-                      />
-                    </div>
-
-                    {uploadFile && !isUploading && (
-                      <Button
-                        type="primary"
-                        onClick={handleUploadImage}
-                        icon={<UploadOutlined />}
-                        block
-                        className="rounded-md"
-                      >
-                        Tải ảnh lên
-                      </Button>
-                    )}
-
-                    {isUploading && (
-                      <div className="mt-2">
-                        <Progress
-                          percent={uploadProgress}
-                          size="small"
-                          status="active"
-                          strokeColor="#1890ff"
-                        />
-                        <div className="text-center text-gray-500 mt-1">
-                          {uploadStatus}
-                        </div>
-                      </div>
-                    )}
-
-                    {previewImage && (
-                      <div className="mt-4">
-                        <div className="text-center">
-                          <img
-                            src={previewImage}
-                            alt="Preview"
-                            className="max-w-full h-auto mx-auto border rounded-lg shadow-sm"
-                            style={{ maxHeight: "200px" }}
-                          />
-                          <div className="text-gray-500 mt-2">
-                            Xem trước ảnh đại diện
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </Form.Item>
-
-              {!editingLearner && (
-                <Form.Item
-                  name="password"
-                  label="Mật khẩu"
-                  rules={[
-                    {
-                      required: true,
-                      message: "Vui lòng nhập mật khẩu!",
-                    },
-                    {
-                      min: 6,
-                      message: "Mật khẩu phải có ít nhất 6 ký tự!",
-                    },
-                  ]}
-                >
-                  <Input.Password prefix={<LockOutlined />} />
-                </Form.Item>
-              )}
-            </Form>
-          </Modal>
 
           {/* Modal xem chi tiết học viên */}
           <Modal

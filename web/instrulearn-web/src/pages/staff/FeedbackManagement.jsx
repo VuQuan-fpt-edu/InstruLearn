@@ -38,6 +38,10 @@ const FeedbackManagement = () => {
   const [form] = Form.useForm();
   const [options, setOptions] = useState([{ optionId: 0, optionText: "" }]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [editingQuestion, setEditingQuestion] = useState(null);
+  const [editOptions, setEditOptions] = useState([]);
+  const [editForm] = Form.useForm();
 
   useEffect(() => {
     fetchQuestions();
@@ -139,6 +143,61 @@ const FeedbackManagement = () => {
     }
   };
 
+  const handleEditQuestion = (question) => {
+    setEditingQuestion(question);
+    editForm.setFieldsValue({
+      questionText: question.questionText,
+      displayOrder: question.displayOrder,
+      isRequired: question.isRequired,
+      isActive: question.isActive,
+    });
+    setEditOptions(question.options.map((opt) => ({ ...opt })));
+    setIsEditModalVisible(true);
+  };
+
+  const handleEditOptionChange = (index, value) => {
+    const newOptions = [...editOptions];
+    newOptions[index].optionText = value;
+    setEditOptions(newOptions);
+  };
+
+  const handleEditModalOk = async () => {
+    try {
+      const values = await editForm.validateFields();
+      if (editOptions.some((opt) => !opt.optionText.trim())) {
+        message.error("Vui lòng nhập đầy đủ các lựa chọn");
+        return;
+      }
+      setIsSubmitting(true);
+      const data = {
+        questionId: editingQuestion.questionId,
+        questionText: values.questionText,
+        displayOrder: values.displayOrder,
+        isRequired: values.isRequired,
+        isActive: true,
+        options: editOptions.map((opt) => ({
+          optionId: opt.optionId,
+          optionText: opt.optionText,
+        })),
+      };
+      const response = await axios.put(
+        `https://instrulearnapplication.azurewebsites.net/api/LearningRegisFeedback/UpdateQuestion/${editingQuestion.questionId}`,
+        data
+      );
+      if (response.data?.isSucceed !== false) {
+        message.success("Cập nhật câu hỏi feedback thành công");
+        setIsEditModalVisible(false);
+        fetchQuestions();
+      } else {
+        message.error(response.data?.message || "Cập nhật câu hỏi thất bại");
+      }
+    } catch (error) {
+      message.error("Vui lòng kiểm tra lại thông tin");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const columns = [
     {
       title: "ID",
@@ -225,6 +284,13 @@ const FeedbackManagement = () => {
       align: "center",
       render: (_, record) => (
         <Space>
+          <Button
+            icon={<EditOutlined />}
+            size="small"
+            onClick={() => handleEditQuestion(record)}
+          >
+            Chỉnh sửa
+          </Button>
           {record.isActive ? (
             <Button
               danger
@@ -319,16 +385,45 @@ const FeedbackManagement = () => {
                 label="Nội dung câu hỏi"
                 rules={[
                   { required: true, message: "Vui lòng nhập nội dung câu hỏi" },
+                  {
+                    max: 100,
+                    message: "Nội dung câu hỏi không được vượt quá 100 ký tự!",
+                  },
                 ]}
               >
-                <Input.TextArea rows={2} placeholder="Nhập nội dung câu hỏi" />
+                <Input.TextArea
+                  rows={2}
+                  placeholder="Nhập nội dung câu hỏi"
+                  maxLength={100}
+                  showCount
+                />
               </Form.Item>
               <Form.Item
                 name="displayOrder"
                 label="Thứ tự hiển thị"
-                rules={[{ required: true, message: "Vui lòng nhập thứ tự" }]}
+                rules={[
+                  { required: true, message: "Vui lòng nhập thứ tự" },
+                  {
+                    type: "number",
+                    min: 1,
+                    max: 100,
+                    message: "Thứ tự phải từ 1 đến 100",
+                  },
+                ]}
               >
-                <Input type="number" min={1} placeholder="Thứ tự" />
+                <Input
+                  type="number"
+                  min={1}
+                  max={100}
+                  placeholder="Thứ tự"
+                  onChange={(e) => {
+                    const value = Number(e.target.value);
+                    if (value > 100) {
+                      e.target.value = 100;
+                      if (form) form.setFieldsValue({ displayOrder: 100 });
+                    }
+                  }}
+                />
               </Form.Item>
               <Form.Item
                 name="isRequired"
@@ -357,6 +452,8 @@ const FeedbackManagement = () => {
                       placeholder={`Lựa chọn ${idx + 1}`}
                       value={opt.optionText}
                       onChange={(e) => handleOptionChange(idx, e.target.value)}
+                      maxLength={100}
+                      showCount
                     />
                     {options.length > 1 && (
                       <Button danger onClick={() => handleRemoveOption(idx)}>
@@ -372,6 +469,102 @@ const FeedbackManagement = () => {
                 >
                   Thêm lựa chọn
                 </Button>
+              </Form.Item>
+            </Form>
+          </Modal>
+          <Modal
+            title="Chỉnh sửa câu hỏi feedback"
+            open={isEditModalVisible}
+            onOk={handleEditModalOk}
+            onCancel={() => setIsEditModalVisible(false)}
+            okButtonProps={{ loading: isSubmitting }}
+            okText="Lưu"
+            cancelText="Hủy"
+            width={600}
+            centered
+          >
+            <Form form={editForm} layout="vertical">
+              <Form.Item
+                name="questionText"
+                label="Nội dung câu hỏi"
+                rules={[
+                  { required: true, message: "Vui lòng nhập nội dung câu hỏi" },
+                  {
+                    max: 100,
+                    message: "Nội dung câu hỏi không được vượt quá 100 ký tự!",
+                  },
+                ]}
+              >
+                <Input.TextArea
+                  rows={2}
+                  placeholder="Nhập nội dung câu hỏi"
+                  maxLength={100}
+                  showCount
+                />
+              </Form.Item>
+              <Form.Item
+                name="displayOrder"
+                label="Thứ tự hiển thị"
+                rules={[
+                  { required: true, message: "Vui lòng nhập thứ tự" },
+                  {
+                    type: "number",
+                    min: 1,
+                    max: 100,
+                    message: "Thứ tự phải từ 1 đến 100",
+                  },
+                ]}
+              >
+                <Input
+                  type="number"
+                  min={1}
+                  max={100}
+                  placeholder="Thứ tự"
+                  onChange={(e) => {
+                    const value = Number(e.target.value);
+                    if (value > 100) {
+                      e.target.value = 100;
+                      if (editForm)
+                        editForm.setFieldsValue({ displayOrder: 100 });
+                    }
+                  }}
+                />
+              </Form.Item>
+              <Form.Item
+                name="isRequired"
+                label="Bắt buộc trả lời"
+                valuePropName="checked"
+                initialValue={true}
+              >
+                <Checkbox>Yêu cầu bắt buộc</Checkbox>
+              </Form.Item>
+              <Form.Item
+                name="isActive"
+                label="Trạng thái"
+                valuePropName="checked"
+                initialValue={true}
+                hidden={true}
+              >
+                <Switch checkedChildren="Đang dùng" unCheckedChildren="Ẩn" />
+              </Form.Item>
+              <Form.Item label="Lựa chọn trả lời">
+                {editOptions.map((opt, idx) => (
+                  <Space
+                    key={opt.optionId || idx}
+                    style={{ display: "flex", marginBottom: 8 }}
+                    align="baseline"
+                  >
+                    <Input
+                      placeholder={`Lựa chọn ${idx + 1}`}
+                      value={opt.optionText}
+                      onChange={(e) =>
+                        handleEditOptionChange(idx, e.target.value)
+                      }
+                      maxLength={100}
+                      showCount
+                    />
+                  </Space>
+                ))}
               </Form.Item>
             </Form>
           </Modal>

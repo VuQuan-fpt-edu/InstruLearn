@@ -582,9 +582,16 @@ const LearningPath = () => {
                             required: true,
                             message: "Vui lòng nhập tiêu đề buổi học",
                           },
+                          {
+                            max: 50,
+                            message: "Tiêu đề không được vượt quá 50 ký tự!",
+                          },
                         ]}
                       >
-                        <Input placeholder="Nhập tiêu đề buổi học" />
+                        <Input
+                          placeholder="Nhập tiêu đề buổi học"
+                          maxLength={50}
+                        />
                       </Form.Item>
                       <Form.Item
                         name={`description_${i}`}
@@ -594,11 +601,16 @@ const LearningPath = () => {
                             required: true,
                             message: "Vui lòng nhập mô tả buổi học",
                           },
+                          {
+                            max: 250,
+                            message: "Mô tả không được vượt quá 250 ký tự!",
+                          },
                         ]}
                       >
                         <Input.TextArea
                           placeholder="Nhập mô tả buổi học"
                           rows={4}
+                          maxLength={250}
                         />
                       </Form.Item>
                     </div>
@@ -818,16 +830,26 @@ const LearningPath = () => {
               <Form.Item
                 name="title"
                 label="Tiêu đề"
-                rules={[{ required: true, message: "Vui lòng nhập tiêu đề" }]}
+                rules={[
+                  { required: true, message: "Vui lòng nhập tiêu đề" },
+                  { max: 50, message: "Tiêu đề không được vượt quá 50 ký tự!" },
+                ]}
               >
-                <Input placeholder="Nhập tiêu đề buổi học" />
+                <Input placeholder="Nhập tiêu đề buổi học" maxLength={50} />
               </Form.Item>
               <Form.Item
                 name="description"
                 label="Mô tả"
-                rules={[{ required: true, message: "Vui lòng nhập mô tả" }]}
+                rules={[
+                  { required: true, message: "Vui lòng nhập mô tả" },
+                  { max: 250, message: "Mô tả không được vượt quá 250 ký tự!" },
+                ]}
               >
-                <Input.TextArea rows={4} placeholder="Nhập mô tả buổi học" />
+                <Input.TextArea
+                  rows={4}
+                  placeholder="Nhập mô tả buổi học"
+                  maxLength={250}
+                />
               </Form.Item>
               <div className="flex justify-end space-x-4">
                 <Button onClick={() => setEditModalVisible(false)}>Hủy</Button>

@@ -173,10 +173,10 @@ const StaffSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
       label: "Yêu cầu",
       children: [
         { key: "change-teacher", label: "Thay đổi giáo viên" },
-        { key: "change-all-teacher", label: "Yêu cầu đổi giáo viên" },
+        // { key: "change-all-teacher", label: "Yêu cầu đổi giáo viên" },
         { key: "makeup-class-requests", label: "Yêu cầu học bù" },
-        { key: "booking1-1-requests", label: "Học 1-1" },
-        { key: "refund-requests", label: "Yêu cầu hoàn tiền" },
+        { key: "booking1-1-requests", label: "Học theo yêu cầu" },
+        // { key: "refund-requests", label: "Yêu cầu hoàn tiền" },
       ],
     },
     {
