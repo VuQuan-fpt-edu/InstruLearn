@@ -30,9 +30,11 @@ export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [success, setSuccess] = useState(false);
   const [form] = Form.useForm();
+  const [errorMessage, setErrorMessage] = useState("");
 
   const handleSendCode = async (values) => {
     setLoading(true);
+    setErrorMessage("");
     try {
       await axios.post(
         "https://instrulearnapplication.azurewebsites.net/api/Auth/forgot-password",
@@ -42,7 +44,10 @@ export default function ForgotPassword() {
       message.success("Mã xác nhận đã được gửi đến email của bạn!");
       setCurrentStep(1);
     } catch (error) {
-      message.error("Không thể gửi mã xác nhận. Vui lòng thử lại sau!");
+      setErrorMessage(
+        error.response?.data?.message ||
+          "Không thể gửi mã xác nhận. Vui lòng thử lại sau!"
+      );
     } finally {
       setLoading(false);
     }
@@ -50,6 +55,7 @@ export default function ForgotPassword() {
 
   const handleResetPassword = async (values) => {
     setLoading(true);
+    setErrorMessage("");
     try {
       await axios.post(
         "https://instrulearnapplication.azurewebsites.net/api/Auth/reset-password",
@@ -66,8 +72,7 @@ export default function ForgotPassword() {
         navigate("/login");
       }, 2000);
     } catch (error) {
-      console.error("Reset password error:", error.response?.data);
-      message.error(
+      setErrorMessage(
         error.response?.data?.message ||
           "Không thể đặt lại mật khẩu. Vui lòng thử lại!"
       );
@@ -111,6 +116,15 @@ export default function ForgotPassword() {
               Gửi mã xác nhận
             </Button>
           </Form.Item>
+
+          {errorMessage && currentStep === 0 && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <Text type="danger" className="flex items-center">
+                <span className="mr-2">⚠️</span>
+                {errorMessage}
+              </Text>
+            </div>
+          )}
         </Form>
       ),
     },
@@ -184,6 +198,15 @@ export default function ForgotPassword() {
               Đặt lại mật khẩu
             </Button>
           </Form.Item>
+
+          {errorMessage && currentStep === 1 && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <Text type="danger" className="flex items-center">
+                <span className="mr-2">⚠️</span>
+                {errorMessage}
+              </Text>
+            </div>
+          )}
         </Form>
       ),
     },
