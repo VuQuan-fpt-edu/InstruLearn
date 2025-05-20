@@ -174,20 +174,10 @@ const InstrumentManagement = () => {
             rules={[
               { required: true, message: "Vui lòng nhập tên nhạc cụ" },
               { max: 50, message: "Tên nhạc cụ không được vượt quá 50 ký tự" },
-              {
-                validator: async (_, value) => {
-                  if (value) {
-                    const exists = await checkNameExists(value);
-                    if (exists) {
-                      throw new Error("Tên nhạc cụ này đã tồn tại!");
-                    }
-                  }
-                },
-              },
             ]}
-            validateTrigger="onBlur"
+            validateTrigger="onChange,onBlur"
           >
-            <Input maxLength={50} />
+            <Input maxLength={50} showCount />
           </Form.Item>
         </Form>
       </Modal>

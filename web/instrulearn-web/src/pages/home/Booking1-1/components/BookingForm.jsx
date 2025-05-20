@@ -67,6 +67,7 @@ const BookingForm = ({
   handleSubmit,
   isSubmitting,
   forceResetTeacherSelection,
+  selfAssessments,
 }) => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
@@ -98,13 +99,10 @@ const BookingForm = ({
     }
   };
 
-  const levelOptions = [
-    { value: "none", label: "Tôi chưa chơi nhạc cụ này bao giờ" },
-    { value: "1-3", label: "Tôi đã chơi nhạc cụ này được 1-3 tháng" },
-    { value: "3-6", label: "Tôi đã chơi nhạc cụ này được 3-6 tháng" },
-    { value: "6-9", label: "Tôi đã chơi nhạc cụ này được 6-9 tháng" },
-    { value: "1year", label: "Tôi đã chơi nhạc cụ này được hơn 1 năm rồi" },
-  ];
+  const levelOptions = selfAssessments.map((assessment) => ({
+    value: assessment.selfAssessmentId.toString(),
+    label: assessment.description,
+  }));
 
   const timeLearningOptions = [
     { value: 45, label: "45 phút" },
@@ -244,9 +242,11 @@ const BookingForm = ({
       // Reset video đã tải lên
       resetUploadedVideo();
 
-      // Reset level về mặc định
-      setSelectedLevel("none");
-      form.setFieldsValue({ level: "none" });
+      // Reset level về selfAssessmentId đầu tiên
+      const defaultLevel =
+        selfAssessments[0]?.selfAssessmentId?.toString() || "";
+      setSelectedLevel(defaultLevel);
+      form.setFieldsValue({ level: defaultLevel });
 
       // Sau đó gọi API kiểm tra giáo viên có sẵn
       checkAvailableTeachers();
@@ -803,87 +803,89 @@ const BookingForm = ({
             </Form.Item>
           </Card>
 
-          {selectedLevel && selectedLevel !== "none" && (
-            <Card className="shadow-md rounded-xl border-0 bg-white">
-              <Title level={4} className="mb-6 text-gray-800">
-                Video trình độ
-              </Title>
-              {loadingTest ? (
-                <Alert
-                  message="Đang tải đề bài..."
-                  type="info"
-                  showIcon
-                  className="mb-4"
-                />
-              ) : majorTest ? (
-                <Alert
-                  message="Đề bài kiểm tra trình độ"
-                  description={majorTest.majorTestName}
-                  type="info"
-                  showIcon
-                  className="mb-4"
-                />
-              ) : form.getFieldValue("instrument") ? (
-                <Alert
-                  message="Chưa có đề bài cho nhạc cụ này"
-                  description="Vui lòng tải lên video thể hiện kỹ năng của bạn với nhạc cụ này"
-                  type="warning"
-                  showIcon
-                  className="mb-4"
-                />
-              ) : null}
-
-              <Upload
-                maxCount={1}
-                beforeUpload={handleUploadVideo}
-                showUploadList={false}
-              >
-                <Button icon={<UploadOutlined />} className="w-full">
-                  Tải lên video
-                </Button>
-              </Upload>
-
-              {isUploading && (
-                <div className="mt-4">
-                  <Progress
-                    percent={uploadProgress}
-                    size="small"
-                    status="active"
+          {selectedLevel &&
+            selectedLevel !==
+              (selfAssessments[0]?.selfAssessmentId?.toString() || "1") && (
+              <Card className="shadow-md rounded-xl border-0 bg-white">
+                <Title level={4} className="mb-6 text-gray-800">
+                  Video trình độ
+                </Title>
+                {loadingTest ? (
+                  <Alert
+                    message="Đang tải đề bài..."
+                    type="info"
+                    showIcon
+                    className="mb-4"
                   />
-                  <div className="text-sm text-gray-500 mt-2">
-                    {uploadStatus}
-                  </div>
-                </div>
-              )}
+                ) : majorTest ? (
+                  <Alert
+                    message="Đề bài kiểm tra trình độ"
+                    description={majorTest.majorTestName}
+                    type="info"
+                    showIcon
+                    className="mb-4"
+                  />
+                ) : form.getFieldValue("instrument") ? (
+                  <Alert
+                    message="Chưa có đề bài cho nhạc cụ này"
+                    description="Vui lòng tải lên video thể hiện kỹ năng của bạn với nhạc cụ này"
+                    type="warning"
+                    showIcon
+                    className="mb-4"
+                  />
+                ) : null}
 
-              {uploadStatus === "Tải video thành công!" && !isUploading && (
-                <div className="mt-4 flex items-center justify-between">
-                  <div className="text-green-600 text-sm">
-                    Video đã được tải lên thành công!
-                  </div>
-                  <Button
-                    icon={<EyeOutlined />}
-                    size="small"
-                    onClick={showVideoPreview}
-                    className="ml-4"
-                  >
-                    Xem video
+                <Upload
+                  maxCount={1}
+                  beforeUpload={handleUploadVideo}
+                  showUploadList={false}
+                >
+                  <Button icon={<UploadOutlined />} className="w-full">
+                    Tải lên video
                   </Button>
-                </div>
-              )}
+                </Upload>
 
-              {uploadStatus === "Tải video thất bại" && !isUploading && (
-                <div className="mt-4 text-red-500 text-sm">
-                  <div>Tải video thất bại. Vui lòng thử lại:</div>
-                  <ul className="list-disc pl-4 mt-1 text-xs">
-                    <li>Đảm bảo video nhỏ hơn 100MB</li>
-                    <li>Đảm bảo kết nối mạng ổn định</li>
-                    <li>Thử tải video có định dạng khác (mp4, mov, avi)</li>
-                  </ul>
-                </div>
-              )}
-            </Card>
-          )}
+                {isUploading && (
+                  <div className="mt-4">
+                    <Progress
+                      percent={uploadProgress}
+                      size="small"
+                      status="active"
+                    />
+                    <div className="text-sm text-gray-500 mt-2">
+                      {uploadStatus}
+                    </div>
+                  </div>
+                )}
+
+                {uploadStatus === "Tải video thành công!" && !isUploading && (
+                  <div className="mt-4 flex items-center justify-between">
+                    <div className="text-green-600 text-sm">
+                      Video đã được tải lên thành công!
+                    </div>
+                    <Button
+                      icon={<EyeOutlined />}
+                      size="small"
+                      onClick={showVideoPreview}
+                      className="ml-4"
+                    >
+                      Xem video
+                    </Button>
+                  </div>
+                )}
+
+                {uploadStatus === "Tải video thất bại" && !isUploading && (
+                  <div className="mt-4 text-red-500 text-sm">
+                    <div>Tải video thất bại. Vui lòng thử lại:</div>
+                    <ul className="list-disc pl-4 mt-1 text-xs">
+                      <li>Đảm bảo video nhỏ hơn 100MB</li>
+                      <li>Đảm bảo kết nối mạng ổn định</li>
+                      <li>Thử tải video có định dạng khác (mp4, mov, avi)</li>
+                    </ul>
+                  </div>
+                )}
+              </Card>
+            )}
         </div>
       </div>
 

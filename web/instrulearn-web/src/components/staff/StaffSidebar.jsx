@@ -14,6 +14,7 @@ import {
   SettingOutlined,
   CalendarOutlined,
   SoundOutlined,
+  LineChartOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 
@@ -124,6 +125,9 @@ const StaffSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
       case "teacher-feedback-management":
         navigate("/staff/teacher-feedback-management");
         break;
+      case "self-assessment-management":
+        navigate("/staff/self-assessment-management");
+        break;
       default:
         break;
     }
@@ -212,6 +216,17 @@ const StaffSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
         {
           key: "teacher-feedback-management",
           label: "Quản lý phản hồi",
+        },
+      ],
+    },
+    {
+      key: "self-assessment",
+      icon: <LineChartOutlined />,
+      label: "Quản lý Tự Đánh Giá",
+      children: [
+        {
+          key: "self-assessment-management",
+          label: "Trình Độ Người Học",
         },
       ],
     },

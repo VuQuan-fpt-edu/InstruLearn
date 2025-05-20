@@ -97,6 +97,22 @@ const MusicalInstrument = () => {
   // Xử lý submit form
   const handleSubmit = async (values) => {
     try {
+      // Kiểm tra trùng tên nhạc cụ
+      const isDuplicate = instruments.some(
+        (item) =>
+          item.majorName.trim().toLowerCase() ===
+            values.majorName.trim().toLowerCase() &&
+          (!editingInstrument || item.majorId !== editingInstrument.majorId)
+      );
+      if (isDuplicate) {
+        form.setFields([
+          {
+            name: "majorName",
+            errors: ["Tên nhạc cụ này đã tồn tại!"],
+          },
+        ]);
+        return;
+      }
       if (editingInstrument) {
         // Update
         const response = await axios.put(
@@ -270,9 +286,18 @@ const MusicalInstrument = () => {
                 label="Tên nhạc cụ"
                 rules={[
                   { required: true, message: "Vui lòng nhập tên nhạc cụ" },
+                  {
+                    max: 50,
+                    message: "Tên nhạc cụ không được vượt quá 50 ký tự",
+                  },
                 ]}
+                validateTrigger="onChange,onBlur"
               >
-                <Input placeholder="Nhập tên nhạc cụ" />
+                <Input
+                  placeholder="Nhập tên nhạc cụ"
+                  maxLength={50}
+                  showCount
+                />
               </Form.Item>
 
               <Form.Item className="mb-0 text-right">

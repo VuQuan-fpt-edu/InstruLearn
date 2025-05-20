@@ -73,24 +73,15 @@ const StudentBookingForm = () => {
   const [formValues, setFormValues] = useState(null);
   const [errorModalVisible, setErrorModalVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [selfAssessments, setSelfAssessments] = useState([]);
 
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchUserProfile();
     fetchMajors();
+    fetchSelfAssessments();
   }, [form, navigate]);
-
-  const forceResetTeacherSelection = () => {
-    console.log("Force resetting teacher selection");
-    setSelectedTeacher(null);
-    // Reset form field và đảm bảo UI được cập nhật
-    form.setFieldsValue({ teacherId: undefined });
-    setTimeout(() => {
-      // Sử dụng setTimeout để đảm bảo React có thời gian cập nhật UI
-      form.setFieldsValue({ teacherId: undefined });
-    }, 0);
-  };
 
   const fetchUserProfile = async () => {
     try {
@@ -150,6 +141,31 @@ const StudentBookingForm = () => {
       message.error("Không thể tải danh sách nhạc cụ");
       console.error("Error fetching majors:", error);
     }
+  };
+
+  const fetchSelfAssessments = async () => {
+    try {
+      const response = await axios.get(
+        "https://instrulearnapplication.azurewebsites.net/api/SelfAssessment/GetAll"
+      );
+      if (response.data?.isSucceed) {
+        setSelfAssessments(response.data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching self assessments:", error);
+      message.error("Không thể tải danh sách đánh giá trình độ");
+    }
+  };
+
+  const forceResetTeacherSelection = () => {
+    console.log("Force resetting teacher selection");
+    setSelectedTeacher(null);
+    // Reset form field và đảm bảo UI được cập nhật
+    form.setFieldsValue({ teacherId: undefined });
+    setTimeout(() => {
+      // Sử dụng setTimeout để đảm bảo React có thời gian cập nhật UI
+      form.setFieldsValue({ teacherId: undefined });
+    }, 0);
   };
 
   const handleInstrumentChange = (value) => {
@@ -225,7 +241,7 @@ const StudentBookingForm = () => {
         requestDate: dayjs().format("YYYY-MM-DDTHH:mm:ss"),
         numberOfSession: parseInt(formValues.numberOfSlots),
         learningRequest: formValues.learningRequest || "",
-        selfAssessment: getLevelLabel(formValues.level) || "",
+        selfAssessmentId: parseInt(formValues.level),
         learningDays: formValues.bookingDays.map((day) => parseInt(day)),
       };
 
@@ -297,6 +313,7 @@ const StudentBookingForm = () => {
           handleSubmit={handleFormSubmit}
           isSubmitting={isSubmitting}
           forceResetTeacherSelection={forceResetTeacherSelection}
+          selfAssessments={selfAssessments}
         />
       ),
     },
