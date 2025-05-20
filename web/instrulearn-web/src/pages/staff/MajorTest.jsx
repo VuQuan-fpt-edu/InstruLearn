@@ -138,6 +138,22 @@ const MajorTest = () => {
   // Xử lý submit form
   const handleSubmit = async (values) => {
     try {
+      // Kiểm tra trùng tên đề bài
+      const isDuplicate = tests.some(
+        (item) =>
+          item.majorTestName.trim().toLowerCase() ===
+            values.majorTestName.trim().toLowerCase() &&
+          (!editingTest || item.majorTestId !== editingTest.majorTestId)
+      );
+      if (isDuplicate) {
+        form.setFields([
+          {
+            name: "majorTestName",
+            errors: ["Tên đề bài này đã tồn tại!"],
+          },
+        ]);
+        return;
+      }
       if (editingTest) {
         // Update
         const response = await axios.put(
@@ -298,9 +314,17 @@ const MajorTest = () => {
                 label="Tên đề bài"
                 rules={[
                   { required: true, message: "Vui lòng nhập tên đề bài" },
+                  {
+                    max: 100,
+                    message: "Tên đề bài không được vượt quá 100 ký tự",
+                  },
                 ]}
               >
-                <Input placeholder="Nhập tên đề bài" />
+                <Input
+                  placeholder="Nhập tên đề bài"
+                  maxLength={100}
+                  showCount
+                />
               </Form.Item>
 
               <Form.Item className="mb-0 text-right">
