@@ -88,6 +88,20 @@ const TeacherEvaluationQuestionManagement = () => {
   const handleModalOk = async () => {
     try {
       const values = await form.validateFields();
+      const isDuplicate = questions.some(
+        (q) =>
+          q.questionText.trim().toLowerCase() ===
+          values.questionText.trim().toLowerCase()
+      );
+      if (isDuplicate) {
+        form.setFields([
+          {
+            name: "questionText",
+            errors: ["Nội dung câu hỏi này đã tồn tại!"],
+          },
+        ]);
+        return;
+      }
       if (options.some((opt) => !opt.optionText.trim())) {
         message.error("Vui lòng nhập đầy đủ các lựa chọn");
         return;
@@ -135,9 +149,33 @@ const TeacherEvaluationQuestionManagement = () => {
     setEditOptions(newOptions);
   };
 
+  const handleAddEditOption = () => {
+    setEditOptions([...editOptions, { evaluationOptionId: 0, optionText: "" }]);
+  };
+
+  const handleRemoveEditOption = (index) => {
+    if (editOptions.length === 1) return;
+    setEditOptions(editOptions.filter((_, i) => i !== index));
+  };
+
   const handleEditModalOk = async () => {
     try {
       const values = await editForm.validateFields();
+      const isDuplicate = questions.some(
+        (q) =>
+          q.questionText.trim().toLowerCase() ===
+            values.questionText.trim().toLowerCase() &&
+          q.evaluationQuestionId !== editingQuestion.evaluationQuestionId
+      );
+      if (isDuplicate) {
+        editForm.setFields([
+          {
+            name: "questionText",
+            errors: ["Nội dung câu hỏi này đã tồn tại!"],
+          },
+        ]);
+        return;
+      }
       if (editOptions.some((opt) => !opt.optionText.trim())) {
         message.error("Vui lòng nhập đầy đủ các lựa chọn");
         return;
@@ -146,8 +184,8 @@ const TeacherEvaluationQuestionManagement = () => {
       const data = {
         questionText: values.questionText,
         displayOrder: editingQuestion.displayOrder,
-        isRequired: editingQuestion.isRequired,
-        isActive: editingQuestion.isActive,
+        isRequired: true,
+        isActive: true,
         options: editOptions.map((opt) => ({
           evaluationOptionId: opt.evaluationOptionId,
           optionText: opt.optionText,
@@ -313,7 +351,7 @@ const TeacherEvaluationQuestionManagement = () => {
             </Spin>
           </Card>
           <Modal
-            title="Thêm câu hỏi đánh giá giáo viên"
+            title="Thêm câu hỏi đánh giá cho giáo viên"
             open={isModalVisible}
             onOk={handleModalOk}
             onCancel={() => setIsModalVisible(false)}
@@ -329,9 +367,18 @@ const TeacherEvaluationQuestionManagement = () => {
                 label="Nội dung câu hỏi"
                 rules={[
                   { required: true, message: "Vui lòng nhập nội dung câu hỏi" },
+                  {
+                    max: 250,
+                    message: "Nội dung câu hỏi không quá 250 ký tự!",
+                  },
                 ]}
               >
-                <Input.TextArea rows={2} placeholder="Nhập nội dung câu hỏi" />
+                <Input.TextArea
+                  rows={2}
+                  placeholder="Nhập nội dung câu hỏi"
+                  maxLength={250}
+                  showCount={{ max: 250 }}
+                />
               </Form.Item>
               <Form.Item label="Lựa chọn trả lời">
                 {options.map((opt, idx) => (
@@ -344,6 +391,8 @@ const TeacherEvaluationQuestionManagement = () => {
                       placeholder={`Lựa chọn ${idx + 1}`}
                       value={opt.optionText}
                       onChange={(e) => handleOptionChange(idx, e.target.value)}
+                      maxLength={100}
+                      showCount={{ max: 100 }}
                     />
                     {options.length > 1 && (
                       <Button danger onClick={() => handleRemoveOption(idx)}>
@@ -352,13 +401,15 @@ const TeacherEvaluationQuestionManagement = () => {
                     )}
                   </Space>
                 ))}
-                <Button
-                  type="dashed"
-                  onClick={handleAddOption}
-                  style={{ width: "100%" }}
-                >
-                  Thêm lựa chọn
-                </Button>
+                {options.length < 10 && (
+                  <Button
+                    type="dashed"
+                    onClick={handleAddOption}
+                    style={{ width: "100%" }}
+                  >
+                    Thêm lựa chọn
+                  </Button>
+                )}
               </Form.Item>
             </Form>
           </Modal>
@@ -379,14 +430,23 @@ const TeacherEvaluationQuestionManagement = () => {
                 label="Nội dung câu hỏi"
                 rules={[
                   { required: true, message: "Vui lòng nhập nội dung câu hỏi" },
+                  {
+                    max: 250,
+                    message: "Nội dung câu hỏi không quá 250 ký tự!",
+                  },
                 ]}
               >
-                <Input.TextArea rows={2} placeholder="Nhập nội dung câu hỏi" />
+                <Input.TextArea
+                  rows={2}
+                  placeholder="Nhập nội dung câu hỏi"
+                  maxLength={250}
+                  showCount={{ max: 250 }}
+                />
               </Form.Item>
               <Form.Item label="Lựa chọn trả lời">
                 {editOptions.map((opt, idx) => (
                   <Space
-                    key={opt.evaluationOptionId}
+                    key={opt.evaluationOptionId || idx}
                     style={{ display: "flex", marginBottom: 8 }}
                     align="baseline"
                   >
@@ -396,9 +456,28 @@ const TeacherEvaluationQuestionManagement = () => {
                       onChange={(e) =>
                         handleEditOptionChange(idx, e.target.value)
                       }
+                      maxLength={100}
+                      showCount={{ max: 100 }}
                     />
+                    {editOptions.length > 1 && (
+                      <Button
+                        danger
+                        onClick={() => handleRemoveEditOption(idx)}
+                      >
+                        Xóa
+                      </Button>
+                    )}
                   </Space>
                 ))}
+                {editOptions.length < 10 && (
+                  <Button
+                    type="dashed"
+                    onClick={handleAddEditOption}
+                    style={{ width: "100%" }}
+                  >
+                    Thêm lựa chọn
+                  </Button>
+                )}
               </Form.Item>
             </Form>
           </Modal>

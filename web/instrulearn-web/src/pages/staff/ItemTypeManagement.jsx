@@ -308,7 +308,11 @@ const ItemTypeManagement = () => {
                   },
                 ]}
               >
-                <Input placeholder="Nhập tên loại nội dung" maxLength={20} />
+                <Input
+                  placeholder="Nhập tên loại nội dung"
+                  maxLength={20}
+                  showCount={{ max: 20 }}
+                />
               </Form.Item>
             </Form>
           </Modal>
@@ -345,7 +349,11 @@ const ItemTypeManagement = () => {
                   },
                 ]}
               >
-                <Input placeholder="Nhập tên loại nội dung" maxLength={20} />
+                <Input
+                  placeholder="Nhập tên loại nội dung"
+                  maxLength={20}
+                  showCount={{ max: 20 }}
+                />
               </Form.Item>
             </Form>
           </Modal>

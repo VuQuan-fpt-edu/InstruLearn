@@ -92,6 +92,7 @@ const CourseDetail = () => {
   const [uploadStatus, setUploadStatus] = useState("");
   const [previewImage, setPreviewImage] = useState("");
   const [selectedInstrumentType, setSelectedInstrumentType] = useState(null);
+  const [imagePreviewVisible, setImagePreviewVisible] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -408,391 +409,280 @@ const CourseDetail = () => {
           <div className="flex flex-col md:flex-row gap-6">
             <div className="w-full md:w-2/3">
               <Card
-                title={
-                  <div className="flex justify-between items-center">
-                    <span>
-                      <Title level={4} className="mb-0">
-                        {course.courseName}
-                      </Title>
-                    </span>
-                    <Space>
-                      <Button
-                        type="primary"
-                        icon={<EditOutlined />}
-                        onClick={openEditModal}
-                      >
-                        Chỉnh sửa
-                      </Button>
-                      <Button
-                        icon={<RollbackOutlined />}
-                        onClick={handleBackToCourses}
-                      >
-                        Quay lại
-                      </Button>
-                    </Space>
-                  </div>
-                }
+                title="Thông tin cơ bản"
                 bordered={false}
-                className="mb-6 shadow-sm"
+                className="shadow-sm rounded-xl mb-6"
+                style={{ minHeight: 340 }}
               >
-                <Tabs defaultActiveKey="1">
-                  <TabPane tab="Thông tin chung" key="1">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <div className="md:col-span-2">
-                        <Card
-                          title="Thông tin cơ bản"
-                          bordered={false}
-                          className="shadow-sm"
-                        >
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <Text type="secondary">Mã khóa học</Text>
-                              <div className="font-medium">
-                                {course.coursePackageId}
-                              </div>
-                            </div>
-                            <div>
-                              <Text type="secondary">Loại nhạc cụ</Text>
-                              <div>
-                                <Tag color="blue">{course.courseTypeName}</Tag>
-                              </div>
-                            </div>
-                            <div>
-                              <Text type="secondary">Trạng thái</Text>
-                              <div>
-                                <Badge
-                                  status={
-                                    course.status === 0 ? "error" : "success"
-                                  }
-                                  text={
-                                    course.status === 0
-                                      ? "Đang xử lý"
-                                      : "Đang mở bán"
-                                  }
-                                />
-                              </div>
-                            </div>
-                            <div>
-                              <Text type="secondary">Giá</Text>
-                              <div className="text-red-500 font-medium">
-                                {course.price.toLocaleString()} VND
-                              </div>
-                            </div>
-                            <div>
-                              <Text type="secondary">Giảm giá</Text>
-                              <div>
-                                {course.discount > 0 ? (
-                                  <Badge
-                                    count={`${course.discount}%`}
-                                    style={{ backgroundColor: "#52c41a" }}
-                                  />
-                                ) : (
-                                  <Text type="secondary">Không có</Text>
-                                )}
-                              </div>
-                            </div>
-                            <div>
-                              <Text type="secondary">Đánh giá</Text>
-                              <div className="flex items-center gap-2">
-                                <Rate
-                                  disabled
-                                  defaultValue={course.rating}
-                                  allowHalf
-                                />
-                                <Text>{course.rating}/5</Text>
-                              </div>
-                            </div>
-                          </div>
-
-                          <Divider />
-
-                          <div>
-                            <Text type="secondary">Tiêu đề</Text>
-                            <div className="font-medium mt-1">
-                              {course.headline}
-                            </div>
-                          </div>
-
-                          <div className="mt-4">
-                            <Text type="secondary">Mô tả</Text>
-                            <Paragraph className="mt-1">
-                              {course.courseDescription}
-                            </Paragraph>
-                          </div>
-                        </Card>
-
-                        <Card
-                          title="Thống kê"
-                          bordered={false}
-                          className="shadow-sm mt-6"
-                        >
-                          <div className="grid grid-cols-3 gap-4">
-                            <div className="text-center p-4 bg-blue-50 rounded-lg">
-                              <Title level={3}>
-                                {course.courseContents?.length || 0}
-                              </Title>
-                              <Text>Bài học</Text>
-                            </div>
-                            <div className="text-center p-4 bg-green-50 rounded-lg">
-                              <Title level={3}>
-                                {course.feedBacks?.length || 0}
-                              </Title>
-                              <Text>Đánh giá</Text>
-                            </div>
-                            <div className="text-center p-4 bg-yellow-50 rounded-lg">
-                              <Title level={3}>
-                                {course.qnAs?.length || 0}
-                              </Title>
-                              <Text>Câu hỏi</Text>
-                            </div>
-                          </div>
-                        </Card>
-                      </div>
-
-                      <div className="md:col-span-1">
-                        <Card
-                          title={
-                            <div className="flex justify-between items-center">
-                              <span>Ảnh khóa học</span>
-                              <Button
-                                type="link"
-                                icon={<EyeOutlined />}
-                                onClick={() =>
-                                  window.open(course.imageUrl, "_blank")
-                                }
-                              >
-                                Xem
-                              </Button>
-                            </div>
-                          }
-                          bordered={false}
-                          className="shadow-sm"
-                        >
-                          <Image
-                            width="100%"
-                            src={course.imageUrl}
-                            alt={course.courseName}
-                            fallback="https://placehold.co/600x400?text=No+Image"
-                          />
-                        </Card>
-                      </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <Text type="secondary">Mã khóa học</Text>
+                    <div className="font-medium">{course.coursePackageId}</div>
+                  </div>
+                  <div>
+                    <Text type="secondary">Loại nhạc cụ</Text>
+                    <div>
+                      <Tag color="blue">{course.courseTypeName}</Tag>
                     </div>
-                  </TabPane>
-
-                  <TabPane tab="Nội dung khóa học" key="2">
-                    <CourseContent courseId={courseId} />
-                  </TabPane>
-
-                  <TabPane tab="Đánh giá" key="3">
-                    <Card bordered={false} className="shadow-sm">
-                      <div className="mb-6">
-                        <div className="flex items-center justify-between mb-4">
-                          <Title level={4} className="mb-0">
-                            Tổng quan đánh giá
-                          </Title>
-                          <div className="flex items-center gap-2">
-                            <Rate
-                              disabled
-                              defaultValue={course.rating}
-                              allowHalf
-                            />
-                            <Text strong>{course.rating}/5</Text>
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          {[5, 4, 3, 2, 1].map((star) => {
-                            const count =
-                              course.feedBacks?.filter(
-                                (f) => Math.floor(f.rating) === star
-                              ).length || 0;
-                            const percentage = course.feedBacks?.length
-                              ? (count / course.feedBacks.length) * 100
-                              : 0;
-                            return (
-                              <div
-                                key={star}
-                                className="flex items-center gap-4"
-                              >
-                                <div className="w-20 text-right">
-                                  <Text>{star} sao</Text>
-                                </div>
-                                <Progress
-                                  percent={percentage}
-                                  strokeColor="#1890ff"
-                                  size="small"
-                                  format={(percent) => `${count} đánh giá`}
-                                />
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      <Divider />
-
-                      <div className="space-y-6">
-                        {course.feedBacks && course.feedBacks.length > 0 ? (
-                          course.feedBacks.map((feedback) => (
-                            <div
-                              key={feedback.feedbackId}
-                              className="border-b last:border-b-0 pb-6 last:pb-0"
-                            >
-                              <div className="flex justify-between items-start mb-2">
-                                <div>
-                                  <Text strong>{feedback.email}</Text>
-                                  <Text
-                                    type="secondary"
-                                    className="block text-sm"
-                                  >
-                                    {feedback.role}
-                                  </Text>
-                                </div>
-                                <Space align="start">
-                                  <Rate
-                                    disabled
-                                    defaultValue={feedback.rating}
-                                  />
-                                  <Text type="secondary" className="text-sm">
-                                    {new Date(
-                                      feedback.createdAt
-                                    ).toLocaleDateString()}
-                                  </Text>
-                                </Space>
-                              </div>
-                              <Paragraph>{feedback.feedbackContent}</Paragraph>
-                            </div>
-                          ))
-                        ) : (
-                          <Empty description="Chưa có đánh giá nào" />
-                        )}
-                      </div>
-                    </Card>
-                  </TabPane>
-
-                  <TabPane tab="Hỏi đáp" key="4">
-                    <Card bordered={false} className="shadow-sm">
-                      <div className="space-y-8">
-                        {course.qnAs && course.qnAs.length > 0 ? (
-                          course.qnAs.map((qna) => (
-                            <div
-                              key={qna.questionId}
-                              className="border-b last:border-b-0 pb-8 last:pb-0"
-                            >
-                              <div className="flex justify-between items-start mb-4">
-                                <div>
-                                  <Text strong>{qna.email}</Text>
-                                  <Text
-                                    type="secondary"
-                                    className="block text-sm"
-                                  >
-                                    {qna.role}
-                                  </Text>
-                                </div>
-                                <Text type="secondary" className="text-sm">
-                                  {new Date(qna.createdAt).toLocaleDateString()}
-                                </Text>
-                              </div>
-                              <Title level={5} className="mb-2">
-                                {qna.title}
-                              </Title>
-                              <Paragraph>{qna.questionContent}</Paragraph>
-
-                              {qna.replies && qna.replies.length > 0 && (
-                                <div className="mt-4 space-y-4">
-                                  <Text strong>Trả lời:</Text>
-                                  {qna.replies.map((reply, index) => (
-                                    <div
-                                      key={index}
-                                      className="bg-gray-50 p-4 rounded-lg"
-                                    >
-                                      <div className="flex justify-between items-start mb-2">
-                                        <Text strong className="text-sm">
-                                          {reply.email}
-                                        </Text>
-                                        <Text
-                                          type="secondary"
-                                          className="text-sm"
-                                        >
-                                          {new Date(
-                                            reply.createdAt
-                                          ).toLocaleDateString()}
-                                        </Text>
-                                      </div>
-                                      <Paragraph className="mb-0">
-                                        {reply.replyContent}
-                                      </Paragraph>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          ))
-                        ) : (
-                          <Empty description="Chưa có câu hỏi nào" />
-                        )}
-                      </div>
-                    </Card>
-                  </TabPane>
-                </Tabs>
+                  </div>
+                  <div>
+                    <Text type="secondary">Trạng thái</Text>
+                    <div>
+                      <Badge
+                        status={course.status === 0 ? "error" : "success"}
+                        text={
+                          course.status === 0 ? "Đang xử lý" : "Đang mở bán"
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Text type="secondary">Giá</Text>
+                    <div className="text-red-500 font-medium">
+                      {course.price.toLocaleString()} VND
+                    </div>
+                  </div>
+                  <div>
+                    <Text type="secondary">Giảm giá</Text>
+                    <div>
+                      {course.discount > 0 ? (
+                        <Badge
+                          count={`${course.discount}%`}
+                          style={{ backgroundColor: "#52c41a" }}
+                        />
+                      ) : (
+                        <Text type="secondary">Không có</Text>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <Text type="secondary">Đánh giá</Text>
+                    <div className="flex items-center gap-2">
+                      <Rate disabled defaultValue={course.rating} allowHalf />
+                      <Text>{course.rating}/5</Text>
+                    </div>
+                  </div>
+                </div>
+                <Divider />
+                <div>
+                  <Text type="secondary">Tiêu đề</Text>
+                  <div className="font-medium mt-1">{course.headline}</div>
+                </div>
+                <div className="mt-4">
+                  <Text type="secondary">Mô tả</Text>
+                  <Paragraph className="mt-1">
+                    {course.courseDescription}
+                  </Paragraph>
+                </div>
               </Card>
             </div>
-            <div className="w-full md:w-1/3">
+            <div className="w-full md:w-1/3 flex flex-col justify-start">
               <Card
                 title={
-                  <span>
-                    <StarOutlined /> Thống kê
-                  </span>
+                  <div className="flex justify-between items-center">
+                    <span>Ảnh khóa học</span>
+                    <Button
+                      type="link"
+                      icon={<EyeOutlined />}
+                      onClick={() => setImagePreviewVisible(true)}
+                    >
+                      Xem
+                    </Button>
+                  </div>
                 }
                 bordered={false}
-                className="shadow-sm"
+                className="shadow-sm rounded-xl"
+                style={{
+                  minHeight: 340,
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "center",
+                }}
               >
-                <Descriptions column={1} size="small">
-                  <Descriptions.Item label="Số lượng học viên">
-                    <Text strong>0</Text>
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Số lượng đánh giá">
-                    <Text strong>0</Text>
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Số lượng bài học">
-                    <Text strong>0</Text>
-                  </Descriptions.Item>
-                </Descriptions>
-
-                <Divider>Đánh giá chi tiết</Divider>
-
-                <div className="mb-2">
-                  <div className="flex items-center">
-                    <span className="mr-2">5 sao</span>
-                    <Progress percent={80} size="small" />
-                  </div>
-                </div>
-                <div className="mb-2">
-                  <div className="flex items-center">
-                    <span className="mr-2">4 sao</span>
-                    <Progress percent={15} size="small" />
-                  </div>
-                </div>
-                <div className="mb-2">
-                  <div className="flex items-center">
-                    <span className="mr-2">3 sao</span>
-                    <Progress percent={5} size="small" />
-                  </div>
-                </div>
-                <div className="mb-2">
-                  <div className="flex items-center">
-                    <span className="mr-2">2 sao</span>
-                    <Progress percent={0} size="small" />
-                  </div>
-                </div>
-                <div className="mb-2">
-                  <div className="flex items-center">
-                    <span className="mr-2">1 sao</span>
-                    <Progress percent={0} size="small" />
-                  </div>
-                </div>
+                <Image
+                  width="100%"
+                  src={course.imageUrl}
+                  alt={course.courseName}
+                  fallback="https://placehold.co/600x400?text=No+Image"
+                  style={{
+                    borderRadius: 12,
+                    objectFit: "cover",
+                    maxHeight: 220,
+                  }}
+                  preview={false}
+                  onClick={() => setImagePreviewVisible(true)}
+                />
               </Card>
             </div>
           </div>
+          <Modal
+            open={imagePreviewVisible}
+            footer={null}
+            onCancel={() => setImagePreviewVisible(false)}
+            width={false}
+            centered
+            bodyStyle={{
+              padding: 0,
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              background: "transparent",
+            }}
+            style={{
+              top: 20,
+              maxWidth: "95vw",
+            }}
+          >
+            <img
+              src={course.imageUrl}
+              alt={course.courseName}
+              style={{
+                display: "block",
+                maxWidth: "90vw",
+                maxHeight: "90vh",
+                borderRadius: 16,
+                boxShadow: "0 2px 16px rgba(0,0,0,0.25)",
+                margin: "auto",
+              }}
+            />
+          </Modal>
+          <Tabs defaultActiveKey="1">
+            <TabPane tab="Nội dung khóa học" key="2">
+              <CourseContent courseId={courseId} />
+            </TabPane>
+
+            <TabPane tab="Đánh giá" key="3">
+              <Card bordered={false} className="shadow-sm">
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <Title level={4} className="mb-0">
+                      Tổng quan đánh giá
+                    </Title>
+                    <div className="flex items-center gap-2">
+                      <Rate disabled defaultValue={course.rating} allowHalf />
+                      <Text strong>{course.rating}/5</Text>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    {[5, 4, 3, 2, 1].map((star) => {
+                      const count =
+                        course.feedBacks?.filter(
+                          (f) => Math.floor(f.rating) === star
+                        ).length || 0;
+                      const percentage = course.feedBacks?.length
+                        ? (count / course.feedBacks.length) * 100
+                        : 0;
+                      return (
+                        <div key={star} className="flex items-center gap-4">
+                          <div className="w-20 text-right">
+                            <Text>{star} sao</Text>
+                          </div>
+                          <Progress
+                            percent={percentage}
+                            strokeColor="#1890ff"
+                            size="small"
+                            format={(percent) => `${count} đánh giá`}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <Divider />
+
+                <div className="space-y-6">
+                  {course.feedBacks && course.feedBacks.length > 0 ? (
+                    course.feedBacks.map((feedback) => (
+                      <div
+                        key={feedback.feedbackId}
+                        className="border-b last:border-b-0 pb-6 last:pb-0"
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <Text strong>{feedback.email}</Text>
+                            <Text type="secondary" className="block text-sm">
+                              {feedback.role}
+                            </Text>
+                          </div>
+                          <Space align="start">
+                            <Rate disabled defaultValue={feedback.rating} />
+                            <Text type="secondary" className="text-sm">
+                              {new Date(
+                                feedback.createdAt
+                              ).toLocaleDateString()}
+                            </Text>
+                          </Space>
+                        </div>
+                        <Paragraph>{feedback.feedbackContent}</Paragraph>
+                      </div>
+                    ))
+                  ) : (
+                    <Empty description="Chưa có đánh giá nào" />
+                  )}
+                </div>
+              </Card>
+            </TabPane>
+
+            <TabPane tab="Hỏi đáp" key="4">
+              <Card bordered={false} className="shadow-sm">
+                <div className="space-y-8">
+                  {course.qnAs && course.qnAs.length > 0 ? (
+                    course.qnAs.map((qna) => (
+                      <div
+                        key={qna.questionId}
+                        className="border-b last:border-b-0 pb-8 last:pb-0"
+                      >
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <Text strong>{qna.email}</Text>
+                            <Text type="secondary" className="block text-sm">
+                              {qna.role}
+                            </Text>
+                          </div>
+                          <Text type="secondary" className="text-sm">
+                            {new Date(qna.createdAt).toLocaleDateString()}
+                          </Text>
+                        </div>
+                        <Title level={5} className="mb-2">
+                          {qna.title}
+                        </Title>
+                        <Paragraph>{qna.questionContent}</Paragraph>
+
+                        {qna.replies && qna.replies.length > 0 && (
+                          <div className="mt-4 space-y-4">
+                            <Text strong>Trả lời:</Text>
+                            {qna.replies.map((reply, index) => (
+                              <div
+                                key={index}
+                                className="bg-gray-50 p-4 rounded-lg"
+                              >
+                                <div className="flex justify-between items-start mb-2">
+                                  <Text strong className="text-sm">
+                                    {reply.email}
+                                  </Text>
+                                  <Text type="secondary" className="text-sm">
+                                    {new Date(
+                                      reply.createdAt
+                                    ).toLocaleDateString()}
+                                  </Text>
+                                </div>
+                                <Paragraph className="mb-0">
+                                  {reply.replyContent}
+                                </Paragraph>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <Empty description="Chưa có câu hỏi nào" />
+                  )}
+                </div>
+              </Card>
+            </TabPane>
+          </Tabs>
           <Modal
             title={
               <div className="flex items-center gap-2">
@@ -852,7 +742,11 @@ const CourseDetail = () => {
                   ]}
                   className="md:col-span-2"
                 >
-                  <Input placeholder="Nhập tên khóa học" maxLength={50} />
+                  <Input
+                    placeholder="Nhập tên khóa học"
+                    maxLength={50}
+                    showCount={{ max: 50 }}
+                  />
                 </Form.Item>
 
                 <Form.Item
@@ -871,7 +765,11 @@ const CourseDetail = () => {
                   ]}
                   className="md:col-span-2"
                 >
-                  <Input placeholder="Nhập tiêu đề hiển thị" maxLength={50} />
+                  <Input
+                    placeholder="Nhập tiêu đề hiển thị"
+                    maxLength={50}
+                    showCount={{ max: 50 }}
+                  />
                 </Form.Item>
 
                 <Form.Item
@@ -890,6 +788,7 @@ const CourseDetail = () => {
                     rows={4}
                     placeholder="Nhập mô tả chi tiết về khóa học"
                     maxLength={250}
+                    showCount={{ max: 250 }}
                   />
                 </Form.Item>
 

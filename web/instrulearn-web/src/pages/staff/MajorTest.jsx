@@ -139,13 +139,13 @@ const MajorTest = () => {
   const handleSubmit = async (values) => {
     try {
       // Kiểm tra trùng tên đề bài
-      const isDuplicate = tests.some(
+      const isDuplicateName = tests.some(
         (item) =>
           item.majorTestName.trim().toLowerCase() ===
             values.majorTestName.trim().toLowerCase() &&
           (!editingTest || item.majorTestId !== editingTest.majorTestId)
       );
-      if (isDuplicate) {
+      if (isDuplicateName) {
         form.setFields([
           {
             name: "majorTestName",
@@ -153,6 +153,41 @@ const MajorTest = () => {
           },
         ]);
         return;
+      }
+      // Kiểm tra trùng nhạc cụ (mỗi nhạc cụ chỉ có 1 đề bài)
+      if (!editingTest) {
+        // Thêm mới
+        const isDuplicateInstrument = tests.some(
+          (item) => item.majorId === values.majorId
+        );
+        if (isDuplicateInstrument) {
+          form.setFields([
+            {
+              name: "majorId",
+              errors: ["Nhạc cụ này đã có đề bài!"],
+            },
+          ]);
+          return;
+        }
+      } else {
+        // Sửa
+        if (
+          values.majorId !== undefined &&
+          values.majorId !== editingTest.majorId &&
+          tests.some(
+            (item) =>
+              item.majorId === values.majorId &&
+              item.majorTestId !== editingTest.majorTestId
+          )
+        ) {
+          form.setFields([
+            {
+              name: "majorId",
+              errors: ["Nhạc cụ này đã có đề bài!"],
+            },
+          ]);
+          return;
+        }
       }
       if (editingTest) {
         // Update
@@ -218,6 +253,8 @@ const MajorTest = () => {
               onClick={() => handleEdit(record)}
             />
           </Tooltip>
+          {/* Ẩn nút xóa */}
+          {/*
           <Popconfirm
             title="Bạn có chắc chắn muốn xóa đề bài này?"
             icon={<ExclamationCircleOutlined style={{ color: "red" }} />}
@@ -229,6 +266,7 @@ const MajorTest = () => {
               <Button danger icon={<DeleteOutlined />} />
             </Tooltip>
           </Popconfirm>
+          */}
         </Space>
       ),
     },
@@ -298,14 +336,21 @@ const MajorTest = () => {
                   rules={[{ required: true, message: "Vui lòng chọn nhạc cụ" }]}
                 >
                   <Select placeholder="Chọn nhạc cụ">
-                    {instruments.map((instrument) => (
-                      <Option
-                        key={instrument.majorId}
-                        value={instrument.majorId}
-                      >
-                        {instrument.majorName}
-                      </Option>
-                    ))}
+                    {instruments.map((instrument) => {
+                      const isUsed = tests.some(
+                        (t) => t.majorId === instrument.majorId
+                      );
+                      return (
+                        <Option
+                          key={instrument.majorId}
+                          value={instrument.majorId}
+                          disabled={isUsed}
+                        >
+                          {instrument.majorName}
+                          {isUsed ? " (Đã có đề bài)" : ""}
+                        </Option>
+                      );
+                    })}
                   </Select>
                 </Form.Item>
               )}

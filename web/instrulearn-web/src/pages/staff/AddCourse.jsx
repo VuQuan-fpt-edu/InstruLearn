@@ -236,6 +236,7 @@ const AddCourse = () => {
                   initialValues={{
                     rating: 0,
                     discount: 0,
+                    price: 100000,
                   }}
                 >
                   <Row gutter={[24, 24]}>
@@ -292,6 +293,7 @@ const AddCourse = () => {
                             placeholder="Nhập tên khóa học"
                             className="rounded-md"
                             maxLength={50}
+                            showCount={{ max: 50 }}
                           />
                         </Form.Item>
 
@@ -309,6 +311,7 @@ const AddCourse = () => {
                             placeholder="Mô tả ngắn gọn về khóa học"
                             className="rounded-md"
                             maxLength={50}
+                            showCount={{ max: 50 }}
                           />
                         </Form.Item>
 
@@ -331,6 +334,7 @@ const AddCourse = () => {
                             placeholder="Mô tả chi tiết về nội dung và lợi ích của khóa học"
                             className="rounded-md"
                             maxLength={250}
+                            showCount={{ max: 250 }}
                           />
                         </Form.Item>
                       </Card>
@@ -359,11 +363,19 @@ const AddCourse = () => {
                               required: true,
                               message: "Vui lòng nhập giá khóa học!",
                             },
+                            {
+                              type: "number",
+                              min: 100000,
+                              max: 10000000,
+                              message:
+                                "Giá khóa học phải từ 100.000 đến 10.000.000 VND!",
+                            },
                           ]}
                         >
                           <InputNumber
                             style={{ width: "100%" }}
-                            min={0}
+                            min={100000}
+                            max={10000000}
                             step={10000}
                             formatter={(value) =>
                               `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")

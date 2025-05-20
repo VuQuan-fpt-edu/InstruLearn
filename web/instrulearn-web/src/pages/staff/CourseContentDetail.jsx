@@ -442,16 +442,14 @@ const CourseContentDetail = () => {
   };
 
   const getItemTypeIcon = (typeId) => {
-    switch (typeId) {
-      case 1: // Images
-        return <FileImageOutlined />;
-      case 2: // Video
-        return <VideoCameraOutlined />;
-      case 3: // Document
-        return <FileTextOutlined />;
-      default:
-        return <FileTextOutlined />;
-    }
+    const type = itemTypes.find((t) => t.itemTypeId === typeId);
+    if (!type) return <FileTextOutlined />;
+    const name = type.itemTypeName.toLowerCase();
+    if (name.includes("video")) return <VideoCameraOutlined />;
+    if (name.includes("pdf")) return <FileTextOutlined />;
+    if (name.includes("hình") || name.includes("image"))
+      return <FileImageOutlined />;
+    return <FileTextOutlined />;
   };
 
   const getFileTypeIcon = (fileType) => {
@@ -468,97 +466,91 @@ const CourseContentDetail = () => {
   };
 
   const renderItemContent = (item) => {
-    // Kiểm tra loại nội dung dựa vào itemTypeId
     const type = itemTypes.find((t) => t.itemTypeId === item.itemTypeId);
-    const isPDF = type && type.itemTypeName.toLowerCase() === "pdf";
-    // Loại docs đã bỏ hoàn toàn
-    switch (item.itemTypeId) {
-      case 1: // Images
-        return (
-          <div className="mt-2">
-            <div className="mb-2 flex gap-2">
-              <Tag color="green" icon={<FileImageOutlined />}>
-                Hình ảnh
-              </Tag>
-              <Tag color={item.status === 0 ? "error" : "success"}>
-                {item.status === 0 ? "Đã khóa" : "Đã mở khóa"}
-              </Tag>
-            </div>
-            <div className="mb-2">
-              <img
-                src={item.itemDes}
-                alt="Content"
-                style={{
-                  maxWidth: "100%",
-                  maxHeight: "200px",
-                  objectFit: "contain",
-                }}
-              />
-            </div>
+    const name = type?.itemTypeName?.toLowerCase() || "";
+    if (name.includes("video")) {
+      return (
+        <div className="mt-2">
+          <div className="mb-2 flex gap-2">
+            <Tag color="blue" icon={<VideoCameraOutlined />}>
+              Video
+            </Tag>
+            <Tag color={item.status === 0 ? "error" : "success"}>
+              {item.status === 0 ? "Đã khóa" : "Đã mở khóa"}
+            </Tag>
           </div>
-        );
-      case 2: // Video
-        return (
-          <div className="mt-2">
-            <div className="mb-2 flex gap-2">
-              <Tag color="blue" icon={<VideoCameraOutlined />}>
-                Video
-              </Tag>
-              <Tag color={item.status === 0 ? "error" : "success"}>
-                {item.status === 0 ? "Đã khóa" : "Đã mở khóa"}
-              </Tag>
-            </div>
-            <div className="mb-2">
-              <video
-                src={item.itemDes}
-                controls
-                style={{
-                  maxWidth: "100%",
-                  maxHeight: "200px",
-                }}
-              />
-            </div>
+          <div className="mb-2">
+            <video
+              src={item.itemDes}
+              controls
+              style={{
+                maxWidth: "100%",
+                maxHeight: "200px",
+              }}
+            />
           </div>
-        );
-      default:
-        // Nếu là PDF thì show nút xem tài liệu
-        if (isPDF) {
-          return (
-            <div className="mt-2">
-              <div className="mb-2 flex gap-2">
-                <Tag color="purple" icon={<FileTextOutlined />}>
-                  PDF
-                </Tag>
-                <Tag color={item.status === 0 ? "error" : "success"}>
-                  {item.status === 0 ? "Đã khóa" : "Đã mở khóa"}
-                </Tag>
-              </div>
-              <Button
-                type="link"
-                onClick={() => {
-                  setCurrentPdfUrl(item.itemDes);
-                  setPdfViewerVisible(true);
-                }}
-              >
-                Xem tài liệu
-              </Button>
-            </div>
-          );
-        }
-        // Các loại khác (nếu có)
-        return (
-          <div className="mt-2">
-            <div className="mb-2 flex gap-2">
-              <Tag color="default" icon={<FileTextOutlined />}>
-                {getItemTypeLabel(item.itemTypeId)}
-              </Tag>
-              <Tag color={item.status === 0 ? "error" : "success"}>
-                {item.status === 0 ? "Đã khóa" : "Đã mở khóa"}
-              </Tag>
-            </div>
-            <Text>{item.itemDes}</Text>
+        </div>
+      );
+    } else if (name.includes("pdf")) {
+      return (
+        <div className="mt-2">
+          <div className="mb-2 flex gap-2">
+            <Tag color="purple" icon={<FileTextOutlined />}>
+              PDF
+            </Tag>
+            <Tag color={item.status === 0 ? "error" : "success"}>
+              {item.status === 0 ? "Đã khóa" : "Đã mở khóa"}
+            </Tag>
           </div>
-        );
+          <Button
+            type="link"
+            onClick={() => {
+              setCurrentPdfUrl(item.itemDes);
+              setPdfViewerVisible(true);
+            }}
+          >
+            Xem tài liệu
+          </Button>
+        </div>
+      );
+    } else if (name.includes("hình") || name.includes("image")) {
+      return (
+        <div className="mt-2">
+          <div className="mb-2 flex gap-2">
+            <Tag color="green" icon={<FileImageOutlined />}>
+              Hình ảnh
+            </Tag>
+            <Tag color={item.status === 0 ? "error" : "success"}>
+              {item.status === 0 ? "Đã khóa" : "Đã mở khóa"}
+            </Tag>
+          </div>
+          <div className="mb-2">
+            <img
+              src={item.itemDes}
+              alt="Content"
+              style={{
+                maxWidth: "100%",
+                maxHeight: "200px",
+                objectFit: "contain",
+              }}
+            />
+          </div>
+        </div>
+      );
+    } else {
+      return (
+        <div className="mt-2">
+          <div className="mb-2 flex gap-2">
+            <Tag color="default" icon={<FileTextOutlined />}>
+              {type?.itemTypeName || "Khác"}
+            </Tag>
+            <Tag color={item.status === 0 ? "error" : "success"}>
+              {item.status === 0 ? "Đã khóa" : "Đã mở khóa"}
+            </Tag>
+          </div>
+          <Text>{item.itemDes}</Text>
+        </div>
+      );
     }
   };
 
