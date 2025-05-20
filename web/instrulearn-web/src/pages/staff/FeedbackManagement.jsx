@@ -85,6 +85,20 @@ const FeedbackManagement = () => {
   const handleModalOk = async () => {
     try {
       const values = await form.validateFields();
+      const isDuplicate = questions.some(
+        (q) =>
+          q.questionText.trim().toLowerCase() ===
+          values.questionText.trim().toLowerCase()
+      );
+      if (isDuplicate) {
+        form.setFields([
+          {
+            name: "questionText",
+            errors: ["Nội dung câu hỏi này đã tồn tại!"],
+          },
+        ]);
+        return;
+      }
       if (options.some((opt) => !opt.optionText.trim())) {
         message.error("Vui lòng nhập đầy đủ các lựa chọn");
         return;
@@ -94,8 +108,8 @@ const FeedbackManagement = () => {
         questionId: 0,
         questionText: values.questionText,
         displayOrder: values.displayOrder,
-        isRequired: values.isRequired,
-        isActive: values.isActive,
+        isRequired: true,
+        isActive: true,
         options: options.map((opt) => ({
           optionId: 0,
           optionText: opt.optionText,
@@ -161,9 +175,33 @@ const FeedbackManagement = () => {
     setEditOptions(newOptions);
   };
 
+  const handleAddEditOption = () => {
+    setEditOptions([...editOptions, { optionId: 0, optionText: "" }]);
+  };
+
+  const handleRemoveEditOption = (index) => {
+    if (editOptions.length === 1) return;
+    setEditOptions(editOptions.filter((_, i) => i !== index));
+  };
+
   const handleEditModalOk = async () => {
     try {
       const values = await editForm.validateFields();
+      const isDuplicate = questions.some(
+        (q) =>
+          q.questionText.trim().toLowerCase() ===
+            values.questionText.trim().toLowerCase() &&
+          q.questionId !== editingQuestion.questionId
+      );
+      if (isDuplicate) {
+        editForm.setFields([
+          {
+            name: "questionText",
+            errors: ["Nội dung câu hỏi này đã tồn tại!"],
+          },
+        ]);
+        return;
+      }
       if (editOptions.some((opt) => !opt.optionText.trim())) {
         message.error("Vui lòng nhập đầy đủ các lựa chọn");
         return;
@@ -173,7 +211,7 @@ const FeedbackManagement = () => {
         questionId: editingQuestion.questionId,
         questionText: values.questionText,
         displayOrder: values.displayOrder,
-        isRequired: values.isRequired,
+        isRequired: true,
         isActive: true,
         options: editOptions.map((opt) => ({
           optionId: opt.optionId,
@@ -417,29 +455,13 @@ const FeedbackManagement = () => {
                   max={100}
                   placeholder="Thứ tự"
                   onChange={(e) => {
-                    const value = Number(e.target.value);
-                    if (value > 100) {
-                      e.target.value = 100;
-                      if (form) form.setFieldsValue({ displayOrder: 100 });
-                    }
+                    let value = Number(e.target.value);
+                    if (value > 100) value = 100;
+                    if (value < 1) value = 1;
+                    e.target.value = value;
+                    if (form) form.setFieldsValue({ displayOrder: value });
                   }}
                 />
-              </Form.Item>
-              <Form.Item
-                name="isRequired"
-                label="Bắt buộc trả lời"
-                valuePropName="checked"
-                initialValue={true}
-              >
-                <Checkbox>Yêu cầu bắt buộc</Checkbox>
-              </Form.Item>
-              <Form.Item
-                name="isActive"
-                label="Trạng thái"
-                valuePropName="checked"
-                initialValue={true}
-              >
-                <Switch checkedChildren="Đang dùng" unCheckedChildren="Ẩn" />
               </Form.Item>
               <Form.Item label="Lựa chọn trả lời">
                 {options.map((opt, idx) => (
@@ -462,13 +484,15 @@ const FeedbackManagement = () => {
                     )}
                   </Space>
                 ))}
-                <Button
-                  type="dashed"
-                  onClick={handleAddOption}
-                  style={{ width: "100%" }}
-                >
-                  Thêm lựa chọn
-                </Button>
+                {options.length < 10 && (
+                  <Button
+                    type="dashed"
+                    onClick={handleAddOption}
+                    style={{ width: "100%" }}
+                  >
+                    Thêm lựa chọn
+                  </Button>
+                )}
               </Form.Item>
             </Form>
           </Modal>
@@ -521,31 +545,14 @@ const FeedbackManagement = () => {
                   max={100}
                   placeholder="Thứ tự"
                   onChange={(e) => {
-                    const value = Number(e.target.value);
-                    if (value > 100) {
-                      e.target.value = 100;
-                      if (editForm)
-                        editForm.setFieldsValue({ displayOrder: 100 });
-                    }
+                    let value = Number(e.target.value);
+                    if (value > 100) value = 100;
+                    if (value < 1) value = 1;
+                    e.target.value = value;
+                    if (editForm)
+                      editForm.setFieldsValue({ displayOrder: value });
                   }}
                 />
-              </Form.Item>
-              <Form.Item
-                name="isRequired"
-                label="Bắt buộc trả lời"
-                valuePropName="checked"
-                initialValue={true}
-              >
-                <Checkbox>Yêu cầu bắt buộc</Checkbox>
-              </Form.Item>
-              <Form.Item
-                name="isActive"
-                label="Trạng thái"
-                valuePropName="checked"
-                initialValue={true}
-                hidden={true}
-              >
-                <Switch checkedChildren="Đang dùng" unCheckedChildren="Ẩn" />
               </Form.Item>
               <Form.Item label="Lựa chọn trả lời">
                 {editOptions.map((opt, idx) => (
@@ -563,8 +570,25 @@ const FeedbackManagement = () => {
                       maxLength={100}
                       showCount
                     />
+                    {editOptions.length > 1 && (
+                      <Button
+                        danger
+                        onClick={() => handleRemoveEditOption(idx)}
+                      >
+                        Xóa
+                      </Button>
+                    )}
                   </Space>
                 ))}
+                {editOptions.length < 10 && (
+                  <Button
+                    type="dashed"
+                    onClick={handleAddEditOption}
+                    style={{ width: "100%" }}
+                  >
+                    Thêm lựa chọn
+                  </Button>
+                )}
               </Form.Item>
             </Form>
           </Modal>

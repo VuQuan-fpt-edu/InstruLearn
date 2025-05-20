@@ -41,6 +41,11 @@ const ResponseManagement = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingResponse, setEditingResponse] = useState(null);
   const [modalTitle, setModalTitle] = useState("Thêm mới phản hồi");
+  const [charCount, setCharCount] = useState(0);
+  const MAX_CHARS = 250;
+  const [editForm] = Form.useForm();
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [editCharCount, setEditCharCount] = useState(0);
 
   useEffect(() => {
     fetchResponses();
@@ -96,12 +101,22 @@ const ResponseManagement = () => {
 
   const handleEdit = (record) => {
     setEditingResponse(record);
-    form.setFieldsValue({
-      responseTypeId: record.responseTypeId,
+    editForm.setFieldsValue({
       responseDescription: record.responseDescription,
     });
-    setModalTitle("Chỉnh sửa phản hồi");
-    setModalVisible(true);
+    editForm.setFields([{ name: "responseDescription", errors: [] }]);
+    setEditCharCount(
+      record.responseDescription ? record.responseDescription.length : 0
+    );
+    setIsEditModalVisible(true);
+  };
+
+  const handleEditModalCancel = () => {
+    setIsEditModalVisible(false);
+    setEditingResponse(null);
+    editForm.resetFields();
+    editForm.setFields([{ name: "responseDescription", errors: [] }]);
+    setEditCharCount(0);
   };
 
   const handleDelete = async (responseId) => {
@@ -123,6 +138,28 @@ const ResponseManagement = () => {
   };
 
   const handleSubmit = async (values) => {
+    // Kiểm tra nội dung phản hồi đã tồn tại chưa
+    const existingResponse = responses.find(
+      (response) =>
+        response.responseTypeId ===
+          (editingResponse
+            ? editingResponse.responseTypeId
+            : values.responseTypeId) &&
+        response.responseDescription.trim().toLowerCase() ===
+          values.responseDescription.trim().toLowerCase() &&
+        (!editingResponse || response.responseId !== editingResponse.responseId)
+    );
+
+    if (existingResponse) {
+      form.setFields([
+        {
+          name: "responseDescription",
+          errors: ["Nội dung phản hồi này đã tồn tại cho loại phản hồi này"],
+        },
+      ]);
+      return;
+    }
+
     try {
       if (editingResponse) {
         // Cập nhật Response
@@ -135,7 +172,12 @@ const ResponseManagement = () => {
 
         if (response.data?.isSucceed) {
           message.success("Cập nhật phản hồi thành công");
-          setModalVisible(false);
+          setIsEditModalVisible(false);
+          editForm.resetFields();
+          editForm.setFields([{ name: "responseDescription", errors: [] }]);
+          setEditCharCount(0);
+          setEditingResponse(null);
+          setModalTitle("Thêm mới phản hồi");
           fetchResponses();
         } else {
           throw new Error(
@@ -155,6 +197,11 @@ const ResponseManagement = () => {
         if (response.data?.isSucceed) {
           message.success("Thêm phản hồi thành công");
           setModalVisible(false);
+          form.resetFields();
+          form.setFields([{ name: "responseDescription", errors: [] }]);
+          setCharCount(0);
+          setEditingResponse(null);
+          setModalTitle("Thêm mới phản hồi");
           fetchResponses();
         } else {
           throw new Error(response.data?.message || "Thêm phản hồi thất bại");
@@ -162,6 +209,55 @@ const ResponseManagement = () => {
       }
     } catch (error) {
       console.error("Error submitting form:", error);
+      message.error(error.message || "Có lỗi xảy ra");
+    }
+  };
+
+  const handleTextAreaChange = (e) => {
+    const value = e.target.value;
+    setCharCount(value.length);
+  };
+
+  const handleEditSubmit = async (values) => {
+    // Kiểm tra trùng lặp
+    const existingResponse = responses.find(
+      (response) =>
+        response.responseTypeId === editingResponse.responseTypeId &&
+        response.responseDescription.trim().toLowerCase() ===
+          values.responseDescription.trim().toLowerCase() &&
+        response.responseId !== editingResponse.responseId
+    );
+
+    if (existingResponse) {
+      editForm.setFields([
+        {
+          name: "responseDescription",
+          errors: ["Nội dung phản hồi này đã tồn tại cho loại phản hồi này"],
+        },
+      ]);
+      return;
+    }
+
+    try {
+      const response = await axios.put(
+        `https://instrulearnapplication.azurewebsites.net/api/Response/update/${editingResponse.responseId}`,
+        {
+          responseDescription: values.responseDescription,
+        }
+      );
+
+      if (response.data?.isSucceed) {
+        message.success("Cập nhật phản hồi thành công");
+        setIsEditModalVisible(false);
+        editForm.resetFields();
+        editForm.setFields([{ name: "responseDescription", errors: [] }]);
+        setEditCharCount(0);
+        setEditingResponse(null);
+        fetchResponses();
+      } else {
+        throw new Error(response.data?.message || "Cập nhật phản hồi thất bại");
+      }
+    } catch (error) {
       message.error(error.message || "Có lỗi xảy ra");
     }
   };
@@ -292,7 +388,14 @@ const ResponseManagement = () => {
           <Modal
             title={modalTitle}
             open={modalVisible}
-            onCancel={() => setModalVisible(false)}
+            onCancel={() => {
+              setModalVisible(false);
+              setCharCount(0);
+              form.resetFields();
+              form.setFields([{ name: "responseDescription", errors: [] }]);
+              setEditingResponse(null);
+              setModalTitle("Thêm mới phản hồi");
+            }}
             footer={null}
             width={800}
           >
@@ -334,16 +437,72 @@ const ResponseManagement = () => {
                     required: true,
                     message: "Vui lòng nhập nội dung phản hồi",
                   },
+                  {
+                    max: MAX_CHARS,
+                    message: `Nội dung phản hồi không được vượt quá ${MAX_CHARS} ký tự`,
+                  },
                 ]}
               >
-                <Input.TextArea rows={6} placeholder="Nhập nội dung phản hồi" />
+                <div>
+                  <Input.TextArea
+                    rows={6}
+                    placeholder="Nhập nội dung phản hồi"
+                    onChange={handleTextAreaChange}
+                    maxLength={MAX_CHARS}
+                    showCount
+                  />
+                </div>
               </Form.Item>
 
               <Form.Item className="mb-0 text-right">
                 <Space>
-                  <Button onClick={() => setModalVisible(false)}>Hủy</Button>
+                  <Button
+                    onClick={() => {
+                      setModalVisible(false);
+                      setCharCount(0);
+                    }}
+                  >
+                    Hủy
+                  </Button>
                   <Button type="primary" htmlType="submit">
                     {editingResponse ? "Cập nhật" : "Thêm mới"}
+                  </Button>
+                </Space>
+              </Form.Item>
+            </Form>
+          </Modal>
+
+          <Modal
+            title="Chỉnh sửa phản hồi"
+            open={isEditModalVisible}
+            onCancel={handleEditModalCancel}
+            footer={null}
+            width={800}
+          >
+            <Form form={editForm} layout="vertical" onFinish={handleEditSubmit}>
+              <Form.Item
+                name="responseDescription"
+                label="Nội dung phản hồi"
+                rules={[
+                  {
+                    required: true,
+                    message: "Vui lòng nhập nội dung phản hồi",
+                  },
+                  { max: 250, message: "Không quá 250 ký tự" },
+                ]}
+              >
+                <Input.TextArea
+                  rows={6}
+                  maxLength={250}
+                  showCount={{ max: 250 }}
+                  onChange={(e) => setEditCharCount(e.target.value.length)}
+                />
+              </Form.Item>
+              <Form.Item className="mb-0 text-right">
+                <Space>
+                  <Button onClick={handleEditModalCancel}>Hủy</Button>
+                  <Button type="primary" htmlType="submit">
+                    Cập nhật
                   </Button>
                 </Space>
               </Form.Item>

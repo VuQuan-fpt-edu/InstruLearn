@@ -193,7 +193,6 @@ const Syllabus11Management = () => {
       }
       message.loading("Đang tải file lên và cập nhật...", 0);
       let syllabusLink = fileURL;
-      // Luôn upload file mới nếu có
       if (file) {
         syllabusLink = await uploadFileToFirebase();
         if (!syllabusLink) {
@@ -202,9 +201,8 @@ const Syllabus11Management = () => {
         }
       }
       if (editingLevel) {
-        // Gọi API cập nhật syllabusLink
         const updateData = {
-          levelName: editingLevel.levelName, // Giữ nguyên
+          levelPrice: editingLevel.levelPrice,
           syllabusLink,
         };
         try {
@@ -220,9 +218,15 @@ const Syllabus11Management = () => {
           );
           message.destroy();
           if (response.data && response.data.isSucceed) {
-            message.success("Cập nhật giáo trình thành công");
             setIsModalVisible(false);
-            fetchLevels();
+            form.resetFields();
+            setFile(null);
+            setFileURL("");
+            setFileType("");
+            setUploadProgress(0);
+            setIsUploading(false);
+            await fetchLevels();
+            message.success("Cập nhật giáo trình thành công");
           } else {
             message.error(response.data?.message || "Cập nhật thất bại");
           }

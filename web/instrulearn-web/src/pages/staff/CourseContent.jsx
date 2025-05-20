@@ -69,7 +69,7 @@ const CourseContent = ({ courseId }) => {
       );
 
       if (response.data && response.data.isSucceed) {
-        message.success("Thêm nội dung khóa học thành công");
+        message.success("Thêm  nội dung khóa học thành công");
         setContentModalVisible(false);
         contentForm.resetFields();
         fetchCourseContents();
@@ -89,7 +89,7 @@ const CourseContent = ({ courseId }) => {
 
     try {
       const updateData = {
-        courseId: parseInt(courseId),
+        coursePackageId: parseInt(courseId),
         heading: values.heading,
       };
 
@@ -245,10 +245,10 @@ const CourseContent = ({ courseId }) => {
           />
         ) : (
           <div className="py-8 text-center text-gray-500">
-            Không có nội dung nào cho khóa học này.
+            Không có tiêu đề nội dung nào cho khóa học này.
             <div className="mt-3">
               <Button type="primary" onClick={openAddContentModal}>
-                Thêm nội dung mới
+                Thêm tiêu đề nội dung mới
               </Button>
             </div>
           </div>
@@ -256,7 +256,7 @@ const CourseContent = ({ courseId }) => {
       </Card>
 
       <Modal
-        title="Thêm nội dung khóa học"
+        title="Thêm tiêu đề nội dung khóa học"
         open={contentModalVisible}
         onCancel={() => setContentModalVisible(false)}
         footer={[
@@ -282,9 +282,26 @@ const CourseContent = ({ courseId }) => {
                 max: 50,
                 message: "Tiêu đề nội dung không được vượt quá 50 ký tự!",
               },
+              {
+                validator: (_, value) => {
+                  if (!value) return Promise.resolve();
+                  const isExist = courseContents.some(
+                    (item) =>
+                      item.heading.trim().toLowerCase() ===
+                        value.trim().toLowerCase() &&
+                      (!selectedContent ||
+                        item.contentId !== selectedContent.contentId)
+                  );
+                  if (isExist) {
+                    return Promise.reject("Tiêu đề nội dung này đã tồn tại!");
+                  }
+                  return Promise.resolve();
+                },
+              },
             ]}
+            validateTrigger="onChange,onBlur"
           >
-            <Input maxLength={50} />
+            <Input maxLength={50} showCount={{ max: 50 }} />
           </Form.Item>
         </Form>
       </Modal>
@@ -323,9 +340,26 @@ const CourseContent = ({ courseId }) => {
                 max: 50,
                 message: "Tiêu đề nội dung không được vượt quá 50 ký tự!",
               },
+              {
+                validator: (_, value) => {
+                  if (!value) return Promise.resolve();
+                  const isExist = courseContents.some(
+                    (item) =>
+                      item.heading.trim().toLowerCase() ===
+                        value.trim().toLowerCase() &&
+                      (!selectedContent ||
+                        item.contentId !== selectedContent.contentId)
+                  );
+                  if (isExist) {
+                    return Promise.reject("Tiêu đề nội dung này đã tồn tại!");
+                  }
+                  return Promise.resolve();
+                },
+              },
             ]}
+            validateTrigger="onChange,onBlur"
           >
-            <Input maxLength={50} />
+            <Input maxLength={50} showCount={{ max: 50 }} />
           </Form.Item>
         </Form>
       </Modal>

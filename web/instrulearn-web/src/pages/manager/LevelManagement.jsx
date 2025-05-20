@@ -80,8 +80,6 @@ const LevelManagement = () => {
   const [editingLevel, setEditingLevel] = useState(null);
   const [selectedMajor, setSelectedMajor] = useState(null);
   const [availableLevels, setAvailableLevels] = useState([]);
-  const [minPrice, setMinPrice] = useState(100000);
-  const [maxPrice, setMaxPrice] = useState(500000);
   const [file, setFile] = useState(null);
   const [fileType, setFileType] = useState("");
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -116,69 +114,24 @@ const LevelManagement = () => {
         !existingLevels.some((level) => level.levelName === levelName)
     );
     setAvailableLevels(availableLevelNames);
-
-    // Cập nhật giá tối thiểu dựa trên cấp độ hiện có
-    updatePriceConstraints(majorId);
-  };
-
-  // Hàm cập nhật ràng buộc giá
-  const updatePriceConstraints = (majorId) => {
-    const existingLevels = levels.filter((level) => level.majorId === majorId);
-    const selectedLevelName = form.getFieldValue("levelName");
-
-    if (!selectedLevelName) {
-      setMinPrice(100000);
-      setMaxPrice(500000);
-      return;
-    }
-
-    const selectedLevelOrder = LEVEL_ORDER[selectedLevelName];
-    let minPrice = 100000;
-    let maxPrice = 500000;
-
-    // Tìm giá của cấp độ thấp hơn gần nhất
-    const lowerLevel = existingLevels
-      .filter((level) => LEVEL_ORDER[level.levelName] < selectedLevelOrder)
-      .sort((a, b) => LEVEL_ORDER[b.levelName] - LEVEL_ORDER[a.levelName])[0];
-
-    // Tìm giá của cấp độ cao hơn gần nhất
-    const higherLevel = existingLevels
-      .filter((level) => LEVEL_ORDER[level.levelName] > selectedLevelOrder)
-      .sort((a, b) => LEVEL_ORDER[a.levelName] - LEVEL_ORDER[b.levelName])[0];
-
-    if (lowerLevel) {
-      minPrice = lowerLevel.levelPrice + MIN_PRICE_DIFFERENCE;
-    }
-
-    if (higherLevel) {
-      maxPrice = higherLevel.levelPrice - MIN_PRICE_DIFFERENCE;
-    }
-
-    setMinPrice(minPrice);
-    setMaxPrice(maxPrice);
-
-    // Cập nhật giá trong form nếu giá hiện tại không nằm trong khoảng hợp lệ
-    const currentPrice = form.getFieldValue("levelPrice");
-    if (currentPrice < minPrice) {
-      form.setFieldsValue({ levelPrice: minPrice });
-    } else if (currentPrice > maxPrice) {
-      form.setFieldsValue({ levelPrice: maxPrice });
-    }
   };
 
   const fetchLevels = async () => {
+    console.log("Fetching levels...");
+    setLoading(true);
     try {
       const response = await axios.get(
-        "https://instrulearnapplication.azurewebsites.net/api/LevelAssigned/get-all"
+        "https://instrulearnapplication.azurewebsites.net/api/LevelAssigned/get-all",
+        { headers: { "Cache-Control": "no-cache" } }
       );
       const formattedLevels = response.data.map((item) => ({
         ...item.data,
         key: item.data.levelAssignedId,
       }));
       setLevels(formattedLevels);
+      console.log("Levels updated:", formattedLevels);
     } catch (error) {
-      console.error("Error fetching levels:", error);
-      message.error("Không thể tải danh sách cấp độ");
+      message.error("Không thể tải danh sách giáo trình");
     } finally {
       setLoading(false);
     }
@@ -216,9 +169,6 @@ const LevelManagement = () => {
       syllabusLink: record.syllabusLink || "",
     });
 
-    // Cập nhật các giới hạn giá nếu cần
-    updatePriceConstraints(record.majorId);
-
     // Mở modal
     setIsModalVisible(true);
   };
@@ -229,9 +179,7 @@ const LevelManagement = () => {
   };
 
   const handleLevelNameChange = (value) => {
-    if (selectedMajor) {
-      updatePriceConstraints(selectedMajor);
-    }
+    // Xóa các dòng gọi updatePriceConstraints(selectedMajor); hoặc updatePriceConstraints(record.majorId); hoặc tương tự
   };
 
   const handleDeleteLevel = (record) => {
@@ -559,25 +507,59 @@ const LevelManagement = () => {
   };
 
   const handleModalOk = async () => {
-    console.log("handleModalOk được gọi");
-
-    // Kiểm tra tính hợp lệ của form
     try {
       const values = await form.validateFields();
-      console.log("Form values:", values);
-
-      // Đóng modal ngay lập tức (cách tiếp cận triệt để)
+      // Kiểm tra logic giá giữa các cấp độ cùng chuyên ngành
+      const currentMajorId = editingLevel
+        ? editingLevel.majorId
+        : values.majorId;
+      const currentLevelName = editingLevel
+        ? editingLevel.levelName
+        : values.levelName;
+      const currentLevelPrice = values.levelPrice;
+      // Lấy các cấp độ cùng chuyên ngành (trừ chính nó nếu đang sửa)
+      const sameMajorLevels = levels.filter(
+        (lv) =>
+          lv.majorId === currentMajorId &&
+          (!editingLevel || lv.levelAssignedId !== editingLevel.levelAssignedId)
+      );
+      // Kiểm tra logic
+      if (currentLevelName && LEVEL_ORDER[currentLevelName]) {
+        // Kiểm tra cấp độ thấp hơn liền kề
+        const lowerLevel = sameMajorLevels.find(
+          (lv) =>
+            LEVEL_ORDER[lv.levelName] === LEVEL_ORDER[currentLevelName] - 1
+        );
+        if (lowerLevel && currentLevelPrice < lowerLevel.levelPrice) {
+          message.error(
+            `Giá của cấp độ ${currentLevelName} không được thấp hơn ${
+              lowerLevel.levelName
+            } (${lowerLevel.levelPrice.toLocaleString()} VND)`
+          );
+          return;
+        }
+        // Kiểm tra cấp độ cao hơn liền kề
+        const higherLevel = sameMajorLevels.find(
+          (lv) =>
+            LEVEL_ORDER[lv.levelName] === LEVEL_ORDER[currentLevelName] + 1
+        );
+        if (higherLevel && currentLevelPrice > higherLevel.levelPrice) {
+          message.error(
+            `Giá của cấp độ ${currentLevelName} không được cao hơn ${
+              higherLevel.levelName
+            } (${higherLevel.levelPrice.toLocaleString()} VND)`
+          );
+          return;
+        }
+      }
       setIsModalVisible(false);
-
       if (editingLevel) {
-        // Khi cập nhật, chỉ gửi các trường cần thiết theo API
         const updateData = {
-          levelName: values.levelName,
+          levelName: editingLevel.levelName,
+          majorId: editingLevel.majorId,
+          levelPrice: values.levelPrice,
           syllabusLink: editingLevel.syllabusLink || "",
         };
-
-        console.log("Cập nhật cấp độ với dữ liệu:", updateData);
-
         message.loading("Đang cập nhật...", 0);
         try {
           const response = await axios.put(
@@ -590,29 +572,25 @@ const LevelManagement = () => {
               },
             }
           );
-
-          message.destroy(); // Xóa thông báo loading
-          console.log("API Response:", response.data);
-
+          message.destroy();
           if (response.data && response.data.isSucceed) {
+            await fetchLevels(); // Đợi fetchLevels hoàn thành
+            setIsModalVisible(false);
+            form.resetFields();
+            setEditingLevel(null);
             message.success("Cập nhật cấp độ thành công");
-            setIsModalVisible(false); // Đóng modal
-            fetchLevels(); // Cập nhật lại danh sách
           } else {
             message.error(response.data?.message || "Cập nhật thất bại");
           }
         } catch (error) {
-          message.destroy(); // Xóa thông báo loading
-          console.error("Lỗi khi cập nhật cấp độ:", error);
+          message.destroy();
           message.error(
             error.response?.data?.message || "Có lỗi xảy ra khi cập nhật cấp độ"
           );
         }
       } else {
-        // Thêm mới cấp độ
         message.loading("Đang thêm mới...", 0);
         try {
-          // Đảm bảo syllabusLink luôn có giá trị (chuỗi rỗng nếu không có file)
           const createData = {
             ...values,
             syllabusLink: "",
@@ -627,27 +605,21 @@ const LevelManagement = () => {
               },
             }
           );
-
-          message.destroy(); // Xóa thông báo loading
-          console.log("API Response:", response.data);
-
+          message.destroy();
           if (response.data && response.data.isSucceed) {
+            await fetchLevels(); // Đợi fetchLevels hoàn thành
             message.success("Thêm cấp độ mới thành công");
-            setIsModalVisible(false); // Đóng modal
-            fetchLevels(); // Cập nhật lại danh sách
           } else {
             message.error(response.data?.message || "Thêm mới thất bại");
           }
         } catch (error) {
-          message.destroy(); // Xóa thông báo loading
-          console.error("Lỗi khi thêm mới cấp độ:", error);
+          message.destroy();
           message.error(
             error.response?.data?.message || "Có lỗi xảy ra khi thêm cấp độ mới"
           );
         }
       }
     } catch (validationError) {
-      console.error("Lỗi khi xác thực form:", validationError);
       message.error("Vui lòng kiểm tra lại thông tin đã nhập");
     }
   };
@@ -713,6 +685,7 @@ const LevelManagement = () => {
     },
   ];
 
+  console.log("Table data:", levels);
   return (
     <Layout className="min-h-screen">
       <ManagerSidebar
@@ -779,8 +752,8 @@ const LevelManagement = () => {
             onCancel={handleModalCancel}
             destroyOnClose={true}
             maskClosable={false}
-            keyboard={false} // Vô hiệu hóa đóng modal bằng phím Esc
-            closable={true} // Hiển thị nút X ở góc
+            keyboard={false}
+            closable={true}
             okButtonProps={{ disabled: isUploading }}
             okText="Lưu"
             cancelText="Hủy"
@@ -788,12 +761,11 @@ const LevelManagement = () => {
               console.log("Modal afterClose event");
               resetFormState();
             }}
-            width={700} // Tăng kích thước modal
-            centered={true} // Hiển thị ở giữa màn hình
-            className="level-modal" // Thêm class để dễ debug
+            width={700}
+            centered={true}
+            className="level-modal"
           >
             <Form form={form} layout="vertical">
-              {/* Trường Chuyên ngành - chỉ hiển thị và cho phép chọn khi thêm mới */}
               <Form.Item
                 name="majorId"
                 label="Chuyên ngành"
@@ -817,7 +789,6 @@ const LevelManagement = () => {
                 </Select>
               </Form.Item>
 
-              {/* Trường Tên cấp độ - luôn cho phép chỉnh sửa */}
               <Form.Item
                 name="levelName"
                 label="Tên cấp độ"
@@ -826,7 +797,7 @@ const LevelManagement = () => {
                 ]}
               >
                 {editingLevel ? (
-                  <Input placeholder="Nhập tên cấp độ" />
+                  <Input placeholder="Nhập tên cấp độ" disabled />
                 ) : (
                   <Select
                     placeholder="Chọn tên cấp độ"
@@ -842,51 +813,107 @@ const LevelManagement = () => {
                 )}
               </Form.Item>
 
-              {/* Trường Giá/Buổi - chỉ hiển thị và cho phép nhập khi thêm mới */}
-              {!editingLevel && (
-                <Form.Item
-                  name="levelPrice"
-                  label="Giá/Buổi"
-                  rules={[
-                    { required: !editingLevel, message: "Vui lòng nhập giá" },
-                    {
-                      validator: (_, value) => {
-                        if (!editingLevel) {
-                          if (value < minPrice) {
-                            return Promise.reject(
-                              `Giá phải lớn hơn hoặc bằng ${minPrice.toLocaleString()} VND`
-                            );
-                          }
-                          if (value > maxPrice) {
-                            return Promise.reject(
-                              `Giá phải nhỏ hơn hoặc bằng ${maxPrice.toLocaleString()} VND`
-                            );
-                          }
+              <Form.Item
+                name="levelPrice"
+                label="Giá/Buổi"
+                rules={[
+                  { required: true, message: "Vui lòng nhập giá" },
+                  {
+                    validator: async (_, value) => {
+                      if (value < 100000) {
+                        return Promise.reject(
+                          "Giá phải lớn hơn hoặc bằng 100,000 VND"
+                        );
+                      }
+                      if (value > 10000000) {
+                        return Promise.reject(
+                          "Giá phải nhỏ hơn hoặc bằng 10,000,000 VND"
+                        );
+                      }
+                      const currentMajorId = editingLevel
+                        ? editingLevel.majorId
+                        : form.getFieldValue("majorId");
+                      const currentLevelName = editingLevel
+                        ? editingLevel.levelName
+                        : form.getFieldValue("levelName");
+                      const currentLevelPrice = value;
+                      const sameMajorLevels = levels.filter(
+                        (lv) =>
+                          lv.majorId === currentMajorId &&
+                          (!editingLevel ||
+                            lv.levelAssignedId !== editingLevel.levelAssignedId)
+                      );
+                      if (currentLevelName && LEVEL_ORDER[currentLevelName]) {
+                        const lowerLevel = sameMajorLevels.find(
+                          (lv) =>
+                            LEVEL_ORDER[lv.levelName] ===
+                            LEVEL_ORDER[currentLevelName] - 1
+                        );
+                        if (
+                          lowerLevel &&
+                          currentLevelPrice < lowerLevel.levelPrice
+                        ) {
+                          return Promise.reject(
+                            `Giá của cấp độ ${currentLevelName} không được thấp hơn ${
+                              lowerLevel.levelName
+                            } (${lowerLevel.levelPrice.toLocaleString()} VND)`
+                          );
                         }
-                        return Promise.resolve();
-                      },
+                        const higherLevel = sameMajorLevels.find(
+                          (lv) =>
+                            LEVEL_ORDER[lv.levelName] ===
+                            LEVEL_ORDER[currentLevelName] + 1
+                        );
+                        if (
+                          higherLevel &&
+                          currentLevelPrice > higherLevel.levelPrice
+                        ) {
+                          return Promise.reject(
+                            `Giá của cấp độ ${currentLevelName} không được cao hơn ${
+                              higherLevel.levelName
+                            } (${higherLevel.levelPrice.toLocaleString()} VND)`
+                          );
+                        }
+                      }
+                      return Promise.resolve();
                     },
-                  ]}
-                  tooltip={`Giá phải từ ${minPrice.toLocaleString()} VND đến ${maxPrice.toLocaleString()} VND`}
-                >
-                  <InputNumber
-                    style={{ width: "100%" }}
-                    formatter={(value) =>
-                      `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-                    }
-                    parser={(value) => value.replace(/\$\s?|(,*)/g, "")}
-                    min={minPrice}
-                    max={maxPrice}
-                    step={10000}
-                    keyboard={false}
-                    placeholder="Nhập giá"
-                  />
-                </Form.Item>
-              )}
+                  },
+                ]}
+                tooltip={`Giá phải từ 100,000 VND đến 10,000,000 VND`}
+              >
+                <InputNumber
+                  style={{ width: "100%" }}
+                  formatter={(value) =>
+                    `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                  }
+                  parser={(value) => value.replace(/\$\s?|(,*)/g, "")}
+                  min={100000}
+                  max={10000000}
+                  step={10000}
+                  keyboard={false}
+                  placeholder="Nhập giá"
+                  onBlur={(e) => {
+                    let value = Number(e.target.value.replace(/,/g, ""));
+                    if (isNaN(value)) value = 100000;
+                    if (value < 100000) value = 100000;
+                    if (value > 10000000) value = 10000000;
+                    value = Math.round(value);
+                    form.setFieldsValue({ levelPrice: value });
+                  }}
+                  onChange={(value) => {
+                    if (value === undefined || value === null) return;
+                    let v = Number(value);
+                    if (isNaN(v)) v = 100000;
+                    if (v < 100000) v = 100000;
+                    if (v > 10000000) v = 10000000;
+                    v = Math.round(v);
+                    form.setFieldsValue({ levelPrice: v });
+                  }}
+                />
+              </Form.Item>
             </Form>
           </Modal>
 
-          {/* Modal xác nhận xóa */}
           <Modal
             title="Xác nhận xóa"
             open={isDeleteConfirmVisible}
@@ -908,7 +935,6 @@ const LevelManagement = () => {
             <p>Hành động này không thể hoàn tác.</p>
           </Modal>
 
-          {/* Modal xem file */}
           <Modal
             title={`Giáo trình cấp độ ${currentLevelName}`}
             open={isPdfModalVisible}
