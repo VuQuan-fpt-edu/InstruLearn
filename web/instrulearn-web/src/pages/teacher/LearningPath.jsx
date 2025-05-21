@@ -591,6 +591,7 @@ const LearningPath = () => {
                         <Input
                           placeholder="Nhập tiêu đề buổi học"
                           maxLength={50}
+                          showCount
                         />
                       </Form.Item>
                       <Form.Item
@@ -611,6 +612,7 @@ const LearningPath = () => {
                           placeholder="Nhập mô tả buổi học"
                           rows={4}
                           maxLength={250}
+                          showCount
                         />
                       </Form.Item>
                     </div>
@@ -835,7 +837,11 @@ const LearningPath = () => {
                   { max: 50, message: "Tiêu đề không được vượt quá 50 ký tự!" },
                 ]}
               >
-                <Input placeholder="Nhập tiêu đề buổi học" maxLength={50} />
+                <Input
+                  placeholder="Nhập tiêu đề buổi học"
+                  maxLength={50}
+                  showCount
+                />
               </Form.Item>
               <Form.Item
                 name="description"
@@ -849,6 +855,7 @@ const LearningPath = () => {
                   rows={4}
                   placeholder="Nhập mô tả buổi học"
                   maxLength={250}
+                  showCount
                 />
               </Form.Item>
               <div className="flex justify-end space-x-4">

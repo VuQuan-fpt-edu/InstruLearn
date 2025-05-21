@@ -501,34 +501,52 @@ const Booking11Management = () => {
             Đã chấp nhận
           </Tag>
         );
+      case "Fourty":
+        return (
+          <Tag icon={<CheckCircleOutlined />} color="orange">
+            Đã thanh toán 40%
+          </Tag>
+        );
+      case "Sixty":
+        return (
+          <Tag icon={<CheckCircleOutlined />} color="blue">
+            Đã thanh toán 60%
+          </Tag>
+        );
       case "Rejected":
         return (
           <Tag icon={<CloseCircleOutlined />} color="error">
             Từ chối
           </Tag>
         );
-      case "Fourty":
-        return (
-          <Tag icon={<CheckCircleOutlined />} color="processing">
-            Đã thanh toán 40%
-          </Tag>
-        );
-      case "Sixty":
-        return (
-          <Tag icon={<CheckCircleOutlined />} color="success">
-            Đã thanh toán đầy đủ
-          </Tag>
-        );
       case "FourtyFeedbackDone":
         return (
-          <Tag icon={<CheckCircleOutlined />} color="cyan">
+          <Tag icon={<CheckCircleOutlined />} color="purple">
             Đã phản hồi
           </Tag>
         );
       case "Cancelled":
         return (
-          <Tag icon={<CloseCircleOutlined />} color="error">
+          <Tag icon={<CloseCircleOutlined />} color="default">
             Đã hủy
+          </Tag>
+        );
+      case "FullyPaid":
+        return (
+          <Tag icon={<CheckCircleOutlined />} color="success">
+            Đã thanh toán đầy đủ
+          </Tag>
+        );
+      case "Payment40Rejected":
+        return (
+          <Tag icon={<CloseCircleOutlined />} color="red">
+            Từ chối thanh toán 40%
+          </Tag>
+        );
+      case "Payment60Rejected":
+        return (
+          <Tag icon={<CloseCircleOutlined />} color="red">
+            Từ chối thanh toán 60%
           </Tag>
         );
       default:
@@ -939,11 +957,14 @@ const Booking11Management = () => {
       filters: [
         { text: "Chờ xác nhận", value: "Pending" },
         { text: "Đã chấp nhận", value: "Accepted" },
-        { text: "Từ chối", value: "Rejected" },
         { text: "Đã thanh toán 40%", value: "Fourty" },
+        { text: "Đã thanh toán 60%", value: "Sixty" },
+        { text: "Từ chối", value: "Rejected" },
         { text: "Đã phản hồi", value: "FourtyFeedbackDone" },
-        { text: "Đã thanh toán đầy đủ", value: "Sixty" },
         { text: "Đã hủy", value: "Cancelled" },
+        { text: "Đã thanh toán đầy đủ", value: "FullyPaid" },
+        { text: "Từ chối thanh toán 40%", value: "Payment40Rejected" },
+        { text: "Từ chối thanh toán 60%", value: "Payment60Rejected" },
       ],
       onFilter: (value, record) => record.status === value,
       width: 150,
