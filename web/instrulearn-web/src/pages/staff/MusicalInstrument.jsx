@@ -9,7 +9,6 @@ import {
   message,
   Space,
   Tag,
-  Popconfirm,
   Tooltip,
   Card,
   Typography,
@@ -19,8 +18,6 @@ import {
 import {
   PlusOutlined,
   EditOutlined,
-  DeleteOutlined,
-  ExclamationCircleOutlined,
   HomeOutlined,
   BookOutlined,
 } from "@ant-design/icons";
@@ -76,22 +73,6 @@ const MusicalInstrument = () => {
       majorName: record.majorName,
     });
     setModalVisible(true);
-  };
-
-  // Xử lý xóa nhạc cụ
-  const handleDelete = async (id) => {
-    try {
-      const response = await axios.delete(
-        `https://instrulearnapplication.azurewebsites.net/api/Major/delete/${id}`
-      );
-      if (response.data?.isSucceed) {
-        message.success("Xóa nhạc cụ thành công");
-        fetchInstruments();
-      }
-    } catch (error) {
-      message.error("Không thể xóa nhạc cụ");
-      console.error("Error deleting instrument:", error);
-    }
   };
 
   // Xử lý submit form
@@ -211,17 +192,6 @@ const MusicalInstrument = () => {
               onClick={() => handleEdit(record)}
             />
           </Tooltip>
-          <Popconfirm
-            title="Bạn có chắc chắn muốn xóa nhạc cụ này?"
-            icon={<ExclamationCircleOutlined style={{ color: "red" }} />}
-            onConfirm={() => handleDelete(record.majorId)}
-            okText="Có"
-            cancelText="Không"
-          >
-            <Tooltip title="Xóa">
-              <Button danger icon={<DeleteOutlined />} />
-            </Tooltip>
-          </Popconfirm>
         </Space>
       ),
     },

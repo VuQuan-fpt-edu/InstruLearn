@@ -413,6 +413,15 @@ const CourseDetail = () => {
                 bordered={false}
                 className="shadow-sm rounded-xl mb-6"
                 style={{ minHeight: 340 }}
+                extra={
+                  <Button
+                    type="primary"
+                    icon={<EditOutlined />}
+                    onClick={openEditModal}
+                  >
+                    Chỉnh sửa
+                  </Button>
+                }
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>

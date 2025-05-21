@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import React, { useEffect, useState, useRef } from "react";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   Card,
   Spin,
@@ -94,6 +94,26 @@ const getStatusTag = (status) => {
           Đã chấp nhận
         </Tag>
       );
+    case "Fourty":
+      return (
+        <Tag
+          icon={<CheckCircleOutlined />}
+          color="orange"
+          className="px-3 py-1 text-base"
+        >
+          Đã thanh toán 40%
+        </Tag>
+      );
+    case "Sixty":
+      return (
+        <Tag
+          icon={<CheckCircleOutlined />}
+          color="blue"
+          className="px-3 py-1 text-base"
+        >
+          Đã thanh toán 60%
+        </Tag>
+      );
     case "Rejected":
       return (
         <Tag
@@ -104,41 +124,11 @@ const getStatusTag = (status) => {
           Từ chối
         </Tag>
       );
-    case "Completed":
-      return (
-        <Tag
-          icon={<CheckCircleOutlined />}
-          color="processing"
-          className="px-3 py-1 text-base"
-        >
-          Đã thanh toán
-        </Tag>
-      );
-    case "Fourty":
-      return (
-        <Tag
-          icon={<CheckCircleOutlined />}
-          color="processing"
-          className="px-3 py-1 text-base"
-        >
-          Đã thanh toán 40%
-        </Tag>
-      );
-    case "Sixty":
-      return (
-        <Tag
-          icon={<CheckCircleOutlined />}
-          color="success"
-          className="px-3 py-1 text-base"
-        >
-          Đã thanh toán đầy đủ
-        </Tag>
-      );
     case "FourtyFeedbackDone":
       return (
         <Tag
           icon={<CheckCircleOutlined />}
-          color="processing"
+          color="purple"
           className="px-3 py-1 text-base"
         >
           Đã phản hồi
@@ -148,10 +138,40 @@ const getStatusTag = (status) => {
       return (
         <Tag
           icon={<CloseCircleOutlined />}
-          color="error"
+          color="default"
           className="px-3 py-1 text-base"
         >
           Đã hủy
+        </Tag>
+      );
+    case "FullyPaid":
+      return (
+        <Tag
+          icon={<CheckCircleOutlined />}
+          color="success"
+          className="px-3 py-1 text-base"
+        >
+          Đã thanh toán đầy đủ
+        </Tag>
+      );
+    case "Payment40Rejected":
+      return (
+        <Tag
+          icon={<CloseCircleOutlined />}
+          color="red"
+          className="px-3 py-1 text-base"
+        >
+          Từ chối thanh toán 40%
+        </Tag>
+      );
+    case "Payment60Rejected":
+      return (
+        <Tag
+          icon={<CloseCircleOutlined />}
+          color="red"
+          className="px-3 py-1 text-base"
+        >
+          Từ chối thanh toán 60%
         </Tag>
       );
     default:
@@ -166,6 +186,9 @@ const getStatusTag = (status) => {
 const RegistrationDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const shouldScroll = searchParams.get("scrollToLearningPath") === "true";
   const [loading, setLoading] = useState(true);
   const [registration, setRegistration] = useState(null);
   const [learningPathSessions, setLearningPathSessions] = useState([]);
@@ -187,6 +210,10 @@ const RegistrationDetail = () => {
   const [rejectPaymentLoading, setRejectPaymentLoading] = useState(false);
   const [rejectPaymentSuccessVisible, setRejectPaymentSuccessVisible] =
     useState(false);
+  const [isConfirmRejectPaymentVisible, setIsConfirmRejectPaymentVisible] =
+    useState(false);
+  const [rejectPaymentType, setRejectPaymentType] = useState("");
+  const learningPathRef = useRef(null);
 
   const fetchRegistrationDetail = async () => {
     try {
@@ -220,6 +247,14 @@ const RegistrationDetail = () => {
   useEffect(() => {
     fetchRegistrationDetail();
   }, [id]);
+
+  useEffect(() => {
+    if (!loading && registration && learningPathRef.current && shouldScroll) {
+      setTimeout(() => {
+        learningPathRef.current.scrollIntoView({ behavior: "smooth" });
+      }, 300);
+    }
+  }, [loading, registration, shouldScroll]);
 
   const fetchLearningPathSessions = async (learningRegisId) => {
     try {
@@ -391,6 +426,7 @@ const RegistrationDetail = () => {
       });
       if (response.data?.isSucceed) {
         setIsConfirmInitialPaymentVisible(false);
+        setIsConfirmRejectPaymentVisible(false);
         setRejectPaymentSuccessVisible(true);
         fetchRegistrationDetail();
         message.success("Từ chối thanh toán thành công!");
@@ -426,6 +462,7 @@ const RegistrationDetail = () => {
       });
       if (response.data?.isSucceed) {
         setIsConfirmRemainingPaymentVisible(false);
+        setIsConfirmRejectPaymentVisible(false);
         setRejectPaymentSuccessVisible(true);
         fetchRegistrationDetail();
         message.success("Từ chối thanh toán thành công!");
@@ -443,6 +480,12 @@ const RegistrationDetail = () => {
     } finally {
       setRejectPaymentLoading(false);
     }
+  };
+
+  // Xử lý hiển thị modal xác nhận từ chối
+  const handleShowRejectConfirmation = (type) => {
+    setRejectPaymentType(type);
+    setIsConfirmRejectPaymentVisible(true);
   };
 
   const handleNavigateToWallet = () => {
@@ -913,7 +956,7 @@ const RegistrationDetail = () => {
                     "Completed",
                   ].includes(registration.Status) && (
                     <Col xs={24}>
-                      <div className="mt-6">
+                      <div className="mt-6" ref={learningPathRef}>
                         <Text type="secondary">Lộ trình học tập</Text>
                         <div className="mt-4">
                           {loadingPathSessions ? (
@@ -1009,64 +1052,59 @@ const RegistrationDetail = () => {
 
       {/* Modal xác nhận thanh toán 40% */}
       <Modal
-        title={
-          <div className="text-center">
-            <div className="text-2xl font-bold text-green-600 mb-2">
-              Xác nhận thanh toán 40% học phí
-            </div>
-            <div className="text-gray-500">
-              Vui lòng kiểm tra thông tin trước khi xác nhận thanh toán
-            </div>
-          </div>
-        }
         open={isConfirmInitialPaymentVisible}
-        onOk={handleConfirmInitialPayment}
         onCancel={() => setIsConfirmInitialPaymentVisible(false)}
-        okText="Xác nhận thanh toán"
-        cancelText="Hủy"
-        okButtonProps={{
-          className: "bg-green-600 hover:bg-green-700",
-          loading: paymentLoading,
-        }}
         footer={[
-          <Button
-            key="reject"
-            danger
-            loading={rejectPaymentLoading}
-            onClick={handleRejectInitialPayment}
-          >
-            Từ chối thanh toán
-          </Button>,
-          <Button
-            key="cancel"
-            onClick={() => setIsConfirmInitialPaymentVisible(false)}
-            className="hover:bg-gray-100 transition-colors duration-300"
-          >
-            Hủy
-          </Button>,
           <Button
             key="ok"
             type="primary"
             className="bg-green-600 hover:bg-green-700"
             loading={paymentLoading}
             onClick={handleConfirmInitialPayment}
+            style={{ background: "#16a34a", borderColor: "#16a34a" }}
           >
             Xác nhận thanh toán
           </Button>,
+          <Button
+            key="reject"
+            danger
+            loading={rejectPaymentLoading}
+            onClick={() => handleShowRejectConfirmation("initial")}
+            style={{ borderColor: "#e53935", color: "#e53935" }}
+          >
+            Từ chối thanh toán
+          </Button>,
         ]}
+        width={500}
+        centered
+        closable
       >
-        <div className="py-4">
-          <div className="bg-green-50 rounded-lg p-6 mb-4">
-            <div className="text-center">
-              <div className="text-xl font-bold text-green-600 mb-2">
-                Số tiền cần thanh toán (40% học phí)
-              </div>
-              <div className="text-3xl font-bold text-green-700 mb-2">
-                {registration?.Price
-                  ? (registration.Price * 0.4).toLocaleString("vi-VN")
-                  : 0}{" "}
-                VNĐ
-              </div>
+        <div className="text-center">
+          <div className="text-2xl font-bold mb-2" style={{ color: "#16a34a" }}>
+            Xác nhận thanh toán 40% học phí
+          </div>
+          <div className="mb-4" style={{ color: "#6b7280", fontWeight: 500 }}>
+            Vui lòng kiểm tra thông tin trước khi xác nhận thanh toán
+          </div>
+          <div
+            className="rounded-lg p-6 mb-4"
+            style={{
+              background: "#ecfdf5",
+              display: "inline-block",
+              width: "100%",
+            }}
+          >
+            <div
+              className="text-xl font-semibold mb-2"
+              style={{ color: "#16a34a" }}
+            >
+              Số tiền cần thanh toán (40% học phí)
+            </div>
+            <div className="text-3xl font-bold" style={{ color: "#16a34a" }}>
+              {registration?.Price
+                ? (registration.Price * 0.4).toLocaleString("vi-VN")
+                : 0}{" "}
+              VNĐ
             </div>
           </div>
         </div>
@@ -1098,16 +1136,9 @@ const RegistrationDetail = () => {
             key="reject"
             danger
             loading={rejectPaymentLoading}
-            onClick={handleRejectRemainingPayment}
+            onClick={() => handleShowRejectConfirmation("remaining")}
           >
             Từ chối thanh toán
-          </Button>,
-          <Button
-            key="cancel"
-            onClick={() => setIsConfirmRemainingPaymentVisible(false)}
-            className="hover:bg-gray-100 transition-colors duration-300"
-          >
-            Hủy
           </Button>,
           <Button
             key="ok"
@@ -1133,6 +1164,45 @@ const RegistrationDetail = () => {
                 VNĐ
               </div>
             </div>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal xác nhận từ chối thanh toán */}
+      <Modal
+        title={
+          <div className="text-center">
+            <div className="text-2xl font-bold text-red-600 mb-2">
+              Xác nhận từ chối thanh toán
+            </div>
+            <div className="text-gray-500">
+              Bạn có chắc chắn muốn từ chối thanh toán không?
+            </div>
+          </div>
+        }
+        open={isConfirmRejectPaymentVisible}
+        onOk={() => {
+          if (rejectPaymentType === "initial") {
+            handleRejectInitialPayment();
+          } else {
+            handleRejectRemainingPayment();
+          }
+        }}
+        onCancel={() => setIsConfirmRejectPaymentVisible(false)}
+        okText="Xác nhận từ chối"
+        cancelText="Hủy"
+        okButtonProps={{
+          className: "bg-red-600 hover:bg-red-700",
+          loading: rejectPaymentLoading,
+        }}
+      >
+        <div className="py-4 text-center">
+          <div className="mb-4">
+            <CloseCircleOutlined className="text-6xl text-red-500" />
+          </div>
+          <div className="text-lg mb-4">
+            Việc từ chối thanh toán đồng nghĩa với việc lịch học của bạn sẽ bị
+            hủy bỏ.
           </div>
         </div>
       </Modal>
@@ -1233,7 +1303,8 @@ const RegistrationDetail = () => {
             <CloseCircleOutlined className="text-6xl text-red-500" />
           </div>
           <div className="text-lg mb-4">
-            Bạn đã từ chối thanh toán 40% học phí cho đơn đăng ký này.
+            Việc từ chối thanh toán đồng nghĩa với việc lịch học của bạn sẽ bị
+            hủy bỏ.
           </div>
         </div>
       </Modal>

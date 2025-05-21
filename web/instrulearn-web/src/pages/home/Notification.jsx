@@ -177,10 +177,8 @@ const Notification = () => {
   const getStatusTag = (notification) => {
     if (notification.feedbackStatus === "NotStarted") {
       return <Tag color="blue">Chưa phản hồi</Tag>;
-    } else if (notification.feedbackStatus === "Submitted") {
-      return <Tag color="green">Đã phản hồi</Tag>;
-    } else if (notification.feedbackStatus === "Rejected") {
-      return <Tag color="red">Từ chối</Tag>;
+    } else if (notification.feedbackStatus === "Completed") {
+      return <Tag color="green">Đã hoàn thành</Tag>;
     }
     return <Tag color="default">Không xác định</Tag>;
   };
@@ -275,6 +273,15 @@ const Notification = () => {
     }).format(amount);
   };
 
+  // Gộp 2 loại thông báo thành 1 danh sách cho Dạy 1-1
+  const mergedNotifications = [
+    ...learnerNotifications.map((item) => ({ ...item, type: "system" })),
+    ...notifications.map((item) => ({ ...item, type: "feedback" })),
+  ].sort(
+    (a, b) =>
+      new Date(b.createdAt || b.sentDate) - new Date(a.createdAt || a.sentDate)
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -305,66 +312,100 @@ const Notification = () => {
           tab={
             <span>
               <BellOutlined className="mr-1 text-blue-500" />
-              Dạy 1-1
+              Dạy theo yêu cầu
             </span>
           }
           key="oneone"
         >
-          {learnerNotifications.length > 0 && (
-            <Card
-              className="mb-6"
-              title={
-                <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <BellOutlined className="text-blue-500" />
-                  <span>Thông báo hệ thống</span>
-                </span>
-              }
-              style={{
-                borderRadius: 16,
-                background: "#f5faff",
-                boxShadow: "0 2px 8px #e6f7ff",
-                border: "none",
-                maxHeight: showAllSystemNoti ? 400 : undefined,
-                overflow: "hidden",
+          <Card className="shadow-sm">
+            <div className="flex items-center justify-between mb-6">
+              <Title level={3} className="mb-0">
+                <BellOutlined className="mr-2 text-blue-500" /> Thông báo
+              </Title>
+              <Button
+                type="primary"
+                onClick={() =>
+                  currentUser?.learnerId &&
+                  fetchNotifications(currentUser.learnerId)
+                }
+                loading={loading}
+              >
+                Làm mới
+              </Button>
+            </div>
+
+            <List
+              dataSource={mergedNotifications}
+              locale={{
+                emptyText: (
+                  <Empty
+                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                    description="Không có thông báo nào"
+                  />
+                ),
               }}
-              bodyStyle={{
-                padding: 0,
-                maxHeight: showAllSystemNoti ? 340 : undefined,
-                overflowY: showAllSystemNoti ? "auto" : "unset",
-              }}
-            >
-              <List
-                dataSource={displayedSystemNoti}
-                renderItem={(item) => (
-                  <List.Item
-                    style={{
-                      borderBottom: "1px solid #f0f0f0",
-                      padding: "20px 24px",
-                      alignItems: "flex-start",
-                    }}
-                  >
-                    <List.Item.Meta
-                      avatar={
-                        <BellOutlined
-                          style={{
-                            fontSize: 24,
-                            color: "#1890ff",
-                            marginTop: 4,
-                          }}
-                        />
-                      }
-                      title={
-                        <span
-                          style={{
-                            fontWeight: 600,
-                            color: "#222",
-                            fontSize: 16,
-                          }}
-                        >
-                          {item.title}
-                        </span>
-                      }
-                      description={
+              renderItem={(item) => (
+                <List.Item
+                  key={item.feedbackId || item.notificationId || item.id}
+                  actions={
+                    item.type === "feedback"
+                      ? [
+                          <Button
+                            type="primary"
+                            onClick={() => handleViewFeedback(item)}
+                            disabled={item.feedbackStatus !== "NotStarted"}
+                          >
+                            {item.feedbackStatus === "NotStarted"
+                              ? "Phản hồi"
+                              : "Xem chi tiết"}
+                          </Button>,
+                        ]
+                      : []
+                  }
+                  className="bg-white rounded-lg border mb-4 p-4 hover:shadow-md transition-shadow duration-300"
+                >
+                  <List.Item.Meta
+                    avatar={
+                      <Avatar
+                        size={48}
+                        icon={
+                          item.type === "system" ? (
+                            <BellOutlined
+                              style={{ fontSize: 24, color: "#1890ff" }}
+                            />
+                          ) : (
+                            getNotificationIcon(item)
+                          )
+                        }
+                        className={
+                          item.type === "system" ? "bg-blue-50" : "bg-blue-50"
+                        }
+                      />
+                    }
+                    title={
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {item.type === "system" ? (
+                            <Tag color="blue">Hệ thống</Tag>
+                          ) : (
+                            <Tag color="purple">Phản hồi</Tag>
+                          )}
+                          <span className="font-medium">
+                            {item.type === "system"
+                              ? item.title
+                              : `Phản hồi khóa học với giáo viên ${item.teacherName}`}
+                          </span>
+                          {item.type === "feedback" && getStatusTag(item)}
+                        </div>
+                        <Text type="secondary" className="text-xs">
+                          {item.createdAt || item.sentDate
+                            ? formatTimeAgo(item.createdAt || item.sentDate)
+                            : ""}
+                        </Text>
+                      </div>
+                    }
+                    description={
+                      item.type === "system" ? (
                         <>
                           <div style={{ color: "#444", margin: "8px 0" }}>
                             {item.message}
@@ -390,187 +431,73 @@ const Notification = () => {
                             </div>
                           )}
                           <div style={{ color: "#888", fontSize: 13 }}>
-                            {dayjs(item.sentDate).format("DD/MM/YYYY HH:mm")}
+                            {item.sentDate &&
+                              dayjs(item.sentDate).format("DD/MM/YYYY HH:mm")}
                           </div>
                         </>
-                      }
-                    />
-                  </List.Item>
-                )}
-                style={{ borderRadius: 16 }}
-              />
-              {learnerNotifications.length > SYSTEM_NOTI_LIMIT && (
-                <div style={{ textAlign: "center", padding: 12 }}>
-                  <Button
-                    type="link"
-                    onClick={() => setShowAllSystemNoti((prev) => !prev)}
-                  >
-                    {showAllSystemNoti ? "Thu gọn" : "Xem tất cả"}
-                  </Button>
-                </div>
-              )}
-            </Card>
-          )}
-
-          <Card className="shadow-sm">
-            <div className="flex items-center justify-between mb-6">
-              <Title level={3} className="mb-0">
-                <BellOutlined className="mr-2 text-blue-500" /> Thông báo phản
-                hồi
-              </Title>
-              <Button
-                type="primary"
-                onClick={() =>
-                  currentUser?.learnerId &&
-                  fetchNotifications(currentUser.learnerId)
-                }
-                loading={loading}
-              >
-                Làm mới
-              </Button>
-            </div>
-
-            <Tabs
-              activeKey={activeTab}
-              onChange={setActiveTab}
-              className="mb-4"
-            >
-              <TabPane
-                tab={
-                  <span>
-                    Tất cả{" "}
-                    <Badge
-                      count={notifications.length}
-                      style={{ marginLeft: 5 }}
-                    />
-                  </span>
-                }
-                key="all"
-              />
-            </Tabs>
-
-            <List
-              dataSource={getFilteredNotifications()}
-              locale={{
-                emptyText: (
-                  <Empty
-                    image={Empty.PRESENTED_IMAGE_SIMPLE}
-                    description="Không có thông báo nào"
-                  />
-                ),
-              }}
-              renderItem={(notification) => (
-                <List.Item
-                  key={notification.feedbackId}
-                  actions={[
-                    <Button
-                      type="primary"
-                      onClick={() => handleViewFeedback(notification)}
-                      disabled={notification.feedbackStatus !== "NotStarted"}
-                    >
-                      {notification.feedbackStatus === "NotStarted"
-                        ? "Phản hồi"
-                        : "Xem chi tiết"}
-                    </Button>,
-                  ]}
-                  className="bg-white rounded-lg border mb-4 p-4 hover:shadow-md transition-shadow duration-300"
-                >
-                  <List.Item.Meta
-                    avatar={
-                      <Avatar
-                        size={48}
-                        icon={getNotificationIcon(notification)}
-                        className="bg-blue-50"
-                      />
-                    }
-                    title={
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">
-                            Phản hồi khóa học với giáo viên{" "}
-                            {notification.teacherName}
-                          </span>
-                          {getStatusTag(notification)}
-                        </div>
-                        <Text type="secondary" className="text-xs">
-                          {formatTimeAgo(notification.createdAt)}
-                        </Text>
-                      </div>
-                    }
-                    description={
-                      <>
-                        <Paragraph className="mb-2 text-gray-600">
-                          {notification.message}
-                        </Paragraph>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
-                          <div className="flex items-center">
-                            <BookOutlined className="text-green-500 mr-2" />
-                            <div>
-                              <div className="text-xs text-gray-500">
-                                Tiến độ học tập
+                      ) : (
+                        <>
+                          <Paragraph className="mb-2 text-gray-600">
+                            {item.message}
+                          </Paragraph>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
+                            <div className="flex items-center">
+                              <BookOutlined className="text-green-500 mr-2" />
+                              <div>
+                                <div className="text-xs text-gray-500">
+                                  Tiến độ học tập
+                                </div>
+                                <div className="font-medium">
+                                  {item.completedSessions}/{item.totalSessions}{" "}
+                                  buổi (
+                                  {item.progressPercentage?.toFixed(0) || 0}%)
+                                </div>
                               </div>
-                              <div className="font-medium">
-                                {notification.completedSessions}/
-                                {notification.totalSessions} buổi (
-                                {notification.progressPercentage.toFixed(0)}%)
+                            </div>
+                            <div className="flex items-center">
+                              <WalletOutlined className="text-orange-500 mr-2" />
+                              <div>
+                                <div className="text-xs text-gray-500">
+                                  Còn lại cần thanh toán
+                                </div>
+                                <div className="font-medium">
+                                  {formatCurrency(item.remainingPayment || 0)}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center">
+                              <ClockCircleOutlined className="text-blue-500 mr-2" />
+                              <div>
+                                <div className="text-xs text-gray-500">
+                                  Ngày tạo
+                                </div>
+                                <div className="font-medium">
+                                  {item.createdAt
+                                    ? dayjs(item.createdAt).format(
+                                        "DD/MM/YYYY HH:mm"
+                                      )
+                                    : ""}
+                                </div>
                               </div>
                             </div>
                           </div>
-                          <div className="flex items-center">
-                            <WalletOutlined className="text-orange-500 mr-2" />
-                            <div>
-                              <div className="text-xs text-gray-500">
-                                Còn lại cần thanh toán
-                              </div>
-                              <div className="font-medium">
-                                {formatCurrency(notification.remainingPayment)}
-                              </div>
+                          {item.deadlineDate && (
+                            <div className="mt-2 text-sm">
+                              <span className="font-medium text-red-500">
+                                Hạn hoàn thành phản hồi:
+                              </span>{" "}
+                              {dayjs(item.deadlineDate).format(
+                                "DD/MM/YYYY HH:mm"
+                              )}
                             </div>
-                          </div>
-                          <div className="flex items-center">
-                            <ClockCircleOutlined className="text-blue-500 mr-2" />
-                            <div>
-                              <div className="text-xs text-gray-500">
-                                Ngày tạo
-                              </div>
-                              <div className="font-medium">
-                                {dayjs(notification.createdAt).format(
-                                  "DD/MM/YYYY HH:mm"
-                                )}
-                              </div>
+                          )}
+                          {item.deadlineMessage && (
+                            <div className="text-sm mt-1 text-orange-600">
+                              {item.deadlineMessage}
                             </div>
-                          </div>
-                        </div>
-                        {/* Thông tin deadline mới */}
-                        {notification.deadlineDate && (
-                          <div className="mt-2 text-sm">
-                            <span className="font-medium text-red-500">
-                              Hạn hoàn thành phản hồi:
-                            </span>{" "}
-                            {dayjs(notification.deadlineDate).format(
-                              "DD/MM/YYYY HH:mm"
-                            )}
-                          </div>
-                        )}
-                        {typeof notification.daysRemaining === "number" && (
-                          <div className="text-sm mt-1">
-                            {/* <span
-                              className={
-                                notification.daysRemaining <= 0
-                                  ? "text-red-500 font-semibold"
-                                  : "text-gray-700"
-                              }
-                            >
-                              Còn lại: {notification.daysRemaining} ngày
-                            </span> */}
-                          </div>
-                        )}
-                        {notification.deadlineMessage && (
-                          <div className="text-sm mt-1 text-orange-600">
-                            {notification.deadlineMessage}
-                          </div>
-                        )}
-                      </>
+                          )}
+                        </>
+                      )
                     }
                   />
                 </List.Item>

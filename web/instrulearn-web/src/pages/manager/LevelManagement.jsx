@@ -1,50 +1,37 @@
 import React, { useState, useEffect } from "react";
 import {
   Layout,
-  Card,
-  Typography,
-  Button,
   Table,
+  Button,
   Space,
-  Tooltip,
-  message,
   Modal,
   Form,
   Input,
   InputNumber,
+  notification,
+  Popconfirm,
   Select,
-  Spin,
-  Progress,
-  Tag,
 } from "antd";
 import {
-  PlusOutlined,
   EditOutlined,
   DeleteOutlined,
-  ReloadOutlined,
-  UploadOutlined,
-  FileOutlined,
-  DownloadOutlined,
-  WarningOutlined,
-  PaperClipOutlined,
+  PlusOutlined,
   CheckCircleOutlined,
+  CloseCircleOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
 import ManagerSidebar from "../../components/manager/ManagerSidebar";
 import ManagerHeader from "../../components/manager/ManagerHeader";
-import { initializeApp } from "firebase/app";
-import {
-  getStorage,
-  ref,
-  uploadBytesResumable,
-  getDownloadURL,
-} from "firebase/storage";
 
 const { Content } = Layout;
-const { Title } = Typography;
-const { Option } = Select;
 
-// Định nghĩa thứ tự và giá tối thiểu của các cấp độ
+const LEVEL_OPTIONS = [
+  { value: "Mới bắt đầu", label: "Mới bắt đầu" },
+  { value: "Sơ cấp", label: "Sơ cấp" },
+  { value: "Trung cấp", label: "Trung cấp" },
+  { value: "Nâng cao", label: "Nâng cao" },
+];
+
 const LEVEL_ORDER = {
   "Mới bắt đầu": 1,
   "Sơ cấp": 2,
@@ -52,647 +39,305 @@ const LEVEL_ORDER = {
   "Nâng cao": 4,
 };
 
-const MIN_PRICE_DIFFERENCE = 50000; // Chênh lệch giá tối thiểu giữa các cấp độ
-
-// Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyB4EaRe-CrB3u7lYm2HZmHqIjE6E_PtaFM",
-  authDomain: "sdn-project-aba8a.firebaseapp.com",
-  projectId: "sdn-project-aba8a",
-  storageBucket: "sdn-project-aba8a.appspot.com",
-  messagingSenderId: "953028355031",
-  appId: "1:953028355031:web:7dfc4f2a85c932e507e192",
-  measurementId: "G-63KQ2X3RCL",
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const storage = getStorage(app);
-
 const LevelManagement = () => {
   const [collapsed, setCollapsed] = useState(false);
-  const [selectedMenu, setSelectedMenu] = useState("level");
-  const [loading, setLoading] = useState(true);
+  const [selectedMenu, setSelectedMenu] = useState("One-on-one Level");
   const [levels, setLevels] = useState([]);
-  const [majors, setMajors] = useState([]);
-  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
   const [form] = Form.useForm();
   const [editingLevel, setEditingLevel] = useState(null);
+  const [notificationModal, setNotificationModal] = useState({
+    visible: false,
+    type: "", // 'success' or 'error'
+    message: "",
+    description: "",
+  });
+  const [majors, setMajors] = useState([]);
+  const [levelExists, setLevelExists] = useState(false);
   const [selectedMajor, setSelectedMajor] = useState(null);
-  const [availableLevels, setAvailableLevels] = useState([]);
-  const [file, setFile] = useState(null);
-  const [fileType, setFileType] = useState("");
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [isUploading, setIsUploading] = useState(false);
-  const [fileURL, setFileURL] = useState("");
-  const [previewImage, setPreviewImage] = useState("");
-  const [isPdfModalVisible, setIsPdfModalVisible] = useState(false);
-  const [currentPdfUrl, setCurrentPdfUrl] = useState("");
-  const [currentLevelName, setCurrentLevelName] = useState("");
-  const [viewerError, setViewerError] = useState(false);
-  const [isDeleteConfirmVisible, setIsDeleteConfirmVisible] = useState(false);
-  const [deletingLevelRecord, setDeletingLevelRecord] = useState(null);
+  const [selectedLevelName, setSelectedLevelName] = useState(null);
+  const [priceConstraintError, setPriceConstraintError] = useState("");
 
-  useEffect(() => {
-    fetchLevels();
-    fetchMajors();
-  }, []);
-
-  // Cập nhật danh sách cấp độ có sẵn khi chọn chuyên ngành
-  useEffect(() => {
-    if (selectedMajor) {
-      updateAvailableLevels(selectedMajor);
-    }
-  }, [selectedMajor, levels]);
-
-  // Hàm cập nhật danh sách cấp độ có sẵn
-  const updateAvailableLevels = (majorId) => {
-    const existingLevels = levels.filter((level) => level.majorId === majorId);
-    const allLevels = ["Mới bắt đầu", "Sơ cấp", "Trung cấp", "Nâng cao"];
-    const availableLevelNames = allLevels.filter(
-      (levelName) =>
-        !existingLevels.some((level) => level.levelName === levelName)
-    );
-    setAvailableLevels(availableLevelNames);
+  const showNotification = (type, message, description) => {
+    setNotificationModal({
+      visible: true,
+      type,
+      message,
+      description,
+    });
   };
 
   const fetchLevels = async () => {
-    console.log("Fetching levels...");
-    setLoading(true);
     try {
+      setLoading(true);
       const response = await axios.get(
-        "https://instrulearnapplication.azurewebsites.net/api/LevelAssigned/get-all",
-        { headers: { "Cache-Control": "no-cache" } }
+        "https://instrulearnapplication.azurewebsites.net/api/LevelAssigned/get-all"
       );
-      const formattedLevels = response.data.map((item) => ({
-        ...item.data,
-        key: item.data.levelAssignedId,
-      }));
-      setLevels(formattedLevels);
-      console.log("Levels updated:", formattedLevels);
+      if (response.data) {
+        setLevels(response.data.map((item) => item.data));
+      }
     } catch (error) {
-      message.error("Không thể tải danh sách giáo trình");
+      notification.error({
+        message: "Không thể tải danh sách cấp độ",
+        description: error.message,
+        placement: "topRight",
+        duration: 4.5,
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchMajors = async () => {
-    try {
-      const response = await axios.get(
-        "https://instrulearnapplication.azurewebsites.net/api/Major/get-all"
-      );
-      setMajors(response.data.data);
-    } catch (error) {
-      console.error("Error fetching majors:", error);
-      message.error("Không thể tải danh sách chuyên ngành");
-    }
-  };
-
-  const handleAddLevel = () => {
-    console.log("Mở modal thêm mới");
-    // Đảm bảo reset form trước khi mở modal thêm mới
-    resetFormState();
-    setIsModalVisible(true);
-  };
-
-  const handleEditLevel = (record) => {
-    console.log("Mở modal chỉnh sửa", record);
-    // Reset form trước khi thiết lập giá trị mới
-    resetFormState();
-
-    // Thiết lập giá trị cho form chỉnh sửa
-    setEditingLevel(record);
-    setSelectedMajor(record.majorId);
-    form.setFieldsValue({
-      ...record,
-      syllabusLink: record.syllabusLink || "",
-    });
-
-    // Mở modal
-    setIsModalVisible(true);
-  };
-
-  const handleMajorChange = (value) => {
-    setSelectedMajor(value);
-    form.setFieldsValue({ levelName: undefined }); // Reset cấp độ khi đổi chuyên ngành
-  };
-
-  const handleLevelNameChange = (value) => {
-    // Xóa các dòng gọi updatePriceConstraints(selectedMajor); hoặc updatePriceConstraints(record.majorId); hoặc tương tự
-  };
-
-  const handleDeleteLevel = (record) => {
-    console.log(
-      "handleDeleteLevel called, preparing delete confirmation for record:",
-      record
-    );
-    setDeletingLevelRecord(record);
-    setIsDeleteConfirmVisible(true);
-  };
-
-  const confirmDelete = async () => {
-    if (!deletingLevelRecord) return;
-
-    const recordToDelete = deletingLevelRecord;
-    console.log(
-      `Xác nhận xóa cấp độ với ID: ${recordToDelete.levelAssignedId}`
-    );
-    setIsDeleteConfirmVisible(false); // Đóng modal xác nhận trước
-    message.loading("Đang xóa...", 0);
-
-    try {
-      const response = await axios.delete(
-        `https://instrulearnapplication.azurewebsites.net/api/LevelAssigned/delete/${recordToDelete.levelAssignedId}`
-      );
-      message.destroy(); // Xóa thông báo loading
-
-      console.log("API Delete Response:", response.data);
-
-      if (response.data && response.data.isSucceed) {
-        message.success("Xóa cấp độ thành công");
-        setDeletingLevelRecord(null); // Reset record đang xóa
-        fetchLevels(); // Tải lại danh sách cấp độ
-      } else {
-        message.error(
-          response.data?.message ||
-            "Không thể xóa cấp độ. Kiểm tra xem cấp độ có đang được sử dụng không."
+  useEffect(() => {
+    const fetchMajors = async () => {
+      try {
+        const res = await axios.get(
+          "https://instrulearnapplication.azurewebsites.net/api/Major/get-all"
         );
-        setDeletingLevelRecord(null); // Reset record đang xóa
-      }
-    } catch (error) {
-      message.destroy(); // Xóa thông báo loading
-      setDeletingLevelRecord(null); // Reset record đang xóa
-      console.error("Lỗi khi xóa cấp độ:", error);
-      // Hiển thị thông báo lỗi chi tiết hơn từ server nếu có
-      if (error.response) {
-        console.error("Error Response Data:", error.response.data);
-        console.error("Error Response Status:", error.response.status);
-        console.error("Error Response Headers:", error.response.headers);
-        message.error(
-          `Lỗi ${error.response.status}: ${
-            error.response.data?.message ||
-            error.response.data ||
-            "Không thể xóa cấp độ. Vui lòng thử lại."
-          }`
-        );
-      } else if (error.request) {
-        console.error("Error Request:", error.request);
-        message.error(
-          "Không nhận được phản hồi từ máy chủ. Vui lòng kiểm tra kết nối mạng."
-        );
-      } else {
-        console.error("Error Message:", error.message);
-        message.error(`Lỗi: ${error.message}`);
-      }
-    }
-  };
-
-  const handleFileSelect = (e) => {
-    if (e.target.files[0]) {
-      const selectedFile = e.target.files[0];
-
-      // Validate file type (PDF hoặc Word)
-      const fileType = selectedFile.type;
-      if (
-        !fileType.includes("pdf") &&
-        !fileType.includes("msword") &&
-        !fileType.includes(
-          "openxmlformats-officedocument.wordprocessingml.document"
-        )
-      ) {
-        message.error("Vui lòng chỉ chọn file PDF hoặc Word");
-        return;
-      }
-
-      // Validate file size (maximum 10MB)
-      if (selectedFile.size > 10 * 1024 * 1024) {
-        message.error("Kích thước file không được vượt quá 10MB");
-        return;
-      }
-
-      setFile(selectedFile);
-      setFileURL(""); // Reset file URL khi chọn file mới
-      setFileType(fileType.includes("pdf") ? "pdf" : "word");
-
-      // Hiển thị thông tin file được chọn
-      message.info(
-        `Đã chọn file ${fileType.includes("pdf") ? "PDF" : "Word"}: ${
-          selectedFile.name
-        }`
-      );
-    }
-  };
-
-  const uploadFileToFirebase = async () => {
-    if (!file) {
-      message.error("Vui lòng chọn file trước khi tải lên");
-      return null;
-    }
-
-    setIsUploading(true);
-    setUploadProgress(0);
-
-    try {
-      const timestamp = new Date().getTime();
-      const fileName = `${timestamp}_${file.name}`;
-      const storageRef = ref(storage, `syllabus/${fileName}`);
-      const uploadTask = uploadBytesResumable(storageRef, file);
-
-      return new Promise((resolve, reject) => {
-        uploadTask.on(
-          "state_changed",
-          (snapshot) => {
-            const progress = Math.round(
-              (snapshot.bytesTransferred / snapshot.totalBytes) * 100
-            );
-            setUploadProgress(progress);
-          },
-          (error) => {
-            console.error("Upload error:", error);
-            setIsUploading(false);
-            message.error(`Lỗi tải lên: ${error.message}`);
-            reject(error);
-          },
-          async () => {
-            try {
-              const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-              setFileURL(downloadURL);
-              form.setFieldsValue({ syllabusLink: downloadURL });
-              setIsUploading(false);
-              message.success("Tải file lên thành công");
-              resolve(downloadURL);
-            } catch (error) {
-              console.error("Error getting download URL:", error);
-              message.error("Không thể lấy đường dẫn tải xuống");
-              reject(error);
-            }
-          }
-        );
-      });
-    } catch (error) {
-      console.error("Error initializing upload:", error);
-      setIsUploading(false);
-      message.error("Lỗi khởi tạo upload");
-      return null;
-    }
-  };
-
-  const handleDownloadFile = async (url, fileType) => {
-    try {
-      const response = await fetch(url);
-      const blob = await response.blob();
-      const fileName = url.split("/").pop().split("?")[0];
-      const decodedFileName = decodeURIComponent(
-        fileName.replace("syllabus%2F", "")
-      );
-
-      const link = document.createElement("a");
-      link.href = window.URL.createObjectURL(blob);
-      link.download = decodedFileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(link.href);
-
-      message.success("Đang tải xuống file...");
-    } catch (error) {
-      console.error("Error downloading file:", error);
-      message.error("Không thể tải xuống file. Vui lòng thử lại sau.");
-    }
-  };
-
-  const isValidFirebaseUrl = (url) => {
-    return url && url.startsWith("https://firebasestorage.googleapis.com/");
-  };
-
-  const getFileTypeInfo = (url) => {
-    if (!url) return { icon: null, color: "", text: "", type: "" };
-
-    // Xử lý URL từ Firebase
-    if (url.includes("firebasestorage.googleapis.com")) {
-      // Lấy tên file từ URL Firebase (nằm giữa /o/ và ?)
-      const fileNameMatch = url.match(/\/o\/([^?]+)/);
-      if (fileNameMatch) {
-        const fileName = decodeURIComponent(
-          fileNameMatch[1].replace("syllabus%2F", "")
-        );
-        const extension = fileName.split(".").pop().toLowerCase();
-
-        if (extension === "pdf") {
-          return {
-            icon: <FileOutlined style={{ fontSize: "16px" }} />,
-            color: "#ff4d4f",
-            text: "PDF",
-            type: "pdf",
-          };
-        } else if (["doc", "docx"].includes(extension)) {
-          return {
-            icon: <FileOutlined style={{ fontSize: "16px" }} />,
-            color: "#1890ff",
-            text: "Word",
-            type: "word",
-          };
+        if (res.data && res.data.data) {
+          setMajors(res.data.data.filter((m) => m.status === 1));
         }
+      } catch (err) {
+        // Có thể thêm thông báo lỗi nếu cần
       }
-    }
-
-    // Xử lý đường dẫn thông thường
-    const extension = url.split(".").pop().toLowerCase();
-    if (extension === "pdf") {
-      return {
-        icon: <FileOutlined style={{ fontSize: "16px" }} />,
-        color: "#ff4d4f",
-        text: "PDF",
-        type: "pdf",
-      };
-    } else if (["doc", "docx"].includes(extension)) {
-      return {
-        icon: <FileOutlined style={{ fontSize: "16px" }} />,
-        color: "#1890ff",
-        text: "Word",
-        type: "word",
-      };
-    }
-
-    return {
-      icon: <FileOutlined style={{ fontSize: "16px" }} />,
-      color: "default",
-      text: "Tệp",
-      type: "other",
     };
-  };
+    fetchMajors();
+    fetchLevels();
+  }, []);
 
-  // File preview component
-  const filePreview = () => {
-    if (!file) return null;
-
-    return (
-      <div className="mt-4 p-4 border rounded">
-        <div className="flex items-center mb-2">
-          <PaperClipOutlined />
-          <span className="ml-2 font-medium">{file.name}</span>
-        </div>
-        <div className="text-sm text-gray-500">
-          {(file.size / 1024 / 1024).toFixed(2)} MB · {fileType.toUpperCase()}
-        </div>
-        {isUploading && (
-          <Progress percent={uploadProgress} size="small" className="mt-2" />
-        )}
-        {fileURL && (
-          <div className="mt-2 text-green-600 text-sm">
-            Tệp đã được tải lên thành công!
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const handleViewFile = (url, levelName) => {
-    const extension = url.split(".").pop().toLowerCase();
-    setFileType(extension === "pdf" ? "pdf" : "word");
-    setCurrentPdfUrl(url);
-    setCurrentLevelName(levelName);
-    setViewerError(false);
-    setIsPdfModalVisible(true);
-  };
-
-  const handleViewerError = () => {
-    setViewerError(true);
-  };
-
-  const resetFormState = () => {
-    // Reset các state liên quan đến file
-    setFile(null);
-    setFileURL("");
-    setFileType("");
-    setUploadProgress(0);
-    setIsUploading(false);
-
-    // Reset form
-    form.resetFields();
-
-    // Reset editing state
-    setEditingLevel(null);
-    setSelectedMajor(null);
-  };
-
-  // Tạo hàm mới để đóng modal an toàn
-  const closeModal = () => {
-    console.log("Đóng modal hoàn toàn");
-    setIsModalVisible(false);
-    setTimeout(() => {
-      resetFormState();
-    }, 300);
-  };
-
-  // Cập nhật hàm handleModalCancel để gọi closeModal
-  const handleModalCancel = () => {
-    console.log("handleModalCancel được gọi");
-    // Hiển thị xác nhận nếu đang có file được chọn nhưng chưa lưu
-    if (file && !fileURL) {
-      Modal.confirm({
-        title: "Xác nhận hủy",
-        content:
-          "Bạn có file đang được chọn chưa được tải lên. Bạn có chắc muốn hủy không?",
-        okText: "Có",
-        cancelText: "Không",
-        onOk() {
-          closeModal();
-        },
-      });
-    } else {
-      closeModal();
-    }
-  };
-
-  const handleModalOk = async () => {
-    try {
-      const values = await form.validateFields();
-      // Kiểm tra logic giá giữa các cấp độ cùng chuyên ngành
-      const currentMajorId = editingLevel
-        ? editingLevel.majorId
-        : values.majorId;
-      const currentLevelName = editingLevel
-        ? editingLevel.levelName
-        : values.levelName;
-      const currentLevelPrice = values.levelPrice;
-      // Lấy các cấp độ cùng chuyên ngành (trừ chính nó nếu đang sửa)
-      const sameMajorLevels = levels.filter(
+  useEffect(() => {
+    if (selectedMajor && selectedLevelName) {
+      const exists = levels.some(
         (lv) =>
-          lv.majorId === currentMajorId &&
-          (!editingLevel || lv.levelAssignedId !== editingLevel.levelAssignedId)
+          lv.majorId === selectedMajor && lv.levelName === selectedLevelName
       );
-      // Kiểm tra logic
-      if (currentLevelName && LEVEL_ORDER[currentLevelName]) {
-        // Kiểm tra cấp độ thấp hơn liền kề
-        const lowerLevel = sameMajorLevels.find(
-          (lv) =>
-            LEVEL_ORDER[lv.levelName] === LEVEL_ORDER[currentLevelName] - 1
-        );
-        if (lowerLevel && currentLevelPrice < lowerLevel.levelPrice) {
-          message.error(
-            `Giá của cấp độ ${currentLevelName} không được thấp hơn ${
-              lowerLevel.levelName
-            } (${lowerLevel.levelPrice.toLocaleString()} VND)`
-          );
-          return;
-        }
-        // Kiểm tra cấp độ cao hơn liền kề
-        const higherLevel = sameMajorLevels.find(
-          (lv) =>
-            LEVEL_ORDER[lv.levelName] === LEVEL_ORDER[currentLevelName] + 1
-        );
-        if (higherLevel && currentLevelPrice > higherLevel.levelPrice) {
-          message.error(
-            `Giá của cấp độ ${currentLevelName} không được cao hơn ${
-              higherLevel.levelName
-            } (${higherLevel.levelPrice.toLocaleString()} VND)`
-          );
-          return;
-        }
-      }
-      setIsModalVisible(false);
-      if (editingLevel) {
-        const updateData = {
-          levelName: editingLevel.levelName,
-          majorId: editingLevel.majorId,
-          levelPrice: values.levelPrice,
-          syllabusLink: editingLevel.syllabusLink || "",
-        };
-        message.loading("Đang cập nhật...", 0);
-        try {
-          const response = await axios.put(
-            `https://instrulearnapplication.azurewebsites.net/api/LevelAssigned/update/${editingLevel.levelAssignedId}`,
-            updateData,
-            {
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${localStorage.getItem("token")}`,
-              },
-            }
-          );
-          message.destroy();
-          if (response.data && response.data.isSucceed) {
-            await fetchLevels(); // Đợi fetchLevels hoàn thành
-            setIsModalVisible(false);
-            form.resetFields();
-            setEditingLevel(null);
-            message.success("Cập nhật cấp độ thành công");
-          } else {
-            message.error(response.data?.message || "Cập nhật thất bại");
-          }
-        } catch (error) {
-          message.destroy();
-          message.error(
-            error.response?.data?.message || "Có lỗi xảy ra khi cập nhật cấp độ"
-          );
-        }
-      } else {
-        message.loading("Đang thêm mới...", 0);
-        try {
-          const createData = {
-            ...values,
-            syllabusLink: "",
-          };
-          const response = await axios.post(
-            "https://instrulearnapplication.azurewebsites.net/api/LevelAssigned/create",
-            createData,
-            {
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `${localStorage.getItem("token")}`,
-              },
-            }
-          );
-          message.destroy();
-          if (response.data && response.data.isSucceed) {
-            await fetchLevels(); // Đợi fetchLevels hoàn thành
-            message.success("Thêm cấp độ mới thành công");
-          } else {
-            message.error(response.data?.message || "Thêm mới thất bại");
-          }
-        } catch (error) {
-          message.destroy();
-          message.error(
-            error.response?.data?.message || "Có lỗi xảy ra khi thêm cấp độ mới"
-          );
-        }
-      }
-    } catch (validationError) {
-      message.error("Vui lòng kiểm tra lại thông tin đã nhập");
+      setLevelExists(exists);
+    } else {
+      setLevelExists(false);
     }
-  };
+  }, [selectedMajor, selectedLevelName, levels]);
+
+  const sortedLevels = [...levels].sort((a, b) => {
+    if (a.majorId !== b.majorId) {
+      return a.majorId - b.majorId;
+    }
+    return LEVEL_ORDER[a.levelName] - LEVEL_ORDER[b.levelName];
+  });
 
   const columns = [
     {
-      title: "ID",
-      dataIndex: "levelAssignedId",
-      key: "levelAssignedId",
-      width: "10%",
+      title: "Chuyên ngành",
+      dataIndex: "majorId",
+      key: "majorId",
+      render: (majorId, row, index) => {
+        // Tìm tất cả các dòng cùng chuyên ngành
+        const sameMajorRows = sortedLevels.filter(
+          (lv) => lv.majorId === majorId
+        );
+        // Tìm index đầu tiên của chuyên ngành này trong sortedLevels
+        const firstIndex = sortedLevels.findIndex(
+          (lv) => lv.majorId === majorId
+        );
+        if (index === firstIndex) {
+          return {
+            children:
+              majors.find((m) => m.majorId === majorId)?.majorName || majorId,
+            props: { rowSpan: sameMajorRows.length },
+          };
+        }
+        return { children: null, props: { rowSpan: 0 } };
+      },
     },
     {
       title: "Tên cấp độ",
       dataIndex: "levelName",
       key: "levelName",
-      width: "20%",
-    },
-    {
-      title: "Chuyên ngành",
-      dataIndex: "majorId",
-      key: "majorId",
-      width: "20%",
-      render: (majorId) => {
-        const major = majors.find((m) => m.majorId === majorId);
-        return major ? major.majorName : "N/A";
-      },
     },
     {
       title: "Giá",
       dataIndex: "levelPrice",
       key: "levelPrice",
-      width: "20%",
-      render: (price) => `${price.toLocaleString()}/Buổi VND`,
+      render: (price) => `${price.toLocaleString("vi-VN")} VNĐ`,
     },
     {
       title: "Thao tác",
       key: "action",
-      width: "15%",
       render: (_, record) => (
         <Space size="middle">
-          <Tooltip title="Chỉnh sửa">
-            <Button
-              type="primary"
-              icon={<EditOutlined />}
-              onClick={() => handleEditLevel(record)}
-            />
-          </Tooltip>
-          <Tooltip title="Xóa">
-            <Button
-              danger
-              icon={<DeleteOutlined />}
-              onClick={() => {
-                console.log(
-                  "Delete button onClick triggered for record:",
-                  record
-                );
-                handleDeleteLevel(record);
-              }}
-            />
-          </Tooltip>
+          <Button
+            type="primary"
+            icon={<EditOutlined />}
+            onClick={() => handleEdit(record)}
+          >
+            Sửa
+          </Button>
         </Space>
       ),
     },
   ];
 
-  console.log("Table data:", levels);
+  const handleEdit = (record) => {
+    setEditingLevel(record);
+    form.setFieldsValue(record);
+    setModalVisible(true);
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      // Thêm API xóa ở đây
+      notification.success({
+        message: "Thành công",
+        description: "Xóa cấp độ thành công",
+        placement: "topRight",
+        duration: 4.5,
+      });
+      fetchLevels();
+    } catch (error) {
+      notification.error({
+        message: "Không thể xóa cấp độ",
+        description: error.message,
+        placement: "topRight",
+        duration: 4.5,
+      });
+    }
+  };
+
+  const validateLevelPrice = (majorId, levelName, levelPrice) => {
+    // Lấy các cấp độ cùng chuyên ngành
+    const sameMajorLevels = levels.filter((lv) => lv.majorId === majorId);
+    // Lấy giá các cấp độ khác
+    const priceByLevel = {};
+    sameMajorLevels.forEach((lv) => {
+      priceByLevel[lv.levelName] = lv.levelPrice;
+    });
+    // Gán giá mới cho cấp độ đang xét
+    priceByLevel[levelName] = levelPrice;
+    // Kiểm tra ràng buộc
+    if (
+      (priceByLevel["Nâng cao"] !== undefined &&
+        priceByLevel["Trung cấp"] !== undefined &&
+        priceByLevel["Nâng cao"] <= priceByLevel["Trung cấp"]) ||
+      (priceByLevel["Trung cấp"] !== undefined &&
+        priceByLevel["Sơ cấp"] !== undefined &&
+        priceByLevel["Trung cấp"] <= priceByLevel["Sơ cấp"]) ||
+      (priceByLevel["Sơ cấp"] !== undefined &&
+        priceByLevel["Mới bắt đầu"] !== undefined &&
+        priceByLevel["Sơ cấp"] <= priceByLevel["Mới bắt đầu"])
+    ) {
+      return false;
+    }
+    return true;
+  };
+
+  const handleModalOk = async () => {
+    if (levelExists) {
+      showNotification(
+        "error",
+        "Trùng cấp độ",
+        "Cấp độ này của chuyên ngành đã tồn tại!"
+      );
+      return;
+    }
+    try {
+      const values = await form.validateFields();
+      // Kiểm tra ràng buộc giá giữa các cấp độ
+      if (
+        !validateLevelPrice(values.majorId, values.levelName, values.levelPrice)
+      ) {
+        setPriceConstraintError(
+          "Giá tiền của các cấp độ phải theo thứ tự: Nâng cao > Trung cấp > Sơ cấp > Mới bắt đầu"
+        );
+        showNotification(
+          "error",
+          "Sai thứ tự giá",
+          "Giá tiền của các cấp độ phải theo thứ tự: Nâng cao > Trung cấp > Sơ cấp > Mới bắt đầu"
+        );
+        return;
+      } else {
+        setPriceConstraintError("");
+      }
+      if (editingLevel) {
+        // Gọi API cập nhật
+        const updateData = {
+          levelPrice: values.levelPrice,
+          syllabusLink: values.syllabusLink || "",
+        };
+        const response = await axios.put(
+          `https://instrulearnapplication.azurewebsites.net/api/LevelAssigned/update/${editingLevel.levelAssignedId}`,
+          updateData
+        );
+        if (
+          response.status === 200 ||
+          response.status === 204 ||
+          response.data.isSucceed === true ||
+          (typeof response.data.message === "string" &&
+            response.data.message.toLowerCase().includes("success"))
+        ) {
+          showNotification(
+            "success",
+            "Cập nhật thành công",
+            "Cấp độ đã được cập nhật thành công!"
+          );
+        } else {
+          showNotification(
+            "error",
+            "Cập nhật thất bại",
+            response.data.message || "Không thể cập nhật cấp độ"
+          );
+        }
+      } else {
+        // Gọi API tạo mới
+        const createData = {
+          majorId: values.majorId,
+          levelName: values.levelName,
+          levelPrice: values.levelPrice,
+          syllabusLink: values.syllabusLink || "",
+        };
+        console.log("Dữ liệu gửi lên:", createData);
+        const response = await axios.post(
+          "https://instrulearnapplication.azurewebsites.net/api/LevelAssigned/create",
+          createData
+        );
+        if (
+          response.status === 200 ||
+          response.status === 201 ||
+          response.data.isSucceed === true ||
+          (typeof response.data.message === "string" &&
+            response.data.message.toLowerCase().includes("success"))
+        ) {
+          showNotification(
+            "success",
+            "Tạo mới thành công",
+            "Cấp độ mới đã được tạo thành công!"
+          );
+        } else {
+          showNotification(
+            "error",
+            "Tạo mới thất bại",
+            response.data.message || "Không thể tạo cấp độ mới"
+          );
+        }
+      }
+      setModalVisible(false);
+      form.resetFields();
+      setEditingLevel(null);
+      fetchLevels();
+    } catch (error) {
+      showNotification(
+        "error",
+        "Lỗi",
+        "Có lỗi xảy ra: " + (error.response?.data?.message || error.message)
+      );
+    }
+  };
+
   return (
     <Layout className="min-h-screen">
       <ManagerSidebar
         collapsed={collapsed}
+        setCollapsed={setCollapsed}
         selectedMenu={selectedMenu}
-        onMenuSelect={setSelectedMenu}
-        toggleCollapsed={() => setCollapsed(!collapsed)}
       />
       <Layout
         style={{
@@ -705,307 +350,303 @@ const LevelManagement = () => {
           toggleCollapsed={() => setCollapsed(!collapsed)}
           selectedMenu={selectedMenu}
         />
-        <Content
-          className="p-6 bg-gray-50"
-          style={{
-            marginTop: "64px",
-          }}
-        >
-          <div className="mb-6">
-            <Title level={3}>Quản lý cấp độ</Title>
-          </div>
-
-          <Card>
-            <div className="flex justify-between items-center mb-4">
-              <Space>
+        <Content className="p-6 bg-gray-50" style={{ marginTop: "64px" }}>
+          <div style={{ padding: "24px", background: "#fff", borderRadius: 8 }}>
+            <div style={{ marginBottom: "16px" }}>
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => {
+                  setEditingLevel(null);
+                  form.resetFields();
+                  setLevelExists(false);
+                  setSelectedMajor(null);
+                  setSelectedLevelName(null);
+                  setModalVisible(true);
+                }}
+              >
+                Thêm cấp độ mới
+              </Button>
+            </div>
+            <Table
+              columns={columns}
+              dataSource={sortedLevels}
+              loading={loading}
+              rowKey="levelAssignedId"
+            />
+            <Modal
+              title={editingLevel ? "Sửa cấp độ" : "Thêm cấp độ mới"}
+              open={modalVisible}
+              onOk={handleModalOk}
+              onCancel={() => {
+                setModalVisible(false);
+                form.resetFields();
+                setEditingLevel(null);
+              }}
+            >
+              <Form form={form} layout="vertical">
+                {editingLevel ? (
+                  <>
+                    <Form.Item label="Chuyên ngành">
+                      <Input
+                        value={
+                          majors.find((m) => m.majorId === editingLevel.majorId)
+                            ?.majorName || editingLevel.majorId
+                        }
+                        disabled
+                      />
+                    </Form.Item>
+                    <Form.Item label="Tên cấp độ">
+                      <Input value={editingLevel.levelName} disabled />
+                    </Form.Item>
+                    <Form.Item
+                      name="levelPrice"
+                      label="Giá cấp độ (VNĐ)"
+                      rules={[
+                        { required: true, message: "Vui lòng nhập giá cấp độ" },
+                        {
+                          validator: (_, value) => {
+                            // Lấy các cấp độ cùng chuyên ngành
+                            const sameMajorLevels = levels.filter(
+                              (lv) =>
+                                lv.majorId === editingLevel.majorId &&
+                                lv.levelAssignedId !==
+                                  editingLevel.levelAssignedId
+                            );
+                            // Lấy giá các cấp độ khác
+                            const priceByLevel = {};
+                            sameMajorLevels.forEach((lv) => {
+                              priceByLevel[lv.levelName] = lv.levelPrice;
+                            });
+                            // Gán giá mới cho cấp độ đang xét
+                            priceByLevel[editingLevel.levelName] = value;
+                            // Kiểm tra ràng buộc thứ tự giá
+                            if (
+                              (priceByLevel["Nâng cao"] !== undefined &&
+                                priceByLevel["Trung cấp"] !== undefined &&
+                                priceByLevel["Nâng cao"] <=
+                                  priceByLevel["Trung cấp"]) ||
+                              (priceByLevel["Trung cấp"] !== undefined &&
+                                priceByLevel["Sơ cấp"] !== undefined &&
+                                priceByLevel["Trung cấp"] <=
+                                  priceByLevel["Sơ cấp"]) ||
+                              (priceByLevel["Sơ cấp"] !== undefined &&
+                                priceByLevel["Mới bắt đầu"] !== undefined &&
+                                priceByLevel["Sơ cấp"] <=
+                                  priceByLevel["Mới bắt đầu"])
+                            ) {
+                              return Promise.reject(
+                                new Error(
+                                  "Giá tiền của các cấp độ phải theo thứ tự: Nâng cao > Trung cấp > Sơ cấp > Mới bắt đầu"
+                                )
+                              );
+                            }
+                            return Promise.resolve();
+                          },
+                        },
+                      ]}
+                    >
+                      <InputNumber
+                        style={{ width: "100%" }}
+                        formatter={(value) =>
+                          `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                        }
+                        parser={(value) => value.replace(/\$\s?|(,*)/g, "")}
+                        min={100000}
+                        max={10000000}
+                        step={1000}
+                        placeholder="Nhập giá từ 100.000 đến 10.000.000"
+                      />
+                    </Form.Item>
+                    <Form.Item
+                      name="syllabusLink"
+                      label="Link giáo trình (syllabusLink)"
+                    >
+                      <Input />
+                    </Form.Item>
+                  </>
+                ) : (
+                  <>
+                    <Form.Item
+                      name="majorId"
+                      label="Chuyên ngành"
+                      rules={[
+                        {
+                          required: true,
+                          message: "Vui lòng chọn chuyên ngành",
+                        },
+                      ]}
+                    >
+                      <Select
+                        showSearch
+                        placeholder="Chọn chuyên ngành"
+                        optionFilterProp="children"
+                        filterOption={(input, option) =>
+                          option.children
+                            .toLowerCase()
+                            .indexOf(input.toLowerCase()) >= 0
+                        }
+                        onChange={(value) => {
+                          setSelectedMajor(value);
+                          form.setFieldsValue({ levelName: undefined });
+                          setSelectedLevelName(null);
+                        }}
+                      >
+                        {majors.map((major) => (
+                          <Select.Option
+                            key={major.majorId}
+                            value={major.majorId}
+                          >
+                            {major.majorName}
+                          </Select.Option>
+                        ))}
+                      </Select>
+                    </Form.Item>
+                    <Form.Item
+                      name="levelName"
+                      label="Tên cấp độ"
+                      rules={[
+                        { required: true, message: "Vui lòng chọn tên cấp độ" },
+                      ]}
+                    >
+                      <Select
+                        placeholder="Chọn tên cấp độ"
+                        disabled={!selectedMajor}
+                        onChange={(value) => setSelectedLevelName(value)}
+                        value={selectedLevelName}
+                      >
+                        {LEVEL_OPTIONS.filter((opt) => {
+                          if (!selectedMajor) return true;
+                          return !levels.some(
+                            (lv) =>
+                              lv.majorId === selectedMajor &&
+                              lv.levelName === opt.value
+                          );
+                        }).map((opt) => (
+                          <Select.Option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </Select.Option>
+                        ))}
+                      </Select>
+                    </Form.Item>
+                    {levelExists && (
+                      <div style={{ color: "red", marginBottom: 12 }}>
+                        Cấp độ này của chuyên ngành đã tồn tại!
+                      </div>
+                    )}
+                    <Form.Item
+                      name="levelPrice"
+                      label="Giá cấp độ (VNĐ)"
+                      rules={[
+                        { required: true, message: "Vui lòng nhập giá cấp độ" },
+                        {
+                          validator: (_, value) => {
+                            // Lấy các cấp độ cùng chuyên ngành
+                            const sameMajorLevels = levels.filter(
+                              (lv) =>
+                                lv.majorId === selectedMajor &&
+                                lv.levelAssignedId !== selectedLevelName
+                            );
+                            // Lấy giá các cấp độ khác
+                            const priceByLevel = {};
+                            sameMajorLevels.forEach((lv) => {
+                              priceByLevel[lv.levelName] = lv.levelPrice;
+                            });
+                            // Gán giá mới cho cấp độ đang xét
+                            priceByLevel[selectedLevelName] = value;
+                            // Kiểm tra ràng buộc thứ tự giá
+                            if (
+                              (priceByLevel["Nâng cao"] !== undefined &&
+                                priceByLevel["Trung cấp"] !== undefined &&
+                                priceByLevel["Nâng cao"] <=
+                                  priceByLevel["Trung cấp"]) ||
+                              (priceByLevel["Trung cấp"] !== undefined &&
+                                priceByLevel["Sơ cấp"] !== undefined &&
+                                priceByLevel["Trung cấp"] <=
+                                  priceByLevel["Sơ cấp"]) ||
+                              (priceByLevel["Sơ cấp"] !== undefined &&
+                                priceByLevel["Mới bắt đầu"] !== undefined &&
+                                priceByLevel["Sơ cấp"] <=
+                                  priceByLevel["Mới bắt đầu"])
+                            ) {
+                              return Promise.reject(
+                                new Error(
+                                  "Giá tiền của các cấp độ phải theo thứ tự: Nâng cao > Trung cấp > Sơ cấp > Mới bắt đầu"
+                                )
+                              );
+                            }
+                            return Promise.resolve();
+                          },
+                        },
+                      ]}
+                    >
+                      <InputNumber
+                        style={{ width: "100%" }}
+                        formatter={(value) =>
+                          `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                        }
+                        parser={(value) => value.replace(/\$\s?|(,*)/g, "")}
+                        min={100000}
+                        max={10000000}
+                        step={1000}
+                        placeholder="Nhập giá từ 100.000 đến 10.000.000"
+                      />
+                    </Form.Item>
+                    {priceConstraintError && (
+                      <div style={{ color: "red", marginBottom: 12 }}>
+                        {priceConstraintError}
+                      </div>
+                    )}
+                  </>
+                )}
+              </Form>
+            </Modal>
+            <Modal
+              open={notificationModal.visible}
+              footer={null}
+              onCancel={() =>
+                setNotificationModal({ ...notificationModal, visible: false })
+              }
+              width={400}
+              centered
+            >
+              <div style={{ textAlign: "center", padding: "20px" }}>
+                {notificationModal.type === "success" ? (
+                  <CheckCircleOutlined
+                    style={{
+                      fontSize: "48px",
+                      color: "#52c41a",
+                      marginBottom: "16px",
+                    }}
+                  />
+                ) : (
+                  <CloseCircleOutlined
+                    style={{
+                      fontSize: "48px",
+                      color: "#ff4d4f",
+                      marginBottom: "16px",
+                    }}
+                  />
+                )}
+                <h2 style={{ marginBottom: "8px" }}>
+                  {notificationModal.message}
+                </h2>
+                <p style={{ color: "#666" }}>{notificationModal.description}</p>
                 <Button
                   type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={handleAddLevel}
-                >
-                  Thêm cấp độ
-                </Button>
-                <Tooltip title="Làm mới">
-                  <Button icon={<ReloadOutlined />} onClick={fetchLevels} />
-                </Tooltip>
-              </Space>
-            </div>
-
-            <Spin spinning={loading}>
-              <Table
-                columns={columns}
-                dataSource={levels}
-                rowKey="levelAssignedId"
-                pagination={{
-                  pageSize: 10,
-                  showSizeChanger: true,
-                  showTotal: (total) => `Tổng số ${total} cấp độ`,
-                }}
-              />
-            </Spin>
-          </Card>
-
-          <Modal
-            title={editingLevel ? "Chỉnh sửa cấp độ" : "Thêm cấp độ mới"}
-            open={isModalVisible}
-            onOk={handleModalOk}
-            onCancel={handleModalCancel}
-            destroyOnClose={true}
-            maskClosable={false}
-            keyboard={false}
-            closable={true}
-            okButtonProps={{ disabled: isUploading }}
-            okText="Lưu"
-            cancelText="Hủy"
-            afterClose={() => {
-              console.log("Modal afterClose event");
-              resetFormState();
-            }}
-            width={700}
-            centered={true}
-            className="level-modal"
-          >
-            <Form form={form} layout="vertical">
-              <Form.Item
-                name="majorId"
-                label="Chuyên ngành"
-                rules={[
-                  {
-                    required: !editingLevel,
-                    message: "Vui lòng chọn chuyên ngành",
-                  },
-                ]}
-              >
-                <Select
-                  onChange={handleMajorChange}
-                  disabled={!!editingLevel}
-                  placeholder="Chọn chuyên ngành"
-                >
-                  {majors.map((major) => (
-                    <Option key={major.majorId} value={major.majorId}>
-                      {major.majorName}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-
-              <Form.Item
-                name="levelName"
-                label="Tên cấp độ"
-                rules={[
-                  { required: true, message: "Vui lòng chọn tên cấp độ" },
-                ]}
-              >
-                {editingLevel ? (
-                  <Input placeholder="Nhập tên cấp độ" disabled />
-                ) : (
-                  <Select
-                    placeholder="Chọn tên cấp độ"
-                    disabled={!selectedMajor}
-                    onChange={handleLevelNameChange}
-                  >
-                    {availableLevels.map((level) => (
-                      <Option key={level} value={level}>
-                        {level}
-                      </Option>
-                    ))}
-                  </Select>
-                )}
-              </Form.Item>
-
-              <Form.Item
-                name="levelPrice"
-                label="Giá/Buổi"
-                rules={[
-                  { required: true, message: "Vui lòng nhập giá" },
-                  {
-                    validator: async (_, value) => {
-                      if (value < 100000) {
-                        return Promise.reject(
-                          "Giá phải lớn hơn hoặc bằng 100,000 VND"
-                        );
-                      }
-                      if (value > 10000000) {
-                        return Promise.reject(
-                          "Giá phải nhỏ hơn hoặc bằng 10,000,000 VND"
-                        );
-                      }
-                      const currentMajorId = editingLevel
-                        ? editingLevel.majorId
-                        : form.getFieldValue("majorId");
-                      const currentLevelName = editingLevel
-                        ? editingLevel.levelName
-                        : form.getFieldValue("levelName");
-                      const currentLevelPrice = value;
-                      const sameMajorLevels = levels.filter(
-                        (lv) =>
-                          lv.majorId === currentMajorId &&
-                          (!editingLevel ||
-                            lv.levelAssignedId !== editingLevel.levelAssignedId)
-                      );
-                      if (currentLevelName && LEVEL_ORDER[currentLevelName]) {
-                        const lowerLevel = sameMajorLevels.find(
-                          (lv) =>
-                            LEVEL_ORDER[lv.levelName] ===
-                            LEVEL_ORDER[currentLevelName] - 1
-                        );
-                        if (
-                          lowerLevel &&
-                          currentLevelPrice < lowerLevel.levelPrice
-                        ) {
-                          return Promise.reject(
-                            `Giá của cấp độ ${currentLevelName} không được thấp hơn ${
-                              lowerLevel.levelName
-                            } (${lowerLevel.levelPrice.toLocaleString()} VND)`
-                          );
-                        }
-                        const higherLevel = sameMajorLevels.find(
-                          (lv) =>
-                            LEVEL_ORDER[lv.levelName] ===
-                            LEVEL_ORDER[currentLevelName] + 1
-                        );
-                        if (
-                          higherLevel &&
-                          currentLevelPrice > higherLevel.levelPrice
-                        ) {
-                          return Promise.reject(
-                            `Giá của cấp độ ${currentLevelName} không được cao hơn ${
-                              higherLevel.levelName
-                            } (${higherLevel.levelPrice.toLocaleString()} VND)`
-                          );
-                        }
-                      }
-                      return Promise.resolve();
-                    },
-                  },
-                ]}
-                tooltip={`Giá phải từ 100,000 VND đến 10,000,000 VND`}
-              >
-                <InputNumber
-                  style={{ width: "100%" }}
-                  formatter={(value) =>
-                    `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                  onClick={() =>
+                    setNotificationModal({
+                      ...notificationModal,
+                      visible: false,
+                    })
                   }
-                  parser={(value) => value.replace(/\$\s?|(,*)/g, "")}
-                  min={100000}
-                  max={10000000}
-                  step={10000}
-                  keyboard={false}
-                  placeholder="Nhập giá"
-                  onBlur={(e) => {
-                    let value = Number(e.target.value.replace(/,/g, ""));
-                    if (isNaN(value)) value = 100000;
-                    if (value < 100000) value = 100000;
-                    if (value > 10000000) value = 10000000;
-                    value = Math.round(value);
-                    form.setFieldsValue({ levelPrice: value });
-                  }}
-                  onChange={(value) => {
-                    if (value === undefined || value === null) return;
-                    let v = Number(value);
-                    if (isNaN(v)) v = 100000;
-                    if (v < 100000) v = 100000;
-                    if (v > 10000000) v = 10000000;
-                    v = Math.round(v);
-                    form.setFieldsValue({ levelPrice: v });
-                  }}
-                />
-              </Form.Item>
-            </Form>
-          </Modal>
-
-          <Modal
-            title="Xác nhận xóa"
-            open={isDeleteConfirmVisible}
-            onOk={confirmDelete}
-            onCancel={() => {
-              setIsDeleteConfirmVisible(false);
-              setDeletingLevelRecord(null);
-              console.log("Đã hủy thao tác xóa");
-            }}
-            okText="Xóa"
-            okType="danger"
-            cancelText="Hủy"
-            centered
-          >
-            <p>
-              Bạn có chắc chắn muốn xóa cấp độ{" "}
-              <strong>{deletingLevelRecord?.levelName}</strong> không?
-            </p>
-            <p>Hành động này không thể hoàn tác.</p>
-          </Modal>
-
-          <Modal
-            title={`Giáo trình cấp độ ${currentLevelName}`}
-            open={isPdfModalVisible}
-            onCancel={() => {
-              setIsPdfModalVisible(false);
-              setViewerError(false);
-            }}
-            width={1000}
-            footer={[
-              <Button
-                key="download"
-                type="primary"
-                icon={<DownloadOutlined />}
-                onClick={() => window.open(currentPdfUrl, "_blank")}
-              >
-                Tải xuống
-              </Button>,
-              <Button
-                key="close"
-                onClick={() => {
-                  setIsPdfModalVisible(false);
-                  setViewerError(false);
-                }}
-              >
-                Đóng
-              </Button>,
-            ]}
-            bodyStyle={{ height: "80vh", padding: 0 }}
-          >
-            <div
-              style={{ width: "100%", height: "100%", position: "relative" }}
-            >
-              {viewerError ? (
-                <div className="flex flex-col items-center justify-center h-full">
-                  <div className="text-red-500 mb-4">
-                    <WarningOutlined style={{ fontSize: "32px" }} />
-                  </div>
-                  <p className="text-gray-600 mb-4">
-                    Không thể hiển thị file. Vui lòng tải xuống để xem.
-                  </p>
-                  <Button
-                    type="primary"
-                    icon={<DownloadOutlined />}
-                    onClick={() => window.open(currentPdfUrl, "_blank")}
-                  >
-                    Tải xuống
-                  </Button>
-                </div>
-              ) : (
-                <iframe
-                  src={`https://docs.google.com/viewer?url=${encodeURIComponent(
-                    currentPdfUrl
-                  )}&embedded=true`}
-                  style={{ width: "100%", height: "100%", border: "none" }}
-                  onError={handleViewerError}
-                  title="File Viewer"
-                />
-              )}
-              <div
-                style={{
-                  position: "absolute",
-                  top: "50%",
-                  left: "50%",
-                  transform: "translate(-50%, -50%)",
-                  display: viewerError ? "none" : "block",
-                }}
-              >
-                <Spin size="large" />
+                  style={{ marginTop: "16px" }}
+                >
+                  Đóng
+                </Button>
               </div>
-            </div>
-          </Modal>
+            </Modal>
+          </div>
         </Content>
       </Layout>
     </Layout>

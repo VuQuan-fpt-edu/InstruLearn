@@ -228,6 +228,26 @@ const MyRegistrations = () => {
             Đã chấp nhận
           </Tag>
         );
+      case "Fourty":
+        return (
+          <Tag
+            icon={<CheckCircleOutlined />}
+            color="orange"
+            className="px-3 py-1 text-base"
+          >
+            Đã thanh toán 40%
+          </Tag>
+        );
+      case "Sixty":
+        return (
+          <Tag
+            icon={<CheckCircleOutlined />}
+            color="blue"
+            className="px-3 py-1 text-base"
+          >
+            Đã thanh toán 60%
+          </Tag>
+        );
       case "Rejected":
         return (
           <Tag
@@ -238,41 +258,11 @@ const MyRegistrations = () => {
             Từ chối
           </Tag>
         );
-      case "Completed":
-        return (
-          <Tag
-            icon={<CheckCircleOutlined />}
-            color="processing"
-            className="px-3 py-1 text-base"
-          >
-            Đã thanh toán
-          </Tag>
-        );
-      case "Fourty":
-        return (
-          <Tag
-            icon={<CheckCircleOutlined />}
-            color="processing"
-            className="px-3 py-1 text-base"
-          >
-            Đã thanh toán 40%
-          </Tag>
-        );
-      case "Sixty":
-        return (
-          <Tag
-            icon={<CheckCircleOutlined />}
-            color="success"
-            className="px-3 py-1 text-base"
-          >
-            Đã thanh toán đầy đủ
-          </Tag>
-        );
       case "FourtyFeedbackDone":
         return (
           <Tag
             icon={<CheckCircleOutlined />}
-            color="processing"
+            color="purple"
             className="px-3 py-1 text-base"
           >
             Đã phản hồi
@@ -282,10 +272,40 @@ const MyRegistrations = () => {
         return (
           <Tag
             icon={<CloseCircleOutlined />}
-            color="error"
+            color="default"
             className="px-3 py-1 text-base"
           >
             Đã hủy
+          </Tag>
+        );
+      case "FullyPaid":
+        return (
+          <Tag
+            icon={<CheckCircleOutlined />}
+            color="success"
+            className="px-3 py-1 text-base"
+          >
+            Đã thanh toán đầy đủ
+          </Tag>
+        );
+      case "Payment40Rejected":
+        return (
+          <Tag
+            icon={<CloseCircleOutlined />}
+            color="red"
+            className="px-3 py-1 text-base"
+          >
+            Từ chối thanh toán 40%
+          </Tag>
+        );
+      case "Payment60Rejected":
+        return (
+          <Tag
+            icon={<CloseCircleOutlined />}
+            color="red"
+            className="px-3 py-1 text-base"
+          >
+            Từ chối thanh toán 60%
           </Tag>
         );
       default:
