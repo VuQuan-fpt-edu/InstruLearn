@@ -459,6 +459,7 @@ const LevelManagement = () => {
                       />
                     </Form.Item>
                     <Form.Item
+                      style={{ display: "none" }}
                       name="syllabusLink"
                       label="Link giáo trình (syllabusLink)"
                     >

@@ -23,6 +23,7 @@ import {
   CloseCircleOutlined,
   PlayCircleOutlined,
   EyeOutlined,
+  ExclamationCircleOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
 import dayjs from "dayjs";
@@ -917,6 +918,14 @@ const RegistrationDetail = () => {
                               Đã quá hạn thanh toán
                             </div>
                           )}
+                          <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
+                            <div className="text-sm text-yellow-700">
+                              <ExclamationCircleOutlined className="mr-1" />
+                              Sau khi học xong 40% tổng số buổi học viên sẽ phải
+                              làm feedback đánh giá để xác định học viên có muốn
+                              tiếp tục học tiếp hay không?
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1176,7 +1185,9 @@ const RegistrationDetail = () => {
               Xác nhận từ chối thanh toán
             </div>
             <div className="text-gray-500">
-              Bạn có chắc chắn muốn từ chối thanh toán không?
+              Học viên có chắc sẽ từ chối thanh toán học phí không? Khi từ chối
+              thanh toán lịch học của học viên trong tương lai sẽ bị hủy, điều
+              này không thể hoàn tác
             </div>
           </div>
         }
@@ -1200,10 +1211,10 @@ const RegistrationDetail = () => {
           <div className="mb-4">
             <CloseCircleOutlined className="text-6xl text-red-500" />
           </div>
-          <div className="text-lg mb-4">
+          {/* <div className="text-lg mb-4">
             Việc từ chối thanh toán đồng nghĩa với việc lịch học của bạn sẽ bị
             hủy bỏ.
-          </div>
+          </div> */}
         </div>
       </Modal>
 

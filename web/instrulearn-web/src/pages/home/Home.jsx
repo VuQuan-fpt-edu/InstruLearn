@@ -275,44 +275,7 @@ export default function Home() {
   ];
 
   const handleBookingClick = () => {
-    const token = localStorage.getItem("authToken");
-    if (!token) {
-      setIsLoginWarningModalVisible(true);
-      return;
-    }
-
-    // Kiểm tra thông tin địa chỉ và số điện thoại
-    if (!userProfile?.address || !userProfile?.phoneNumber) {
-      setIsProfileUpdateModalVisible(true);
-      return;
-    }
-
-    // Cập nhật số dư ví trước khi kiểm tra
-    if (userProfile?.learnerId) {
-      fetchWalletBalance(userProfile.learnerId).then(() => {
-        // Kiểm tra số dư ví sau khi đã cập nhật
-        const requiredBalance = 50000;
-        if (walletBalance < requiredBalance) {
-          setIsInsufficientBalanceModalVisible(true);
-        } else {
-          setIsConfirmModalVisible(true);
-        }
-      });
-    }
-  };
-
-  const handleConfirmBooking = () => {
-    setIsConfirmModalVisible(false);
-    if (walletBalance >= 50000) {
-      navigate("/booking1-1");
-    } else {
-      setIsInsufficientBalanceModalVisible(true);
-    }
-  };
-
-  const handleNavigateToWallet = () => {
-    setIsInsufficientBalanceModalVisible(false);
-    navigate("/profile/topup");
+    navigate("/booking1-1");
   };
 
   const handleEnrollClass = (classItem) => {
@@ -815,12 +778,15 @@ export default function Home() {
           setIsProfileUpdateModalVisible(false);
           navigate("/profile");
         }}
-        onCancel={() => setIsProfileUpdateModalVisible(false)}
+        onCancel={null}
         width={500}
         className="custom-modal"
         okText="Cập nhật ngay"
-        cancelText="Để sau"
+        cancelButtonProps={{ style: { display: "none" } }}
         okButtonProps={{ className: "bg-purple-600 hover:bg-purple-700" }}
+        closable={false}
+        maskClosable={false}
+        keyboard={false}
       >
         <div className="text-center py-4">
           <div className="bg-yellow-50 rounded-lg p-6 mb-4">
@@ -888,57 +854,6 @@ export default function Home() {
                 Điền đầy đủ thông tin đăng ký
               </li>
             </ul>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Confirm Join Modal */}
-      <Modal
-        title={
-          <div className="text-center">
-            <div className="text-2xl font-bold text-purple-600 mb-2">
-              Xác nhận đăng ký học theo yêu cầu
-            </div>
-            <div className="text-gray-500">
-              Vui lòng kiểm tra thông tin trước khi xác nhận
-            </div>
-          </div>
-        }
-        open={isConfirmModalVisible}
-        onOk={handleConfirmBooking}
-        onCancel={() => setIsConfirmModalVisible(false)}
-        okText="Bắt đầu đăng ký"
-        cancelText="Hủy"
-        okButtonProps={{
-          className: "bg-purple-600 hover:bg-purple-700",
-          loading: joining,
-        }}
-      >
-        <div className="py-4">
-          <div className="bg-purple-50 rounded-lg p-6 mb-4">
-            <div className="text-center">
-              <div className="text-xl font-bold text-purple-600 mb-2">
-                Phí đăng ký học theo yêu cầu
-              </div>
-              <div className="text-3xl font-bold text-purple-700 mb-2">
-                50,000 VND
-              </div>
-            </div>
-            <Divider />
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span>Số dư hiện tại:</span>
-                <span className="font-medium">
-                  {formatPrice(walletBalance)}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>Số dư sau khi thanh toán:</span>
-                <span className="font-medium">
-                  {formatPrice(walletBalance - 50000)}
-                </span>
-              </div>
-            </div>
           </div>
         </div>
       </Modal>

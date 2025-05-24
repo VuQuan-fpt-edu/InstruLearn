@@ -459,6 +459,14 @@ const StudentPersonalSchedule = () => {
                                           ).text
                                         }
                                       </Tag>
+                                      {schedule.preferenceStatus === 2 && (
+                                        <Tag
+                                          color="green"
+                                          style={{ marginLeft: 8 }}
+                                        >
+                                          Có học bù
+                                        </Tag>
+                                      )}
                                     </div>
 
                                     <div className="flex items-center justify-between mb-3 p-2 bg-white rounded border border-gray-100">

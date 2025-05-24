@@ -22,6 +22,7 @@ import {
   DeleteOutlined,
   ExclamationCircleOutlined,
   ReloadOutlined,
+  CheckCircleOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
 import ManagerSidebar from "../../components/manager/ManagerSidebar";
@@ -46,6 +47,8 @@ const ResponseManagement = () => {
   const [editForm] = Form.useForm();
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [editCharCount, setEditCharCount] = useState(0);
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
   useEffect(() => {
     fetchResponses();
@@ -162,7 +165,6 @@ const ResponseManagement = () => {
 
     try {
       if (editingResponse) {
-        // Cập nhật Response
         const response = await axios.put(
           `https://instrulearnapplication.azurewebsites.net/api/Response/update/${editingResponse.responseId}`,
           {
@@ -171,7 +173,8 @@ const ResponseManagement = () => {
         );
 
         if (response.data?.isSucceed) {
-          message.success("Cập nhật phản hồi thành công");
+          setSuccessMessage("Cập nhật phản hồi thành công");
+          setSuccessModalVisible(true);
           setIsEditModalVisible(false);
           editForm.resetFields();
           editForm.setFields([{ name: "responseDescription", errors: [] }]);
@@ -185,7 +188,6 @@ const ResponseManagement = () => {
           );
         }
       } else {
-        // Tạo mới Response
         const response = await axios.post(
           "https://instrulearnapplication.azurewebsites.net/api/Response/create",
           {
@@ -195,7 +197,8 @@ const ResponseManagement = () => {
         );
 
         if (response.data?.isSucceed) {
-          message.success("Thêm phản hồi thành công");
+          setSuccessMessage("Thêm phản hồi thành công");
+          setSuccessModalVisible(true);
           setModalVisible(false);
           form.resetFields();
           form.setFields([{ name: "responseDescription", errors: [] }]);
@@ -247,7 +250,8 @@ const ResponseManagement = () => {
       );
 
       if (response.data?.isSucceed) {
-        message.success("Cập nhật phản hồi thành công");
+        setSuccessMessage("Cập nhật phản hồi thành công");
+        setSuccessModalVisible(true);
         setIsEditModalVisible(false);
         editForm.resetFields();
         editForm.setFields([{ name: "responseDescription", errors: [] }]);
@@ -507,6 +511,51 @@ const ResponseManagement = () => {
                 </Space>
               </Form.Item>
             </Form>
+          </Modal>
+
+          {/* Modal thông báo thành công */}
+          <Modal
+            title={null}
+            open={successModalVisible}
+            onOk={() => setSuccessModalVisible(false)}
+            onCancel={() => setSuccessModalVisible(false)}
+            footer={null}
+            width={400}
+            centered
+            closable={false}
+            maskClosable={false}
+          >
+            <div className="text-center py-6">
+              <CheckCircleOutlined
+                style={{
+                  fontSize: "48px",
+                  color: "#52c41a",
+                  marginBottom: "16px",
+                }}
+              />
+              <Typography.Title level={4} style={{ marginBottom: "8px" }}>
+                {successMessage}
+              </Typography.Title>
+              <Typography.Text
+                type="secondary"
+                style={{ display: "block", marginBottom: "24px" }}
+              >
+                Hệ thống đã cập nhật thông tin thành công
+              </Typography.Text>
+              <Button
+                type="primary"
+                onClick={() => setSuccessModalVisible(false)}
+                style={{
+                  minWidth: "120px",
+                  height: "40px",
+                  borderRadius: "6px",
+                  backgroundColor: "#1890ff",
+                  border: "none",
+                }}
+              >
+                Đồng ý
+              </Button>
+            </div>
           </Modal>
         </Content>
       </Layout>

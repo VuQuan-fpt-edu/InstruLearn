@@ -66,6 +66,9 @@ const TeacherSidebar = ({
       case "notification":
         navigate("/teacher/notification");
         break;
+      case "class-management":
+        navigate("/teacher/class-management");
+        break;
       default:
         break;
     }
@@ -95,6 +98,7 @@ const TeacherSidebar = ({
         { key: "students", label: "Danh sách học viên" },
         { key: "class-progress", label: "Theo dõi tiến độ" },
         { key: "student-feedback", label: "Phản hồi học viên" },
+        { key: "class-management", label: "Quản lý lớp học" },
       ],
     },
     {

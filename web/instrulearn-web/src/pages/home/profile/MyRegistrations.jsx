@@ -89,7 +89,7 @@ const MyRegistrations = () => {
 
       if (response.data?.isSucceed) {
         const filteredData = response.data.data.filter(
-          (reg) => reg.RegisTypeName === "Đăng ký học theo yêu cầu"
+          (reg) => reg.RegisTypeName === "Đăng kí học theo yêu cầu"
         );
 
         const vietnameseData = filteredData

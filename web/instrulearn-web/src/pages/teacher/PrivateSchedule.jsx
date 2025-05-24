@@ -55,6 +55,7 @@ const PrivateSchedule = () => {
   const [selectedSchedules, setSelectedSchedules] = useState([]);
   const [showAbsenceOptions, setShowAbsenceOptions] = useState({});
   const [selectedPreferenceStatus, setSelectedPreferenceStatus] = useState({});
+  const [attendanceMessage, setAttendanceMessage] = useState({});
 
   const fetchSchedules = async () => {
     try {
@@ -114,6 +115,7 @@ const PrivateSchedule = () => {
   const handleAttendance = async (scheduleId, status, preferenceStatus = 0) => {
     try {
       setAttendanceLoading(true);
+      setAttendanceMessage((prev) => ({ ...prev, [scheduleId]: "" }));
       const token = localStorage.getItem("authToken");
       const body = { status, preferenceStatus };
       const response = await axios.put(
@@ -126,8 +128,13 @@ const PrivateSchedule = () => {
           },
         }
       );
+      console.log("API điểm danh trả về:", response.data);
       if (response.data.isSucceed) {
-        message.success("Cập nhật điểm danh thành công");
+        Modal.success({
+          title: "Thành công",
+          content: response.data.message || "Cập nhật điểm danh thành công",
+        });
+        setAttendanceMessage((prev) => ({ ...prev, [scheduleId]: "" }));
         const newSchedules = await fetchSchedules();
         if (modalVisible && selectedDate && newSchedules) {
           const dateStr = selectedDate.format("YYYY-MM-DD");
@@ -156,11 +163,18 @@ const PrivateSchedule = () => {
           });
         }
       } else {
-        throw new Error("Không thể cập nhật điểm danh");
+        setAttendanceMessage((prev) => ({
+          ...prev,
+          [scheduleId]: response.data.message || "Không thể cập nhật điểm danh",
+        }));
       }
     } catch (error) {
-      console.error("Error updating attendance:", error);
-      message.error("Không thể cập nhật điểm danh");
+      console.error("Lỗi khi gọi API điểm danh:", error);
+      setAttendanceMessage((prev) => ({
+        ...prev,
+        [scheduleId]:
+          error?.response?.data?.message || "Không thể cập nhật điểm danh",
+      }));
     } finally {
       setAttendanceLoading(false);
     }
@@ -180,17 +194,8 @@ const PrivateSchedule = () => {
   };
 
   const canTakeAttendance = (startDay) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const classDate = new Date(startDay);
-    classDate.setHours(0, 0, 0, 0);
-
-    // Tính số ngày chênh lệch
-    const diffTime = Math.abs(today - classDate);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    // Chỉ cho phép điểm danh trong ngày học hoặc 1 ngày sau
-    return diffDays <= 1 && classDate <= today && !isPastDate(startDay);
+    // Luôn cho phép điểm danh, bỏ mọi ràng buộc ngày tháng
+    return true;
   };
 
   const isPastDate = (startDay) => {
@@ -657,6 +662,14 @@ const PrivateSchedule = () => {
                               <div>
                                 <Title level={5}>Điểm danh</Title>
                                 <div className="flex flex-col items-center space-y-2">
+                                  {/* Hiển thị message lỗi từ API nếu có (đặt lên trên các nút) */}
+                                  {attendanceMessage[schedule.scheduleId] && (
+                                    <div
+                                      style={{ color: "red", marginBottom: 8 }}
+                                    >
+                                      {attendanceMessage[schedule.scheduleId]}
+                                    </div>
+                                  )}
                                   <div className="flex justify-center space-x-4 mb-2">
                                     <Button
                                       type="primary"
@@ -673,10 +686,7 @@ const PrivateSchedule = () => {
                                       }}
                                       className="bg-green-500 hover:bg-green-600"
                                       loading={attendanceLoading}
-                                      disabled={
-                                        schedule.attendanceStatus === 1 ||
-                                        !canTakeAttendance(schedule.startDay)
-                                      }
+                                      disabled={schedule.attendanceStatus === 1}
                                       icon={<CheckCircleOutlined />}
                                     >
                                       Có mặt
@@ -694,9 +704,6 @@ const PrivateSchedule = () => {
                                         }));
                                       }}
                                       loading={attendanceLoading}
-                                      disabled={
-                                        !canTakeAttendance(schedule.startDay)
-                                      }
                                       icon={<CloseCircleOutlined />}
                                       style={{
                                         background:
@@ -773,15 +780,6 @@ const PrivateSchedule = () => {
                                       )}
                                     </div>
                                   ) : null}
-                                  {!canTakeAttendance(schedule.startDay) && (
-                                    <div className="text-center mt-2">
-                                      <Text type="warning">
-                                        {isPastDate(schedule.startDay)
-                                          ? "Đã quá hạn điểm danh"
-                                          : "Chưa đến ngày dạy"}
-                                      </Text>
-                                    </div>
-                                  )}
                                 </div>
                               </div>
                             </div>
@@ -789,7 +787,7 @@ const PrivateSchedule = () => {
                           <TabPane
                             tab={
                               <span>
-                                <BookOutlined /> Lộ trình học
+                                <BookOutlined /> Nội dung bài học
                               </span>
                             }
                             key="path"
@@ -797,7 +795,7 @@ const PrivateSchedule = () => {
                             <div className="space-y-4">
                               <div className="flex items-center justify-between">
                                 <Title level={5} className="mb-0">
-                                  Thông tin lộ trình
+                                  Thông tin bài học
                                 </Title>
                                 {/* <Tag
                                   color={
