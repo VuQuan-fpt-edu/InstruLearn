@@ -353,7 +353,6 @@ const Notification = () => {
                           <Button
                             type="primary"
                             onClick={() => handleViewFeedback(item)}
-                            disabled={item.feedbackStatus !== "NotStarted"}
                           >
                             {item.feedbackStatus === "NotStarted"
                               ? "Phản hồi"
@@ -672,6 +671,39 @@ const Notification = () => {
                                             "Vui lòng nhập lý do đổi giáo viên",
                                         },
                                       ]}
+                                      extra={
+                                        <div className="text-orange-600 text-sm mt-1 bg-orange-50 p-3 rounded-md border border-orange-200">
+                                          <div className="mb-2">
+                                            <span className="font-semibold">
+                                              Lưu ý quan trọng:
+                                            </span>
+                                          </div>
+                                          <ul className="list-disc pl-4 space-y-1">
+                                            <li>
+                                              <span className="font-medium">
+                                                Ghi rõ lý do cụ thể, chính đáng
+                                              </span>{" "}
+                                              khi muốn đổi giáo viên
+                                            </li>
+                                            <li>
+                                              Việc đổi giáo viên chỉ được chấp
+                                              nhận khi có{" "}
+                                              <span className="font-medium">
+                                                lý do hợp lý, trung thực
+                                              </span>
+                                            </li>
+                                            <li className="text-red-600">
+                                              Nếu phát hiện{" "}
+                                              <span className="font-medium">
+                                                viện cớ hoặc khai báo không đúng
+                                                sự thật
+                                              </span>
+                                              , trung tâm có quyền từ chối yêu
+                                              cầu đổi giáo viên
+                                            </li>
+                                          </ul>
+                                        </div>
+                                      }
                                     >
                                       <Input.TextArea
                                         rows={3}
@@ -729,10 +761,38 @@ const Notification = () => {
                   <div className="text-center py-8">
                     <CheckCircleOutlined className="text-green-500 text-4xl mb-3" />
                     <Title level={4}>Phản hồi đã được gửi</Title>
-                    <Text type="secondary">
-                      Cảm ơn bạn đã gửi phản hồi về khóa học. Chúng tôi sẽ xem
-                      xét và liên hệ lại nếu cần thiết.
+                    <Text type="secondary" className="block mb-6">
+                      {selectedNotification.message}
                     </Text>
+
+                    <div className="text-left bg-gray-50 p-4 rounded-lg mb-6">
+                      <Title level={5} className="mb-4">
+                        Chi tiết phản hồi của bạn:
+                      </Title>
+                      {selectedNotification.questions.map((question) => {
+                        const answer = selectedNotification.answers.find(
+                          (a) => a.questionId === question.questionId
+                        );
+                        const selectedOption = question.options.find(
+                          (o) => o.optionId === answer?.selectedOptionId
+                        );
+
+                        return (
+                          <div
+                            key={question.questionId}
+                            className="mb-4 pb-4 border-b border-gray-200 last:border-0"
+                          >
+                            <div className="font-medium text-gray-700 mb-2">
+                              {question.questionText}
+                            </div>
+                            <div className="text-blue-600">
+                              {selectedOption?.optionText}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
                     <div className="mt-6">
                       <Button onClick={() => setFeedbackModalVisible(false)}>
                         Đóng

@@ -402,6 +402,7 @@ const Profile = () => {
 
       // Sử dụng dữ liệu hiện tại cho các trường khác
       const updateData = {
+        fullName: profile.fullName || localStorage.getItem("fullName") || "",
         phoneNumber: profile.phoneNumber || "",
         gender: profile.gender || "",
         address: profile.address || "",
@@ -914,9 +915,13 @@ const Profile = () => {
                   required: true,
                   message: "Vui lòng nhập họ và tên!",
                 },
+                {
+                  max: 50,
+                  message: "Họ và tên không được vượt quá 50 ký tự!",
+                },
               ]}
             >
-              <Input prefix={<UserOutlined />} />
+              <Input prefix={<UserOutlined />} maxLength={50} showCount />
             </Form.Item>
 
             <Form.Item
@@ -924,12 +929,13 @@ const Profile = () => {
               label="Số điện thoại"
               rules={[
                 {
-                  pattern: /^[0-9]{10}$/,
-                  message: "Số điện thoại không hợp lệ!",
+                  pattern: /^0[0-9]{9}$/,
+                  message:
+                    "Số điện thoại không hợp lệ! Số điện thoại phải bắt đầu bằng số 0 và đủ 10 số.",
                 },
               ]}
             >
-              <Input prefix={<PhoneOutlined />} />
+              <Input prefix={<PhoneOutlined />} minLength={10} maxLength={10} />
             </Form.Item>
 
             <Form.Item name="gender" label="Giới tính">
@@ -940,8 +946,14 @@ const Profile = () => {
               </Select>
             </Form.Item>
 
-            <Form.Item name="address" label="Địa chỉ">
-              <Input.TextArea rows={3} />
+            <Form.Item
+              name="address"
+              label="Địa chỉ"
+              rules={[
+                { max: 100, message: "Địa chỉ không được vượt quá 100 ký tự!" },
+              ]}
+            >
+              <Input.TextArea rows={3} maxLength={100} showCount />
             </Form.Item>
 
             <div className="flex justify-end space-x-2">

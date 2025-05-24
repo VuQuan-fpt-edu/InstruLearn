@@ -54,9 +54,13 @@ const MyLibrary = () => {
   const [pdfViewerVisible, setPdfViewerVisible] = useState(false);
   const [currentPdfUrl, setCurrentPdfUrl] = useState("");
   const [maxWatchedTime, setMaxWatchedTime] = useState(0);
+  const [itemTypes, setItemTypes] = useState([]);
+  const [imageModalVisible, setImageModalVisible] = useState(false);
+  const [currentImageUrl, setCurrentImageUrl] = useState("");
 
   useEffect(() => {
     fetchData();
+    fetchItemTypes();
   }, []);
 
   useEffect(() => {
@@ -132,6 +136,19 @@ const MyLibrary = () => {
       message.error("Không thể tải thông tin khóa học");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchItemTypes = async () => {
+    try {
+      const response = await axios.get(
+        "https://instrulearnapplication.azurewebsites.net/api/ItemType/get-all"
+      );
+      if (response.data?.isSucceed) {
+        setItemTypes(response.data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching item types:", error);
     }
   };
 
@@ -437,15 +454,19 @@ const MyLibrary = () => {
     }
   };
 
+  const getItemTypeName = (itemTypeId) => {
+    const found = itemTypes.find((type) => type.itemTypeId === itemTypeId);
+    return found ? found.itemTypeName : "Nội dung";
+  };
+
   const getItemTypeIcon = (itemTypeId) => {
-    switch (itemTypeId) {
-      case 2:
-        return <PlayCircleOutlined className="text-green-500" />;
-      case 3:
-        return <FilePdfOutlined className="text-red-500" />;
-      default:
-        return <FileImageOutlined className="text-blue-500" />;
-    }
+    const typeName = getItemTypeName(itemTypeId);
+    if (typeName === "Video")
+      return <PlayCircleOutlined className="text-green-500" />;
+    if (typeName === "PDF") return <FilePdfOutlined className="text-red-500" />;
+    if (typeName === "Hình ảnh" || typeName === "Image")
+      return <FileImageOutlined className="text-blue-500" />;
+    return <FileTextOutlined className="text-blue-500" />;
   };
 
   const getCourseProgress = (coursePackageId) => {
@@ -513,11 +534,12 @@ const MyLibrary = () => {
                 itemLayout="horizontal"
                 dataSource={content.courseContentItems}
                 renderItem={(item) => {
+                  const typeName = getItemTypeName(item.itemTypeId);
                   return (
                     <List.Item
                       className="border border-gray-100 rounded-md p-3 mb-2 hover:bg-gray-50"
                       actions={[
-                        item.itemTypeId === 2 ? (
+                        typeName === "Video" ? (
                           <Button
                             type="primary"
                             icon={<PlayCircleOutlined />}
@@ -528,6 +550,26 @@ const MyLibrary = () => {
                           >
                             Xem video
                           </Button>
+                        ) : typeName === "PDF" ? (
+                          <Button
+                            type="primary"
+                            icon={<FilePdfOutlined />}
+                            onClick={() =>
+                              handleViewDocument(item.itemDes, item.itemId)
+                            }
+                            className="bg-blue-600 hover:bg-blue-700"
+                          >
+                            Xem PDF
+                          </Button>
+                        ) : typeName === "Hình ảnh" || typeName === "Image" ? (
+                          <Button
+                            type="primary"
+                            icon={<FileImageOutlined />}
+                            onClick={() => handleViewImage(item.itemDes)}
+                            className="bg-blue-600 hover:bg-blue-700"
+                          >
+                            Xem ảnh
+                          </Button>
                         ) : (
                           <Button
                             type="primary"
@@ -537,7 +579,7 @@ const MyLibrary = () => {
                             }
                             className="bg-blue-600 hover:bg-blue-700"
                           >
-                            Xem tài liệu
+                            Xem nội dung
                           </Button>
                         ),
                       ]}
@@ -556,9 +598,7 @@ const MyLibrary = () => {
                           />
                           <div className="ml-3 flex-1">
                             <div className="flex items-center flex-wrap gap-2 mb-1">
-                              <Text strong>
-                                {item.itemTypeId === 2 ? "Video" : "Tài liệu"}
-                              </Text>
+                              <Text strong>{typeName}</Text>
                               {getVideoProgress(item.itemId)?.isLearned ===
                                 true && (
                                 <Tag
@@ -568,7 +608,7 @@ const MyLibrary = () => {
                                   Đã học xong
                                 </Tag>
                               )}
-                              {item.itemTypeId === 2 &&
+                              {typeName === "Video" &&
                                 getVideoProgress(item.itemId)
                                   ?.durationInSeconds > 0 && (
                                   <Tag color="processing">
@@ -586,8 +626,7 @@ const MyLibrary = () => {
                                   </Tag>
                                 )}
                             </div>
-
-                            {item.itemTypeId === 2 && (
+                            {typeName === "Video" && (
                               <div className="mt-2">
                                 <div className="flex justify-between items-center mb-1">
                                   <Text className="text-xs">Tiến độ xem:</Text>
@@ -628,11 +667,10 @@ const MyLibrary = () => {
                             )}
                           </div>
                         </div>
-
                         {getVideoProgress(item.itemId)?.lastAccessDate && (
                           <div className="mt-2 flex justify-end">
                             <Text type="secondary" className="text-xs">
-                              {item.itemTypeId === 2 ? "Xem" : "Truy cập"} lần
+                              {typeName === "Video" ? "Xem" : "Truy cập"} lần
                               cuối:{" "}
                               {dayjs(
                                 getVideoProgress(item.itemId)?.lastAccessDate
@@ -814,6 +852,11 @@ const MyLibrary = () => {
     } catch (error) {
       console.error("Lỗi khi cập nhật thời gian xem video:", error);
     }
+  };
+
+  const handleViewImage = (url) => {
+    setCurrentImageUrl(url);
+    setImageModalVisible(true);
   };
 
   if (loading) {
@@ -1052,6 +1095,18 @@ const MyLibrary = () => {
           style={{ border: "none" }}
           title="PDF Viewer"
         />
+      </Modal>
+
+      {/* Modal xem ảnh */}
+      <Modal
+        title="Xem ảnh"
+        open={imageModalVisible}
+        onCancel={() => setImageModalVisible(false)}
+        width={600}
+        footer={null}
+        centered
+      >
+        <Image src={currentImageUrl} alt="Hình ảnh bài học" width="100%" />
       </Modal>
     </div>
   );

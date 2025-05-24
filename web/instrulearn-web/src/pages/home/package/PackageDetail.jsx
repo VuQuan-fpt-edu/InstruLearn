@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Card,
@@ -82,6 +82,20 @@ export default function PackageDetail() {
   const [isVideoModalVisible, setIsVideoModalVisible] = useState(false);
   const [showReplies, setShowReplies] = useState({});
   const [showQAReplies, setShowQAReplies] = useState({});
+  const [itemTypes, setItemTypes] = useState([]);
+
+  const fetchItemTypes = useCallback(async () => {
+    try {
+      const response = await axios.get(
+        "https://instrulearnapplication.azurewebsites.net/api/ItemType/get-all"
+      );
+      if (response.data?.isSucceed) {
+        setItemTypes(response.data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching item types:", error);
+    }
+  }, []);
 
   const fetchCourseDetail = async () => {
     try {
@@ -125,7 +139,8 @@ export default function PackageDetail() {
     checkLoginStatus();
     fetchCourseDetail();
     fetchWalletBalance();
-  }, [id]);
+    fetchItemTypes();
+  }, [id, fetchItemTypes]);
 
   const checkPurchaseStatus = async (learnerId) => {
     try {
@@ -473,6 +488,11 @@ export default function PackageDetail() {
     }));
   };
 
+  const getItemTypeName = (itemTypeId) => {
+    const found = itemTypes.find((type) => type.itemTypeId === itemTypeId);
+    return found ? found.itemTypeName : "Nội dung";
+  };
+
   if (loading) {
     return (
       <div className="text-center py-12">Đang tải thông tin khóa học...</div>
@@ -603,14 +623,6 @@ export default function PackageDetail() {
                         }
                       >
                         {item.itemTypeId === 1 ? (
-                          <FileImageOutlined
-                            className={`text-2xl mr-3 ${
-                              item.status === 0
-                                ? "text-gray-400"
-                                : "text-purple-600"
-                            }`}
-                          />
-                        ) : item.itemTypeId === 2 ? (
                           <VideoCameraOutlined
                             className={`text-2xl mr-3 ${
                               item.status === 0
@@ -618,8 +630,16 @@ export default function PackageDetail() {
                                 : "text-purple-600"
                             }`}
                           />
-                        ) : (
+                        ) : item.itemTypeId === 2 ? (
                           <FileTextOutlined
+                            className={`text-2xl mr-3 ${
+                              item.status === 0
+                                ? "text-gray-400"
+                                : "text-purple-600"
+                            }`}
+                          />
+                        ) : (
+                          <FileImageOutlined
                             className={`text-2xl mr-3 ${
                               item.status === 0
                                 ? "text-gray-400"
@@ -631,11 +651,7 @@ export default function PackageDetail() {
                           <span
                             className={item.status === 0 ? "text-gray-400" : ""}
                           >
-                            {item.itemTypeId === 1
-                              ? "Hình ảnh bài học"
-                              : item.itemTypeId === 2
-                              ? "Video bài học"
-                              : "Tài liệu bài học"}
+                            {getItemTypeName(item.itemTypeId)}
                           </span>
                         </div>
                         {item.status === 0 && (
@@ -1233,58 +1249,81 @@ export default function PackageDetail() {
         footer={null}
         centered
       >
-        {selectedVideo && (
-          <div className="space-y-4">
-            {selectedVideo.itemTypeId === 1 ? (
-              <div className="mt-4">
-                <h3 className="text-lg font-semibold mb-2">Hình ảnh bài học</h3>
-                <img
-                  src={selectedVideo.itemDes}
-                  alt="Hình ảnh bài học"
-                  className="w-full rounded-lg shadow-md"
-                  onError={(e) => {
-                    console.error("Image error:", e);
-                    message.error(
-                      "Không thể tải hình ảnh. Vui lòng thử lại sau."
-                    );
-                  }}
-                />
-              </div>
-            ) : selectedVideo.itemTypeId === 2 ? (
-              <div className="aspect-w-16 aspect-h-9">
-                <video
-                  controls
-                  className="w-full h-full rounded-lg"
-                  src={selectedVideo.itemDes}
-                  controlsList="nodownload"
-                  onError={(e) => {
-                    console.error("Video error:", e);
-                    message.error(
-                      "Không thể phát video. Vui lòng thử lại sau."
-                    );
-                  }}
-                >
-                  Trình duyệt của bạn không hỗ trợ phát video.
-                </video>
-              </div>
-            ) : (
-              <div className="mt-4">
-                <h3 className="text-lg font-semibold mb-2">Tài liệu bài học</h3>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <a
-                    href={selectedVideo.itemDes}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-purple-600 hover:text-purple-800 flex items-center"
+        {selectedVideo &&
+          (() => {
+            const typeName = getItemTypeName(selectedVideo.itemTypeId);
+            if (typeName === "Video") {
+              return (
+                <div className="aspect-w-16 aspect-h-9">
+                  <video
+                    controls
+                    className="w-full h-full rounded-lg"
+                    src={selectedVideo.itemDes}
+                    controlsList="nodownload"
+                    onError={() => {
+                      message.error(
+                        "Không thể phát video. Vui lòng thử lại sau."
+                      );
+                    }}
                   >
-                    <FileTextOutlined className="mr-2" />
-                    Xem tài liệu
-                  </a>
+                    Trình duyệt của bạn không hỗ trợ phát video.
+                  </video>
                 </div>
+              );
+            }
+            if (typeName === "PDF") {
+              return (
+                <div className="mt-4">
+                  <h3 className="text-lg font-semibold mb-2">
+                    Tài liệu bài học
+                  </h3>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <a
+                      href={selectedVideo.itemDes}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-purple-600 hover:text-purple-800 flex items-center"
+                    >
+                      <FileTextOutlined className="mr-2" />
+                      Xem tài liệu PDF
+                    </a>
+                  </div>
+                </div>
+              );
+            }
+            if (typeName === "Hình ảnh" || typeName === "Image") {
+              return (
+                <div className="mt-4">
+                  <h3 className="text-lg font-semibold mb-2">
+                    Hình ảnh bài học
+                  </h3>
+                  <img
+                    src={selectedVideo.itemDes}
+                    alt="Hình ảnh bài học"
+                    className="w-full rounded-lg shadow-md"
+                    onError={() => {
+                      message.error(
+                        "Không thể tải hình ảnh. Vui lòng thử lại sau."
+                      );
+                    }}
+                  />
+                </div>
+              );
+            }
+            // fallback cho loại khác
+            return (
+              <div className="mt-4">
+                <a
+                  href={selectedVideo.itemDes}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-purple-600 hover:text-purple-800"
+                >
+                  Xem nội dung
+                </a>
               </div>
-            )}
-          </div>
-        )}
+            );
+          })()}
       </Modal>
     </div>
   );

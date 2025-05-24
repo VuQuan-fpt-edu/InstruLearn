@@ -19,6 +19,7 @@ import {
   CloseCircleOutlined,
   ClockCircleOutlined,
   CalendarOutlined,
+  ExclamationCircleOutlined,
 } from "@ant-design/icons";
 
 // Import các components
@@ -74,6 +75,9 @@ const StudentBookingForm = () => {
   const [errorModalVisible, setErrorModalVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [selfAssessments, setSelfAssessments] = useState([]);
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [insufficientBalanceModalVisible, setInsufficientBalanceModalVisible] =
+    useState(false);
 
   const navigate = useNavigate();
 
@@ -81,6 +85,7 @@ const StudentBookingForm = () => {
     fetchUserProfile();
     fetchMajors();
     fetchSelfAssessments();
+    window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
   }, [form, navigate]);
 
   const fetchUserProfile = async () => {
@@ -157,6 +162,27 @@ const StudentBookingForm = () => {
     }
   };
 
+  const fetchWalletBalance = async (learnerId) => {
+    try {
+      const token = localStorage.getItem("authToken");
+      const response = await axios.get(
+        `https://instrulearnapplication.azurewebsites.net/api/wallet/${learnerId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (response.data.isSucceed) {
+        setWalletBalance(response.data.data.balance);
+        return response.data.data.balance;
+      }
+      return 0;
+    } catch (error) {
+      return 0;
+    }
+  };
+
   const forceResetTeacherSelection = () => {
     console.log("Force resetting teacher selection");
     setSelectedTeacher(null);
@@ -213,6 +239,15 @@ const StudentBookingForm = () => {
   const handleConfirmSubmit = async () => {
     try {
       setIsSubmitting(true);
+      // Kiểm tra số dư trước khi gửi đơn
+      const learnerId = userProfile?.id;
+      const balance = await fetchWalletBalance(learnerId);
+      if (balance < 50000) {
+        setConfirmModalVisible(false);
+        setInsufficientBalanceModalVisible(true);
+        setIsSubmitting(false);
+        return;
+      }
       setConfirmModalVisible(false);
 
       const selectedTeacher = availableTeachers.find(
@@ -330,7 +365,34 @@ const StudentBookingForm = () => {
             </Text>
           </div>
 
-          {userProfile && (
+          <Alert
+            message={
+              <span className="font-semibold">Lưu ý về phí xử lý đơn</span>
+            }
+            description={
+              <span>
+                Việc tạo đơn học theo yêu cầu sẽ phát sinh phí xử lý{" "}
+                <b>50.000 VND</b>. Khoản phí này được áp dụng nhằm đảm bảo chất
+                lượng dịch vụ cá nhân hóa và{" "}
+                <b>sẽ không được hoàn lại sau khi đơn đã được gửi</b>. Vui lòng
+                xem xét kỹ trước khi tiến hành.
+                <br />
+                <span style={{ display: "block", marginTop: 12 }}>
+                  <span style={{ color: "#d48806", fontWeight: 600 }}>
+                    Nếu muốn nạp tiền vào ví, hãy truy cập{" "}
+                    <span style={{ color: "#1890ff" }}>Hồ sơ cá nhân</span>{" "}
+                    &rarr; <span style={{ color: "#1890ff" }}>Ví của tôi</span>{" "}
+                    để nạp tiền.
+                  </span>
+                </span>
+              </span>
+            }
+            type="warning"
+            showIcon
+            className="mb-6"
+          />
+
+          {/* {userProfile && (
             <Card
               className="mb-6"
               bordered={false}
@@ -350,7 +412,7 @@ const StudentBookingForm = () => {
                 <span>ID Học viên: {userProfile.id}</span>
               </div>
             </Card>
-          )}
+          )} */}
 
           <Steps current={current} className="mb-8">
             {steps.map((item) => (
@@ -458,6 +520,53 @@ const StudentBookingForm = () => {
                 Số tiền này sẽ được trừ vào tài khoản của bạn sau khi gửi đơn
                 thành công
               </p>
+            </div>
+          </Modal>
+
+          <Modal
+            title={null}
+            open={insufficientBalanceModalVisible}
+            onOk={() => setInsufficientBalanceModalVisible(false)}
+            onCancel={() => setInsufficientBalanceModalVisible(false)}
+            okText="Đã hiểu"
+            cancelButtonProps={{ style: { display: "none" } }}
+            width={420}
+            centered
+            footer={[
+              <Button
+                key="ok"
+                type="primary"
+                onClick={() => setInsufficientBalanceModalVisible(false)}
+                style={{
+                  minWidth: 120,
+                  height: 40,
+                  borderRadius: 6,
+                  fontWeight: 600,
+                  fontSize: 16,
+                }}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                Đã hiểu
+              </Button>,
+            ]}
+          >
+            <div className="py-4 text-center">
+              <ExclamationCircleOutlined
+                style={{ fontSize: 48, color: "#e53935", marginBottom: 16 }}
+              />
+              <div className="mb-3 text-2xl font-bold text-red-600">
+                Số dư không đủ
+              </div>
+              <div className="mb-4 text-base text-gray-700">
+                Số dư tài khoản của bạn <b className="text-red-600">không đủ</b>{" "}
+                để thực hiện đăng ký này.
+                <br />
+                Vui lòng vào <b>Hồ sơ cá nhân</b> &rarr; <b>Ví của tôi</b> và{" "}
+                <span className="text-red-600 font-semibold">
+                  nạp thêm tiền
+                </span>{" "}
+                để tiếp tục.
+              </div>
             </div>
           </Modal>
         </Card>

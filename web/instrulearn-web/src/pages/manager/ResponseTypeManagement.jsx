@@ -14,6 +14,7 @@ import {
   Popconfirm,
   Tooltip,
   Spin,
+  Select,
 } from "antd";
 import {
   PlusOutlined,
@@ -38,6 +39,11 @@ const ResponseTypeManagement = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingType, setEditingType] = useState(null);
   const [modalTitle, setModalTitle] = useState("Thêm mới loại phản hồi");
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [showWarning, setShowWarning] = useState(false);
+
+  const predefinedTypes = ["Đồng ý", "Từ chối", "Gợi ý"];
 
   useEffect(() => {
     fetchResponseTypes();
@@ -62,11 +68,17 @@ const ResponseTypeManagement = () => {
     }
   };
 
+  const checkPredefinedTypesExist = () => {
+    const existingTypes = responseTypes.map((type) => type.responseTypeName);
+    return predefinedTypes.every((type) => existingTypes.includes(type));
+  };
+
   const handleAdd = () => {
     setEditingType(null);
     form.resetFields();
     setModalTitle("Thêm mới loại phản hồi");
     setModalVisible(true);
+    setShowWarning(checkPredefinedTypesExist());
   };
 
   const handleEdit = (record) => {
@@ -130,7 +142,8 @@ const ResponseTypeManagement = () => {
         );
 
         if (response.data?.isSucceed) {
-          message.success("Cập nhật loại phản hồi thành công");
+          setSuccessMessage("Cập nhật loại phản hồi thành công");
+          setSuccessModalVisible(true);
           setModalVisible(false);
           fetchResponseTypes();
         } else {
@@ -156,7 +169,8 @@ const ResponseTypeManagement = () => {
         );
 
         if (response.data?.isSucceed) {
-          message.success("Thêm loại phản hồi thành công");
+          setSuccessMessage("Thêm loại phản hồi thành công");
+          setSuccessModalVisible(true);
           setModalVisible(false);
           fetchResponseTypes();
         } else {
@@ -303,6 +317,14 @@ const ResponseTypeManagement = () => {
             footer={null}
             width={600}
           >
+            {showWarning && (
+              <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded">
+                <p className="text-yellow-700">
+                  <ExclamationCircleOutlined className="mr-2" />
+                  Tất cả các loại phản hồi mặc định đã tồn tại!
+                </p>
+              </div>
+            )}
             <Form
               form={form}
               layout="vertical"
@@ -317,50 +339,53 @@ const ResponseTypeManagement = () => {
                 rules={[
                   {
                     required: true,
-                    message: "Vui lòng nhập tên loại phản hồi",
-                  },
-                  {
-                    validator: async (_, value) => {
-                      if (!value) return;
-
-                      // Nếu đang chỉnh sửa, kiểm tra trùng với các tên khác
-                      if (editingType) {
-                        const isDuplicate = responseTypes.some(
-                          (type) =>
-                            type.responseTypeId !==
-                              editingType.responseTypeId &&
-                            type.responseTypeName.toLowerCase() ===
-                              value.toLowerCase()
-                        );
-                        if (isDuplicate) {
-                          throw new Error("Loại phản hồi này đã tồn tại!");
-                        }
-                      }
-                      // Nếu đang tạo mới, kiểm tra trùng với tất cả
-                      else if (checkExistingResponseType(value)) {
-                        throw new Error("Loại phản hồi này đã tồn tại!");
-                      }
-                    },
+                    message: "Vui lòng chọn tên loại phản hồi",
                   },
                 ]}
-                validateTrigger="onBlur"
               >
-                <Input
-                  placeholder="Nhập tên loại phản hồi"
-                  maxLength={50}
-                  showCount
+                <Select
+                  placeholder="Chọn tên loại phản hồi"
+                  options={predefinedTypes.map((type) => ({
+                    label: type,
+                    value: type,
+                    disabled: responseTypes.some(
+                      (rt) => rt.responseTypeName === type
+                    ),
+                  }))}
                 />
               </Form.Item>
 
               <Form.Item className="mb-0 text-right">
                 <Space>
                   <Button onClick={() => setModalVisible(false)}>Hủy</Button>
-                  <Button type="primary" htmlType="submit">
+                  <Button
+                    type="primary"
+                    htmlType="submit"
+                    disabled={showWarning}
+                  >
                     {editingType ? "Cập nhật" : "Thêm mới"}
                   </Button>
                 </Space>
               </Form.Item>
             </Form>
+          </Modal>
+
+          <Modal
+            title="Thông báo"
+            open={successModalVisible}
+            onOk={() => setSuccessModalVisible(false)}
+            onCancel={() => setSuccessModalVisible(false)}
+            footer={[
+              <Button
+                key="ok"
+                type="primary"
+                onClick={() => setSuccessModalVisible(false)}
+              >
+                OK
+              </Button>,
+            ]}
+          >
+            <p>{successMessage}</p>
           </Modal>
         </Content>
       </Layout>

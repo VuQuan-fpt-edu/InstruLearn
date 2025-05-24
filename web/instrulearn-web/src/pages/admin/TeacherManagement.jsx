@@ -148,6 +148,12 @@ const TeacherManagement = () => {
   const handleAdd = () => {
     setEditingTeacher(null);
     form.resetFields();
+    setAvatarUrl(null);
+    setUploadFile(null);
+    setUploadProgress(0);
+    setIsUploading(false);
+    setUploadStatus("");
+    setPreviewImage("");
     setIsModalOpen(true);
   };
 

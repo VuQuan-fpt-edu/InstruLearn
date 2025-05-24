@@ -86,6 +86,7 @@ import TeacherEvaluationQuestionManagement from "./pages/staff/TeacherEvaluation
 import TeacherFeedbackManagement from "./pages/staff/TeacherFeedbackManagement";
 import LevelFeedbackTemplateManagement from "./pages/manager/LevelFeedbackTemplateManagement";
 import SelfAssessmentManagement from "./pages/staff/SelfAssessmentManagement";
+import ClassesManagement from "./pages/teacher/ClassManagement";
 export default function App() {
   return (
     <Router>
@@ -215,6 +216,10 @@ export default function App() {
         <Route
           path="staff/self-assessment-management"
           element={<SelfAssessmentManagement />}
+        />
+        <Route
+          path="teacher/class-management"
+          element={<ClassesManagement />}
         />
         {/* Teacher Routes */}
         <Route path="/teacher" element={<TeacherDashBoard />} />

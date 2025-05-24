@@ -17,6 +17,7 @@ import {
   Form,
   Empty,
   Input,
+  DatePicker,
 } from "antd";
 import {
   UserOutlined,
@@ -27,15 +28,19 @@ import {
   CloseCircleOutlined,
   QuestionCircleOutlined,
   EditOutlined,
+  ExclamationCircleOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
 import dayjs from "dayjs";
+import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 import StaffSidebar from "../../components/staff/StaffSidebar";
 import StaffHeader from "../../components/staff/StaffHeader";
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
 const { Option } = Select;
+
+dayjs.extend(isSameOrBefore);
 
 const MakeupClassRequests = () => {
   const [collapsed, setCollapsed] = useState(false);
@@ -50,6 +55,8 @@ const MakeupClassRequests = () => {
   const [selectedSchedule, setSelectedSchedule] = useState(null);
   const [makeupForm] = Form.useForm();
   const [teachersFromSchedules, setTeachersFromSchedules] = useState([]);
+  const [errorModalVisible, setErrorModalVisible] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     fetchStudents();
@@ -179,12 +186,13 @@ const MakeupClassRequests = () => {
     setMakeupModalVisible(true);
   };
 
-  const submitMakeup = async () => {
+  const submitMakeup = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
     try {
       const values = await makeupForm.validateFields();
       setLoading(true);
       const payload = {
-        newDate: values.newDate,
+        newDate: values.newDate.format("YYYY-MM-DD"),
         newTimeStart:
           values.newTimeStart.length === 5
             ? values.newTimeStart + ":00"
@@ -202,10 +210,13 @@ const MakeupClassRequests = () => {
         setMakeupModalVisible(false);
         if (selectedStudent) handleStudentChange(selectedStudent.learnerId);
       } else {
-        message.error(response.data?.message || "Không thể đổi ngày học bù");
+        setErrorMessage(response.data?.message || "Không thể đổi ngày học bù");
+        setErrorModalVisible(true);
       }
     } catch (error) {
-      message.error("Đã xảy ra lỗi khi đổi ngày học bù");
+      const apiMsg = error?.response?.data?.message;
+      setErrorMessage(apiMsg || "Đã xảy ra lỗi khi đổi ngày học bù");
+      setErrorModalVisible(true);
     } finally {
       setLoading(false);
     }
@@ -329,6 +340,18 @@ const MakeupClassRequests = () => {
         {modeInfo.text}
       </Tag>
     );
+  };
+
+  // Hàm sinh mảng giờ từ 07:00 đến 21:00, mỗi 15 phút
+  const generateTimeOptions = () => {
+    const times = [];
+    let start = dayjs("07:00", "HH:mm");
+    const end = dayjs("21:00", "HH:mm");
+    while (start.isSameOrBefore(end)) {
+      times.push(start.format("HH:mm"));
+      start = start.add(15, "minute");
+    }
+    return times;
   };
 
   if (loading) {
@@ -632,7 +655,20 @@ const MakeupClassRequests = () => {
                   { required: true, message: "Vui lòng chọn ngày học bù" },
                 ]}
               >
-                <Input type="date" />
+                <DatePicker
+                  format="DD/MM/YYYY"
+                  style={{ width: "100%" }}
+                  disabledDate={(current) => {
+                    // Chỉ cho phép chọn ngày sau ngày học hiện tại
+                    return (
+                      current &&
+                      current <
+                        dayjs(selectedSchedule.startDay)
+                          .add(1, "day")
+                          .startOf("day")
+                    );
+                  }}
+                />
               </Form.Item>
               <Form.Item
                 name="newTimeStart"
@@ -644,7 +680,13 @@ const MakeupClassRequests = () => {
                   },
                 ]}
               >
-                <Input placeholder="hh:mm" />
+                <Select showSearch placeholder="Chọn giờ bắt đầu">
+                  {generateTimeOptions().map((time) => (
+                    <Option key={time} value={time}>
+                      {time}
+                    </Option>
+                  ))}
+                </Select>
               </Form.Item>
               <Form.Item
                 name="changeReason"
@@ -653,9 +695,58 @@ const MakeupClassRequests = () => {
                   { required: true, message: "Vui lòng nhập lý do học bù" },
                 ]}
               >
-                <Input.TextArea rows={3} placeholder="Nhập lý do học bù" />
+                <Input.TextArea
+                  rows={3}
+                  placeholder="Nhập lý do học bù"
+                  maxLength={150}
+                  showCount
+                />
               </Form.Item>
             </Form>
+          </Modal>
+
+          {/* Modal thông báo lỗi */}
+          <Modal
+            title={
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  color: "#ff4d4f",
+                  fontWeight: 600,
+                  fontSize: 20,
+                }}
+              >
+                <ExclamationCircleOutlined
+                  style={{ fontSize: 28, color: "#ff4d4f" }}
+                />
+                Lỗi cập nhật học bù
+              </div>
+            }
+            open={errorModalVisible}
+            onOk={() => setErrorModalVisible(false)}
+            onCancel={() => setErrorModalVisible(false)}
+            footer={[
+              <Button
+                key="ok"
+                type="primary"
+                onClick={() => setErrorModalVisible(false)}
+              >
+                Đã hiểu
+              </Button>,
+            ]}
+          >
+            <div
+              style={{
+                textAlign: "center",
+                color: "#d4380d",
+                fontSize: 18,
+                fontWeight: 500,
+              }}
+            >
+              {errorMessage}
+            </div>
           </Modal>
         </Content>
       </Layout>

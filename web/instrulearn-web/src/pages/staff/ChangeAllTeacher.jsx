@@ -65,6 +65,7 @@ const ChangeAllTeacher = () => {
   const location = useLocation();
   const [regisData, setRegisData] = useState(null);
   const [acceptChange, setAcceptChange] = useState(null);
+  const [teacherChangeReason, setTeacherChangeReason] = useState("");
 
   useEffect(() => {
     fetchStudents();
@@ -96,8 +97,28 @@ const ChangeAllTeacher = () => {
     const learningRegisId = params.get("learningRegisId");
     if (learningRegisId) {
       fetchRegisData(learningRegisId);
+      fetchTeacherChangeReason(learningRegisId);
     }
   }, [location.search]);
+
+  // Lấy lý do đổi giáo viên từ API teacher-change-requests
+  const fetchTeacherChangeReason = async (learningRegisId) => {
+    try {
+      const res = await axios.get(
+        "https://instrulearnapplication.azurewebsites.net/api/StaffNotification/teacher-change-requests"
+      );
+      if (res.data?.isSucceed && Array.isArray(res.data.data)) {
+        const found = res.data.data.find(
+          (item) => item.learningRegisId == learningRegisId
+        );
+        setTeacherChangeReason(found?.teacherChangeReason || "Không có");
+      } else {
+        setTeacherChangeReason("Không có");
+      }
+    } catch (err) {
+      setTeacherChangeReason("Không có");
+    }
+  };
 
   const fetchStudents = async () => {
     try {
@@ -282,7 +303,7 @@ const ChangeAllTeacher = () => {
         notificationId,
         learningRegisId: regisData.learningRegisId || regisData.LearningRegisId,
         newTeacherId: values.teacherId,
-        changeReason: values.changeReason,
+        changeReason: acceptChange === "reject" ? values.changeReason : "",
       };
 
       const response = await axios.put(
@@ -291,11 +312,9 @@ const ChangeAllTeacher = () => {
       );
 
       if (response.data && response.data.isSucceed) {
-        message.success("Đã gửi yêu cầu đổi giáo viên thành công");
         setChangeAllTeacherModalVisible(false);
-        if (selectedStudent) {
-          handleStudentChange(selectedStudent.learnerId);
-        }
+        message.success("Đã gửi yêu cầu đổi giáo viên thành công!");
+        navigate("/staff/student-notification");
       } else {
         message.error(
           response.data?.message || "Không thể gửi yêu cầu đổi giáo viên"
@@ -537,20 +556,16 @@ const ChangeAllTeacher = () => {
                       color="secondary"
                       variant="outlined"
                     />
-                    <Typography fontWeight={600} minWidth={140}>
-                      Số buổi:
-                    </Typography>
-                    <Typography>{regisData.numberOfSession}</Typography>
                   </Stack>
-                  {/* <Stack direction="row" alignItems="center" spacing={2}>
+                  <Stack direction="row" alignItems="center" spacing={2}>
                     <SwapHorizIcon color="primary" />
                     <Typography fontWeight={600} minWidth={140}>
                       Lý do đổi giáo viên:
                     </Typography>
                     <Typography color="error" fontWeight={600}>
-                      {regisData.teacherChangeReason || "Không có"}
+                      {teacherChangeReason}
                     </Typography>
-                  </Stack> */}
+                  </Stack>
                 </Stack>
               </Paper>
               <Box display="flex" justifyContent="flex-end" mt={4}>
@@ -602,11 +617,13 @@ const ChangeAllTeacher = () => {
                     if (e.target.value === "reject" && regisData) {
                       changeAllTeacherForm.setFieldsValue({
                         teacherId: regisData.teacherId,
+                        changeReason: undefined,
                       });
                     }
                     if (e.target.value === "accept") {
                       changeAllTeacherForm.setFieldsValue({
                         teacherId: undefined,
+                        changeReason: undefined,
                       });
                     }
                   }}
@@ -680,20 +697,22 @@ const ChangeAllTeacher = () => {
                   </Select>
                 </Form.Item>
               )}
-              <Form.Item
-                name="changeReason"
-                label={<span className="font-semibold">Lý do </span>}
-                rules={[
-                  { required: true, message: "Vui lòng nhập lý do thay đổi" },
-                ]}
-                className="mb-2"
-              >
-                <Input.TextArea
-                  placeholder="Nhập lý do thay đổi giáo viên"
-                  rows={4}
-                  className="rounded-lg"
-                />
-              </Form.Item>
+              {acceptChange === "reject" && (
+                <Form.Item
+                  name="changeReason"
+                  label={<span className="font-semibold">Lý do </span>}
+                  rules={[
+                    { required: true, message: "Vui lòng nhập lý do thay đổi" },
+                  ]}
+                  className="mb-2"
+                >
+                  <Input.TextArea
+                    placeholder="Nhập lý do thay đổi giáo viên"
+                    rows={4}
+                    className="rounded-lg"
+                  />
+                </Form.Item>
+              )}
             </Form>
           </Modal>
         </Content>

@@ -515,8 +515,8 @@ const LearningPath = () => {
                                 }
                               >
                                 {session.isCompleted
-                                  ? "Đã hoàn thành"
-                                  : "Chưa hoàn thành"}
+                                  ? "Đã xác nhận"
+                                  : "Chưa xác nhận"}
                               </Tag>
                             </div>
                           </div>
@@ -725,7 +725,7 @@ const LearningPath = () => {
                             window.open(selectedDetails.syllabusLink, "_blank")
                           }
                         >
-                          Tải xuống
+                          Xem giáo trình
                         </Button>
                       </div>
                     </div>

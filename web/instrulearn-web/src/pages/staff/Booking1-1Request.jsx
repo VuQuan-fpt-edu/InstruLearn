@@ -302,50 +302,51 @@ const Booking11Management = () => {
       const response = await axios.get(
         "https://instrulearnapplication.azurewebsites.net/api/LearningRegis/get-all"
       );
+      console.log("API response:", response.data);
       if (response.data?.isSucceed && Array.isArray(response.data.data)) {
-        const bookings = response.data.data.map((booking) => ({
-          ...booking,
-          SessionDates: booking.SessionDates || [],
-          learningRegisId: booking.LearningRegisId,
-          learnerId: booking.LearnerId,
-          fullName: booking.FullName,
-          phoneNumber: booking.PhoneNumber,
-          teacherId: booking.TeacherId,
-          teacherName: booking.TeacherName,
-          regisTypeId: booking.RegisTypeId,
-          regisTypeName: booking.RegisTypeName,
-          majorId: booking.MajorId,
-          majorName: booking.MajorName,
-          responseTypeId: booking.ResponseTypeId,
-          responseTypeName: booking.ResponseTypeName,
-          responseId: booking.ResponseId,
-          responseDescription: booking.ResponseDescription,
-          levelId: booking.LevelId,
-          levelName: booking.LevelName,
-          levelPrice: booking.LevelPrice,
-          syllabusLink: booking.SyllabusLink,
-          startDay: booking.StartDay,
-          timeStart: booking.TimeStart,
-          timeLearning: booking.TimeLearning,
-          timeEnd: booking.TimeEnd,
-          requestDate: booking.RequestDate,
-          numberOfSession: booking.NumberOfSession,
-          selfAssessment: booking.SelfAssessment,
-          videoUrl: booking.VideoUrl,
-          learningRequest: booking.LearningRequest,
-          learningDays: Array.isArray(booking.LearningDays)
-            ? booking.LearningDays.map((day) => convertDayToVietnamese(day))
+        const bookings = response.data.data.map((item) => ({
+          learningRegisId: item.LearningRegisId,
+          learnerId: item.LearnerId,
+          fullName: item.FullName,
+          phoneNumber: item.PhoneNumber,
+          teacherId: item.TeacherId,
+          teacherName: item.TeacherName,
+          regisTypeId: item.RegisTypeId,
+          regisTypeName: item.RegisTypeName,
+          majorId: item.MajorId,
+          majorName: item.MajorName,
+          responseTypeId: item.ResponseTypeId,
+          responseTypeName: item.ResponseTypeName,
+          responseId: item.ResponseId,
+          responseDescription: item.ResponseDescription,
+          levelId: item.LevelId,
+          levelName: item.LevelName,
+          levelPrice: item.LevelPrice,
+          syllabusLink: item.SyllabusLink,
+          startDay: item.StartDay,
+          timeStart: item.TimeStart,
+          timeLearning: item.TimeLearning,
+          timeEnd: item.TimeEnd,
+          requestDate: item.RequestDate,
+          numberOfSession: item.NumberOfSession,
+          selfAssessment: item.Description,
+          videoUrl: item.VideoUrl,
+          learningRequest: item.LearningRequest,
+          learningDays: Array.isArray(item.LearningDays)
+            ? item.LearningDays.map((day) => convertDayToVietnamese(day))
             : [],
-          price: booking.Price,
-          remainingAmount: booking.RemainingAmount,
-          status: booking.Status,
-          acceptedDate: booking.AcceptedDate,
-          paymentDeadline: booking.PaymentDeadline,
-          daysRemaining: booking.DaysRemaining,
-          paymentStatus: booking.PaymentStatus,
-          firstPaymentPeriod: booking.firstPaymentPeriod,
-          secondPaymentPeriod: booking.secondPaymentPeriod,
+          price: item.Price,
+          remainingAmount: item.RemainingAmount,
+          status: item.Status,
+          acceptedDate: item.AcceptedDate,
+          paymentDeadline: item.PaymentDeadline,
+          daysRemaining: item.DaysRemaining,
+          paymentStatus: item.PaymentStatus,
+          firstPaymentPeriod: item.firstPaymentPeriod,
+          secondPaymentPeriod: item.secondPaymentPeriod,
+          sessionDates: item.SessionDates || [],
         }));
+        console.log("Mapped bookings:", bookings);
         setBookings(bookings);
       } else {
         setBookings([]);
@@ -417,7 +418,7 @@ const Booking11Management = () => {
         fetchTeacherSchedule(booking.teacherId);
       }
       // Lấy danh sách ngày từ SessionDates, chỉ lấy phần ngày
-      const sessionDays = (booking.SessionDates || []).map(
+      const sessionDays = (booking.sessionDates || []).map(
         (s) => s.split(" ")[0]
       );
       const startDayParam = sessionDays.join(",");
@@ -869,7 +870,7 @@ const Booking11Management = () => {
   const filteredBookings = bookings
     .filter((booking) => {
       // Lọc theo regisTypeName
-      if (booking.regisTypeName !== "Đăng ký học theo yêu cầu") {
+      if (booking.regisTypeName !== "Đăng kí học theo yêu cầu") {
         return false;
       }
 
@@ -1129,7 +1130,7 @@ const Booking11Management = () => {
         return;
       }
 
-      const response = await axios.post(
+      const response = await axios.put(
         `https://instrulearnapplication.azurewebsites.net/api/LearningRegis/reject/${selectedBooking.learningRegisId}`,
         {
           responseId: values.responseId,

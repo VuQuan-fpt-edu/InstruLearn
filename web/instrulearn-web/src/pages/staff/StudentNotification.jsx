@@ -9,6 +9,11 @@ import {
   Empty,
   Button,
   message,
+  Table,
+  Space,
+  Tooltip,
+  Input,
+  Select,
 } from "antd";
 import StaffSidebar from "../../components/staff/StaffSidebar";
 import StaffHeader from "../../components/staff/StaffHeader";
@@ -19,12 +24,21 @@ import { useNavigate } from "react-router-dom";
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
+const { Option } = Select;
+
+const statusMap = {
+  0: { color: "blue", text: "Chưa đọc" },
+  1: { color: "gold", text: "Đã đọc" },
+  2: { color: "green", text: "Đã xử lý" },
+};
 
 const StudentNotification = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [selectedMenu, setSelectedMenu] = useState("student-notification");
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState([]);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -49,16 +63,96 @@ const StudentNotification = () => {
     }
   };
 
-  const markAsRead = async (notificationId) => {
+  const markAsResolved = async (notificationId) => {
     try {
       await axios.put(
-        `https://instrulearnapplication.azurewebsites.net/api/StaffNotification/mark-as-read/${notificationId}`
+        `https://instrulearnapplication.azurewebsites.net/api/StaffNotification/mark-as-resolved/${notificationId}`
       );
       fetchNotifications();
     } catch (error) {
-      message.error("Không thể đánh dấu đã đọc");
+      message.error("Không thể đánh dấu đã xử lý");
     }
   };
+
+  // Lọc dữ liệu theo tìm kiếm và trạng thái
+  const filteredData = notifications.filter((item) => {
+    const matchSearch =
+      item.learnerName?.toLowerCase().includes(search.toLowerCase()) ||
+      item.teacherChangeReason?.toLowerCase().includes(search.toLowerCase()) ||
+      item.title?.toLowerCase().includes(search.toLowerCase());
+    const matchStatus =
+      statusFilter === null ? true : item.status === statusFilter;
+    return matchSearch && matchStatus;
+  });
+
+  const columns = [
+    {
+      title: "Học viên",
+      dataIndex: "learnerName",
+      key: "learnerName",
+      render: (text) => <b>{text}</b>,
+    },
+    {
+      title: "Lý do đổi giáo viên",
+      dataIndex: "teacherChangeReason",
+      key: "teacherChangeReason",
+      render: (text) => <span className="text-red-500">{text || "-"}</span>,
+    },
+    {
+      title: "Thời gian gửi",
+      dataIndex: "createdAt",
+      key: "createdAt",
+      render: (date) => dayjs(date).format("DD/MM/YYYY HH:mm"),
+    },
+    {
+      title: "Trạng thái",
+      dataIndex: "status",
+      key: "status",
+      render: (status) => (
+        <Tag color={statusMap[status]?.color}>{statusMap[status]?.text}</Tag>
+      ),
+      filters: [
+        { text: "Chưa đọc", value: 0 },
+        { text: "Đã đọc", value: 1 },
+        { text: "Đã xử lý", value: 2 },
+      ],
+      onFilter: (value, record) => record.status === value,
+    },
+    {
+      title: "Thao tác",
+      key: "action",
+      render: (_, record) => (
+        <Space>
+          {record.status !== 2 && (
+            <Tooltip title="Đánh dấu đã xử lý">
+              <Button
+                type="primary"
+                size="small"
+                onClick={() => markAsResolved(record.notificationId)}
+              >
+                Đánh dấu đã xử lý
+              </Button>
+            </Tooltip>
+          )}
+          {record.status !== 2 && (
+            <Tooltip title="Xử lý đơn">
+              <Button
+                type="default"
+                size="small"
+                onClick={() =>
+                  navigate(
+                    `/staff/change-all-teacher?learningRegisId=${record.learningRegisId}`
+                  )
+                }
+              >
+                Xử lý đơn
+              </Button>
+            </Tooltip>
+          )}
+        </Space>
+      ),
+    },
+  ];
 
   return (
     <Layout className="min-h-screen bg-gray-50">
@@ -75,121 +169,35 @@ const StudentNotification = () => {
       >
         <StaffHeader collapsed={collapsed} setCollapsed={setCollapsed} />
         <Content className="p-6" style={{ marginTop: "64px" }}>
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-6xl mx-auto">
             <Card className="shadow-lg rounded-lg overflow-hidden">
               <div className="bg-blue-600 p-6 text-white">
                 <Title level={2} className="text-center mb-0">
-                  Thông báo đổi giáo viên
+                  Quản lý yêu cầu đổi giáo viên
                 </Title>
                 <p className="text-center text-blue-100 mt-2">
-                  Danh sách các yêu cầu thay đổi giáo viên từ học viên
+                  Theo dõi, tìm kiếm và xử lý các yêu cầu thay đổi giáo viên từ
+                  học viên
                 </p>
               </div>
               <div className="p-6">
-                {loading ? (
-                  <div className="flex items-center justify-center min-h-[200px]">
-                    <Spin size="large" />
-                  </div>
-                ) : (
-                  <List
-                    dataSource={notifications}
-                    locale={{
-                      emptyText: (
-                        <Empty
-                          image={Empty.PRESENTED_IMAGE_SIMPLE}
-                          description="Không có thông báo nào"
-                        />
-                      ),
-                    }}
-                    renderItem={(item) => (
-                      <List.Item className="bg-white rounded-lg border mb-4 p-4 hover:shadow-md transition-shadow duration-300">
-                        <List.Item.Meta
-                          title={
-                            <div className="flex items-center justify-between">
-                              <span className="font-medium text-blue-600">
-                                {item.title}
-                              </span>
-                              <Tag
-                                color={
-                                  item.status === 0
-                                    ? "blue"
-                                    : item.status === 1
-                                    ? "gold"
-                                    : "green"
-                                }
-                                icon={
-                                  item.status === 0 ? (
-                                    <EyeOutlined />
-                                  ) : item.status === 1 ? (
-                                    <CheckCircleOutlined />
-                                  ) : (
-                                    <CheckCircleOutlined />
-                                  )
-                                }
-                              >
-                                {item.status === 0
-                                  ? "Chưa đọc"
-                                  : item.status === 1
-                                  ? "Đã đọc"
-                                  : "Đã xử lý"}
-                              </Tag>
-                            </div>
-                          }
-                          description={
-                            <>
-                              <div className="mb-2 text-gray-700">
-                                {item.message}
-                              </div>
-                              {item.teacherChangeReason && (
-                                <div className="mb-2 text-red-500">
-                                  <b>Lý do thay đổi giáo viên:</b>{" "}
-                                  {item.teacherChangeReason}
-                                </div>
-                              )}
-                              <div className="flex flex-wrap gap-4 text-xs text-gray-500">
-                                <span>
-                                  Học viên: <b>{item.learnerName}</b>
-                                </span>
-                                <span>
-                                  Ngày gửi:{" "}
-                                  {dayjs(item.createdAt).format(
-                                    "DD/MM/YYYY HH:mm"
-                                  )}
-                                </span>
-                                {/* <span>Mã đăng ký: {item.learningRegisId}</span> */}
-                              </div>
-                              {item.status === 0 && (
-                                <div className="flex gap-2 mt-3">
-                                  <Button
-                                    type="primary"
-                                    size="small"
-                                    onClick={() =>
-                                      markAsRead(item.notificationId)
-                                    }
-                                  >
-                                    Đánh dấu đã đọc
-                                  </Button>
-                                  <Button
-                                    type="default"
-                                    size="small"
-                                    onClick={() =>
-                                      navigate(
-                                        `/staff/change-all-teacher?learningRegisId=${item.learningRegisId}`
-                                      )
-                                    }
-                                  >
-                                    Xử lý đơn
-                                  </Button>
-                                </div>
-                              )}
-                            </>
-                          }
-                        />
-                      </List.Item>
-                    )}
+                <div className="flex flex-wrap gap-4 mb-4 items-center">
+                  <Input.Search
+                    placeholder="Tìm kiếm theo tên học viên, lý do..."
+                    allowClear
+                    onChange={(e) => setSearch(e.target.value)}
+                    style={{ width: 300 }}
                   />
-                )}
-                <div className="flex justify-center mt-6">
+                  <Select
+                    placeholder="Lọc theo trạng thái"
+                    allowClear
+                    style={{ width: 180 }}
+                    onChange={setStatusFilter}
+                  >
+                    <Option value={0}>Chưa đọc</Option>
+                    <Option value={1}>Đã đọc</Option>
+                    <Option value={2}>Đã xử lý</Option>
+                  </Select>
                   <Button
                     type="primary"
                     onClick={fetchNotifications}
@@ -198,6 +206,21 @@ const StudentNotification = () => {
                     Làm mới
                   </Button>
                 </div>
+                <Table
+                  columns={columns}
+                  dataSource={filteredData}
+                  rowKey="notificationId"
+                  loading={loading}
+                  pagination={{ pageSize: 10 }}
+                  locale={{
+                    emptyText: (
+                      <Empty
+                        image={Empty.PRESENTED_IMAGE_SIMPLE}
+                        description="Không có yêu cầu nào"
+                      />
+                    ),
+                  }}
+                />
               </div>
             </Card>
           </div>
