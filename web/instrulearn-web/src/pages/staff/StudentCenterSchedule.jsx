@@ -13,12 +13,14 @@ import {
   Avatar,
   Tag,
   Spin,
+  Badge,
 } from "antd";
 import {
   UserOutlined,
   CalendarOutlined,
   ClockCircleOutlined,
   EnvironmentOutlined,
+  HomeOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
 import dayjs from "dayjs";
@@ -59,10 +61,7 @@ const StudentCenterSchedule = () => {
   };
 
   const handleStudentChange = async (learnerId) => {
-    // Reset schedules trước khi fetch dữ liệu mới
     setSchedules([]);
-
-    // Cập nhật học viên được chọn
     const student = students.find((s) => s.learnerId === learnerId);
     setSelectedStudent(student);
 
@@ -89,6 +88,17 @@ const StudentCenterSchedule = () => {
     } else {
       setSchedules([]);
     }
+  };
+
+  const getAttendanceStatusTag = (status) => {
+    const statusMap = {
+      0: { color: "default", text: "Chưa điểm danh" },
+      1: { color: "success", text: "Có mặt" },
+      2: { color: "error", text: "Vắng mặt" },
+      3: { color: "warning", text: "Có phép" },
+    };
+    const statusInfo = statusMap[status] || statusMap[0];
+    return <Tag color={statusInfo.color}>{statusInfo.text}</Tag>;
   };
 
   const dateCellRender = (value) => {
@@ -206,10 +216,14 @@ const StudentCenterSchedule = () => {
             </div>
 
             {selectedStudent && (
-              <div className="mb-4">
+              <div className="mb-4 space-y-2">
                 <div className="text-gray-600">
                   <UserOutlined className="mr-2" />
                   Học viên: {selectedStudent.fullName}
+                </div>
+                <div className="text-gray-600">
+                  <HomeOutlined className="mr-2" />
+                  Địa chỉ: {selectedStudent.address}
                 </div>
               </div>
             )}
@@ -275,6 +289,11 @@ const StudentCenterSchedule = () => {
                                 <div className="text-sm text-gray-600">
                                   <EnvironmentOutlined className="mr-1" />
                                   {schedule.className}
+                                </div>
+                                <div className="text-sm text-gray-600 mt-1">
+                                  {getAttendanceStatusTag(
+                                    schedule.attendanceStatus
+                                  )}
                                 </div>
                               </div>
                             ))}

@@ -394,7 +394,7 @@ export default function Courses() {
                                   Học phí
                                 </span>
                                 <span className="font-bold text-sm text-blue-600">
-                                  {formatPrice(course.price)}/Buổi
+                                  {formatPrice(course.price)}
                                 </span>
                               </div>
                               <Button

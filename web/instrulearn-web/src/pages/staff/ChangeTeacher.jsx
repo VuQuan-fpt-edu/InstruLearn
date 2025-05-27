@@ -645,7 +645,7 @@ const ChangeTeacher = () => {
               </div>
             )}
             {selectedSchedule && (
-              <div className="mb-2 text-xs text-gray-400">
+              <div className="mb-2 text-xs text-gray-400 hidden">
                 <div>majorId: {selectedSchedule.majorId}</div>
                 <div>timeStart: {selectedSchedule.timeStart}</div>
                 <div>timeLearning: {selectedSchedule.timeLearning}</div>
