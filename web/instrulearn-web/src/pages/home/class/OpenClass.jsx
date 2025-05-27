@@ -545,7 +545,7 @@ export default function OpenClasses() {
 
                       <div className="flex justify-between items-center mb-3">
                         <span className="text-lg font-bold text-red-600">
-                          {formatPrice(classItem.price)}
+                          {formatPrice(classItem.price)}/Buổi
                         </span>
                         <Tag color={getStatusColor(classItem.status)}>
                           {getStatusText(classItem.status)}
