@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'auth/login_screen.dart';
+import 'package:intl/intl.dart';
 
 class PreviewScreen extends StatefulWidget {
   const PreviewScreen({Key? key}) : super(key: key);
@@ -537,7 +538,11 @@ class _PreviewScreenState extends State<PreviewScreen>
                               ],
                             ),
                             Text(
-                              '${course['price'].toString()} VNĐ',
+                              NumberFormat.currency(
+                                      locale: 'vi_VN',
+                                      symbol: 'VNĐ',
+                                      decimalDigits: 0)
+                                  .format(course['price']),
                               style: const TextStyle(
                                 color: Colors.blue,
                                 fontWeight: FontWeight.bold,
@@ -609,88 +614,78 @@ class _PreviewScreenState extends State<PreviewScreen>
                     ),
                     child: Container(
                       padding: const EdgeInsets.all(20),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              Container(
-                                width: 120,
-                                height: 120,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: Colors.blue.withOpacity(0.2),
-                                    width: 8,
+                      child: SingleChildScrollView(
+                        physics: const NeverScrollableScrollPhysics(),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                Container(
+                                  width: 120,
+                                  height: 120,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.blue.withOpacity(0.2),
+                                      width: 8,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              CircleAvatar(
-                                radius: 50,
-                                backgroundColor: Colors.blue[50],
-                                backgroundImage: teacher['avatar'] != null
-                                    ? NetworkImage(teacher['avatar'])
-                                    : null,
-                                child: teacher['avatar'] == null
-                                    ? const Icon(Icons.person,
-                                        size: 50, color: Colors.blue)
-                                    : null,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 20),
-                          Text(
-                            teacher['fullname'],
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 20,
+                                CircleAvatar(
+                                  radius: 50,
+                                  backgroundColor: Colors.blue[50],
+                                  backgroundImage: teacher['avatar'] != null
+                                      ? NetworkImage(teacher['avatar'])
+                                      : null,
+                                  child: teacher['avatar'] == null
+                                      ? const Icon(Icons.person,
+                                          size: 50, color: Colors.blue)
+                                      : null,
+                                ),
+                              ],
                             ),
-                            textAlign: TextAlign.center,
-                          ),
-                          if (teacher['heading'] != null) ...[
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 20),
                             Text(
-                              teacher['heading'],
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                                fontSize: 16,
+                              teacher['fullname'],
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 20,
                               ),
                               textAlign: TextAlign.center,
                             ),
-                          ],
-                          const SizedBox(height: 16),
-                          if (teacher['majors'] != null &&
-                              teacher['majors'].isNotEmpty)
-                            Wrap(
-                              alignment: WrapAlignment.center,
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: teacher['majors']
-                                  .map<Widget>((major) => Chip(
-                                        label: Text(major['majorName']),
-                                        backgroundColor:
-                                            Colors.blue.withOpacity(0.1),
-                                        labelStyle:
-                                            const TextStyle(color: Colors.blue),
-                                      ))
-                                  .toList(),
-                            ),
-                          const SizedBox(height: 20),
-                          OutlinedButton(
-                            onPressed: _showLoginDialog,
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.blue,
-                              side: const BorderSide(color: Colors.blue),
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 32, vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(30),
+                            if (teacher['heading'] != null) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                teacher['heading'],
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 16,
+                                ),
+                                textAlign: TextAlign.center,
                               ),
-                            ),
-                            child: const Text('Xem thông tin'),
-                          ),
-                        ],
+                            ],
+                            const SizedBox(height: 16),
+                            if (teacher['majors'] != null &&
+                                teacher['majors'].isNotEmpty)
+                              Wrap(
+                                alignment: WrapAlignment.center,
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: teacher['majors']
+                                    .map<Widget>((major) => Chip(
+                                          label: Text(major['majorName']),
+                                          backgroundColor:
+                                              Colors.blue.withOpacity(0.1),
+                                          labelStyle: const TextStyle(
+                                              color: Colors.blue),
+                                        ))
+                                    .toList(),
+                              ),
+                            const SizedBox(height: 20),
+                          ],
+                        ),
                       ),
                     ),
                   ),

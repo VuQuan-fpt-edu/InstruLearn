@@ -65,6 +65,9 @@ class _NotificationScreenState extends State<NotificationScreen>
           setState(() {
             feedbackNotifications = (data['data'] as List)
                 .map((item) => FeedbackNotification.fromJson(item))
+                .toList()
+                .where((notification) =>
+                    notification.feedbackStatus != "Completed")
                 .toList();
             filteredNotifications = feedbackNotifications;
             isLoading = false;
@@ -143,7 +146,6 @@ class _NotificationScreenState extends State<NotificationScreen>
       body: TabBarView(
         controller: _tabController,
         children: [
-          // Tab 1: Đánh giá học kèm 1:1
           Column(
             children: [
               Container(
@@ -217,7 +219,6 @@ class _NotificationScreenState extends State<NotificationScreen>
               ),
             ],
           ),
-          // Tab 2: Lưu ý đơn học kèm 1:1
           Column(
             children: [
               Container(
@@ -233,7 +234,6 @@ class _NotificationScreenState extends State<NotificationScreen>
               const Expanded(child: LearnerNotificationScreen()),
             ],
           ),
-          // Tab 3: Lưu ý tại trung tâm
           Column(
             children: [
               Container(
@@ -257,16 +257,111 @@ class _NotificationScreenState extends State<NotificationScreen>
   Widget _buildFeedbackCard(FeedbackNotification notification) {
     return GestureDetector(
       onTap: () async {
-        final result = await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => NotificationDetailScreen(
-              feedbackNotification: notification,
-            ),
-          ),
+        bool? proceed = await showDialog<bool>(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+              title: Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded,
+                      color: Colors.orange[700], size: 28),
+                  const SizedBox(width: 10),
+                  const Text(
+                    'Lưu ý quan trọng',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF8C9EFF),
+                    ),
+                  ),
+                ],
+              ),
+              content: Container(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: RichText(
+                  text: TextSpan(
+                    style: const TextStyle(
+                      fontSize: 15,
+                      height: 1.5,
+                      color: Colors.black87,
+                    ),
+                    children: [
+                      const TextSpan(
+                        text: 'Nếu học viên ',
+                      ),
+                      TextSpan(
+                        text: 'không thực hiện feedback trước thời hạn',
+                        style: TextStyle(
+                          color: Colors.red[700],
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const TextSpan(
+                        text: ' thì ',
+                      ),
+                      TextSpan(
+                        text:
+                            'mặc định là học viên muốn tiếp tục học tiếp với giáo viên hiện tại',
+                        style: TextStyle(
+                          color: Colors.blue[700],
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: <Widget>[
+                TextButton(
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.grey[600],
+                  ),
+                  child: const Text(
+                    'Hủy',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                  onPressed: () {
+                    Navigator.of(context).pop(false);
+                  },
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF8C9EFF),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text(
+                    'Tiếp tục',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.white,
+                    ),
+                  ),
+                  onPressed: () {
+                    Navigator.of(context).pop(true);
+                  },
+                ),
+              ],
+            );
+          },
         );
-        if (result == true) {
-          _fetchFeedbackNotifications();
+
+        if (proceed == true) {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => NotificationDetailScreen(
+                feedbackNotification: notification,
+              ),
+            ),
+          );
+          if (result == true) {
+            _fetchFeedbackNotifications();
+          }
         }
       },
       child: Container(

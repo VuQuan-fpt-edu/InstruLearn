@@ -38,6 +38,7 @@ class ClassModel {
   final int totalDays;
   final int status;
   final double price;
+  final String imageUrl;
   final List<ClassDay> classDays;
 
   ClassModel({
@@ -55,6 +56,7 @@ class ClassModel {
     required this.totalDays,
     required this.status,
     required this.price,
+    required this.imageUrl,
     required this.classDays,
   });
 
@@ -74,10 +76,41 @@ class ClassModel {
       totalDays: json['totalDays'],
       status: json['status'],
       price: json['price'].toDouble(),
+      imageUrl: json['imageUrl'] ?? '',
       classDays: (json['classDays'] as List)
           .map((day) => ClassDay.fromJson(day))
           .toList(),
     );
+  }
+
+  String getStatusText() {
+    switch (status) {
+      case 0:
+        return 'Đang mở';
+      case 1:
+        return 'Đang kiểm tra';
+      case 2:
+        return 'Đang diễn ra';
+      case 3:
+        return 'Đã hoàn thành';
+      default:
+        return 'Không xác định';
+    }
+  }
+
+  Color getStatusColor() {
+    switch (status) {
+      case 0:
+        return Colors.green;
+      case 1:
+        return Colors.orange;
+      case 2:
+        return Colors.blue;
+      case 3:
+        return Colors.grey;
+      default:
+        return Colors.grey;
+    }
   }
 }
 
@@ -101,6 +134,7 @@ class ClassRegistrationScreen extends StatefulWidget {
 
 class _ClassRegistrationScreenState extends State<ClassRegistrationScreen> {
   String selectedInstrument = 'Tất cả';
+  String selectedStatus = 'Tất cả';
   List<ClassModel> classes = [];
   List<MajorModel> majors = [];
   bool isLoading = true;
@@ -182,10 +216,21 @@ class _ClassRegistrationScreenState extends State<ClassRegistrationScreen> {
   }
 
   List<ClassModel> getFilteredClasses() {
-    if (selectedInstrument == 'Tất cả') {
-      return classes;
+    var filteredClasses = classes;
+
+    if (selectedInstrument != 'Tất cả') {
+      filteredClasses = filteredClasses
+          .where((c) => c.majorName == selectedInstrument)
+          .toList();
     }
-    return classes.where((c) => c.majorName == selectedInstrument).toList();
+
+    if (selectedStatus != 'Tất cả') {
+      filteredClasses = filteredClasses
+          .where((c) => c.getStatusText() == selectedStatus)
+          .toList();
+    }
+
+    return filteredClasses;
   }
 
   @override
@@ -248,6 +293,53 @@ class _ClassRegistrationScreenState extends State<ClassRegistrationScreen> {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Trạng thái lớp học',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey[300]!),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: selectedStatus,
+                        items: [
+                          const DropdownMenuItem(
+                            value: 'Tất cả',
+                            child: Text('Tất cả'),
+                          ),
+                          const DropdownMenuItem(
+                            value: 'Đang mở',
+                            child: Text('Đang mở'),
+                          ),
+                          const DropdownMenuItem(
+                            value: 'Đang kiểm tra',
+                            child: Text('Đang kiểm tra'),
+                          ),
+                          const DropdownMenuItem(
+                            value: 'Đang diễn ra',
+                            child: Text('Đang diễn ra'),
+                          ),
+                          const DropdownMenuItem(
+                            value: 'Đã hoàn thành',
+                            child: Text('Đã hoàn thành'),
+                          ),
+                        ],
+                        onChanged: (newValue) {
+                          setState(() {
+                            selectedStatus = newValue!;
+                          });
+                        },
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -268,101 +360,124 @@ class _ClassRegistrationScreenState extends State<ClassRegistrationScreen> {
                               itemCount: getFilteredClasses().length,
                               itemBuilder: (context, index) {
                                 final classInfo = getFilteredClasses()[index];
-                                return Container(
-                                  margin: const EdgeInsets.only(bottom: 16),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(12),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.grey.withOpacity(0.1),
-                                        spreadRadius: 1,
-                                        blurRadius: 6,
-                                        offset: const Offset(0, 3),
-                                      ),
-                                    ],
+                                return Card(
+                                  margin: const EdgeInsets.only(bottom: 20),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(15),
                                   ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      InkWell(
-                                        onTap: () {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  ClassDetailScreen(
-                                                classId: classInfo.classId,
-                                              ),
+                                  elevation: 4,
+                                  color: Colors.white,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(15),
+                                      gradient: LinearGradient(
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                        colors: [
+                                          Colors.white,
+                                          const Color(0xFFE3F2FD),
+                                        ],
+                                      ),
+                                    ),
+                                    child: InkWell(
+                                      onTap: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                ClassDetailScreen(
+                                              classId: classInfo.classId,
                                             ),
-                                          );
-                                        },
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(16),
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                classInfo.className,
-                                                style: const TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.bold,
+                                          ),
+                                        );
+                                      },
+                                      borderRadius: BorderRadius.circular(15),
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(16.0),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            if (classInfo.imageUrl.isNotEmpty)
+                                              Container(
+                                                height: 200,
+                                                width: double.infinity,
+                                                margin: const EdgeInsets.only(
+                                                    bottom: 16),
+                                                decoration: BoxDecoration(
+                                                  borderRadius:
+                                                      BorderRadius.circular(10),
+                                                  image: DecorationImage(
+                                                    image: NetworkImage(
+                                                        classInfo.imageUrl),
+                                                    fit: BoxFit.cover,
+                                                  ),
                                                 ),
                                               ),
-                                              Text(
-                                                'Mã lớp: ${classInfo.majorName}-${classInfo.classId}',
-                                                style: const TextStyle(
-                                                  fontSize: 14,
-                                                  color: Colors.grey,
+                                            Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment
+                                                      .spaceBetween,
+                                              children: [
+                                                Expanded(
+                                                  child: Text(
+                                                    classInfo.className,
+                                                    style: const TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize: 18,
+                                                      color: Color(0xFF1A237E),
+                                                    ),
+                                                  ),
                                                 ),
-                                              ),
-                                              const SizedBox(height: 8),
-                                              Text(
-                                                  'Giáo viên: ${classInfo.teacherName}'),
-                                              Text(
-                                                  'Ngày bắt đầu: ${classInfo.startDate}'),
-                                              Text(
-                                                  'Ngày kết thúc: ${classInfo.endDate}'),
-                                              Text(
-                                                  'Thời gian: ${classInfo.classTime.substring(0, 5)} - ${classInfo.classEndTime.substring(0, 5)}'),
-                                              Text(
-                                                  'Số ngày học: ${classInfo.totalDays} ngày'),
-                                              Text(
-                                                  'Số lượng học viên tối đa: ${classInfo.maxStudents}'),
-                                              Text(
-                                                  'Học phí: ${_formatCurrency(classInfo.price)}'),
-                                              Text(
-                                                  'Các ngày học: ${classInfo.classDays.map((d) => d.day).join(", ")}'),
-                                            ],
-                                          ),
+                                                Container(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                      horizontal: 12,
+                                                      vertical: 6),
+                                                  decoration: BoxDecoration(
+                                                    color: classInfo
+                                                        .getStatusColor(),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            20),
+                                                  ),
+                                                  child: Text(
+                                                    classInfo.getStatusText(),
+                                                    style: const TextStyle(
+                                                      color: Colors.white,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 12),
+                                            _buildInfoRow(Icons.person,
+                                                'Giáo viên: ${classInfo.teacherName}'),
+                                            _buildInfoRow(Icons.school,
+                                                'Môn: ${classInfo.majorName}'),
+                                            _buildInfoRow(Icons.calendar_today,
+                                                'Ngày bắt đầu: ${classInfo.startDate}'),
+                                            _buildInfoRow(Icons.calendar_today,
+                                                'Ngày kết thúc: ${classInfo.endDate}'),
+                                            _buildInfoRow(Icons.access_time,
+                                                'Thời gian: ${classInfo.classTime.substring(0, 5)} - ${classInfo.classEndTime.substring(0, 5)}'),
+                                            _buildInfoRow(Icons.calendar_month,
+                                                'Số ngày học: ${classInfo.totalDays} ngày'),
+                                            _buildInfoRow(Icons.people,
+                                                'Số lượng học viên tối đa: ${classInfo.maxStudents}'),
+                                            _buildInfoRow(Icons.attach_money,
+                                                'Học phí một buổi: ${_formatCurrency(classInfo.price)}'),
+                                            _buildInfoRow(Icons.calculate,
+                                                'Tổng học phí: ${_formatCurrency(classInfo.price * classInfo.totalDays)}'),
+                                            _buildInfoRow(Icons.event,
+                                                'Các ngày học: ${classInfo.classDays.map((d) => d.day).join(", ")}'),
+                                          ],
                                         ),
                                       ),
-                                      InkWell(
-                                        onTap: () {},
-                                        child: Container(
-                                          width: double.infinity,
-                                          padding: const EdgeInsets.symmetric(
-                                              vertical: 12),
-                                          decoration: const BoxDecoration(
-                                            color: Colors.red,
-                                            borderRadius: BorderRadius.only(
-                                              bottomLeft: Radius.circular(12),
-                                              bottomRight: Radius.circular(12),
-                                            ),
-                                          ),
-                                          child: const Text(
-                                            'Tham gia',
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                            textAlign: TextAlign.center,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
+                                    ),
                                   ),
                                 );
                               },
@@ -370,6 +485,27 @@ class _ClassRegistrationScreenState extends State<ClassRegistrationScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: const Color(0xFF1A237E)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Color(0xFF424242),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

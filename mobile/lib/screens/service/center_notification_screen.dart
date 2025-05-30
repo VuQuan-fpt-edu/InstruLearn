@@ -145,7 +145,6 @@ class _CenterNotificationScreenState extends State<CenterNotificationScreen> {
       itemBuilder: (context, index) {
         final item = notifications[index];
         final fullContent = _parseHtmlString(item['message'] ?? '');
-        // Lấy 3 dòng đầu tiên (hoặc ít hơn)
         final lines =
             fullContent.split('\n').where((e) => e.trim().isNotEmpty).toList();
         final preview = lines.length > 3

@@ -45,7 +45,9 @@ class _ApplicationScreenState extends State<ApplicationScreen> {
           await _service.getRegistrationsByLearnerId(learnerId);
 
       setState(() {
-        _registrations = registrations;
+        _registrations = registrations
+            .where((reg) => reg.regisTypeName != "Center")
+            .toList();
         _isLoading = false;
       });
     } catch (e) {
@@ -72,6 +74,10 @@ class _ApplicationScreenState extends State<ApplicationScreen> {
         return Colors.green;
       case 'cancelled':
         return Colors.red;
+      case 'payment40rejected':
+        return Colors.red;
+      case 'payment60rejected':
+        return Colors.red;
       default:
         return Colors.grey;
     }
@@ -93,6 +99,10 @@ class _ApplicationScreenState extends State<ApplicationScreen> {
         return 'Đã hoàn tất thanh toán học phí';
       case 'cancelled':
         return 'Lịch học đã bị hủy';
+      case 'payment40rejected':
+        return 'Đã từ chối thanh toán 40%';
+      case 'payment60rejected':
+        return 'Đã từ chối thanh toán 60%';
       default:
         return status ?? '';
     }

@@ -57,7 +57,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
 
       setState(() {
         if (fetchedSchedules.isEmpty) {
-          errorMessage = 'Không có lịch dạy';
+          errorMessage = 'Hiện tại bạn chưa có lịch dạy nào';
         } else {
           schedules = fetchedSchedules;
           errorMessage = null;
@@ -69,7 +69,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
           .toString()
           .contains('No Learning Registrations found for this teacher')) {
         setState(() {
-          errorMessage = 'Không có lịch dạy';
+          errorMessage = 'Hiện tại bạn chưa có lịch dạy nào';
           isLoading = false;
           schedules = [];
         });
@@ -191,7 +191,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Lịch dạy'),
+        title: const Text('Lịch dạy theo yêu cầu'),
         backgroundColor: const Color(0xFF8C9EFF),
       ),
       body: Container(
@@ -207,7 +207,8 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
             _buildFilterButtons(),
             _buildMonthNavigation(),
             _buildCalendarGrid(),
-            if (errorMessage != null)
+            if (errorMessage != null &&
+                errorMessage != 'Hiện tại bạn chưa có lịch dạy nào')
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -913,7 +914,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
       ScaffoldMessenger.of(context).removeCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Lỗi khi cập nhật điểm danh: $e'),
+          content: Text(e.toString().replaceAll('Exception: ', '')),
           backgroundColor: Colors.red,
         ),
       );
