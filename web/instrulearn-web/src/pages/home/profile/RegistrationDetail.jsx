@@ -934,26 +934,48 @@ const RegistrationDetail = () => {
                   {registration.Status === "Accepted" &&
                     learningPathSessions.some((s) => s.isCompleted) && (
                       <Col xs={24}>
-                        <Button
-                          type="primary"
-                          onClick={handleInitialPaymentClick}
-                          className="bg-green-600 hover:bg-green-700 border-none mr-2 mt-4"
-                          loading={paymentLoading}
-                        >
-                          Thanh toán 40% học phí
-                        </Button>
+                        <div className="flex flex-row gap-3 mt-4">
+                          <Button
+                            type="primary"
+                            onClick={handleInitialPaymentClick}
+                            className="bg-green-600 hover:bg-green-700 border-none"
+                            loading={paymentLoading}
+                          >
+                            Thanh toán 40% học phí
+                          </Button>
+                          <Button
+                            danger
+                            loading={rejectPaymentLoading}
+                            onClick={() =>
+                              handleShowRejectConfirmation("initial")
+                            }
+                          >
+                            Từ chối thanh toán
+                          </Button>
+                        </div>
                       </Col>
                     )}
                   {registration.Status === "FourtyFeedbackDone" && (
                     <Col xs={24}>
-                      <Button
-                        type="primary"
-                        onClick={handleRemainingPaymentClick}
-                        className="bg-blue-600 hover:bg-blue-700 border-none mr-2 mt-4"
-                        loading={paymentLoading}
-                      >
-                        Thanh toán phần còn lại
-                      </Button>
+                      <div className="flex flex-row gap-3 mt-4">
+                        <Button
+                          type="primary"
+                          onClick={handleRemainingPaymentClick}
+                          className="bg-blue-600 hover:bg-blue-700 border-none"
+                          loading={paymentLoading}
+                        >
+                          Thanh toán phần còn lại
+                        </Button>
+                        <Button
+                          danger
+                          loading={rejectPaymentLoading}
+                          onClick={() =>
+                            handleShowRejectConfirmation("remaining")
+                          }
+                        >
+                          Từ chối thanh toán
+                        </Button>
+                      </div>
                     </Col>
                   )}
                   {/* Lộ trình học tập */}
@@ -1065,6 +1087,12 @@ const RegistrationDetail = () => {
         onCancel={() => setIsConfirmInitialPaymentVisible(false)}
         footer={[
           <Button
+            key="cancel"
+            onClick={() => setIsConfirmInitialPaymentVisible(false)}
+          >
+            Hủy
+          </Button>,
+          <Button
             key="ok"
             type="primary"
             className="bg-green-600 hover:bg-green-700"
@@ -1073,15 +1101,6 @@ const RegistrationDetail = () => {
             style={{ background: "#16a34a", borderColor: "#16a34a" }}
           >
             Xác nhận thanh toán
-          </Button>,
-          <Button
-            key="reject"
-            danger
-            loading={rejectPaymentLoading}
-            onClick={() => handleShowRejectConfirmation("initial")}
-            style={{ borderColor: "#e53935", color: "#e53935" }}
-          >
-            Từ chối thanh toán
           </Button>,
         ]}
         width={500}
@@ -1142,12 +1161,10 @@ const RegistrationDetail = () => {
         }}
         footer={[
           <Button
-            key="reject"
-            danger
-            loading={rejectPaymentLoading}
-            onClick={() => handleShowRejectConfirmation("remaining")}
+            key="cancel"
+            onClick={() => setIsConfirmRemainingPaymentVisible(false)}
           >
-            Từ chối thanh toán
+            Hủy
           </Button>,
           <Button
             key="ok"
@@ -1298,7 +1315,10 @@ const RegistrationDetail = () => {
       <Modal
         title={
           <div className="text-center">
-            <div className="text-2xl font-bold text-red-600 mb-2">
+            <div
+              className="text-2xl font-bold mb-2"
+              style={{ color: "#fa8c16" }}
+            >
               Đã từ chối thanh toán
             </div>
           </div>
@@ -1307,13 +1327,15 @@ const RegistrationDetail = () => {
         onOk={() => setRejectPaymentSuccessVisible(false)}
         okText="Đồng ý"
         cancelButtonProps={{ style: { display: "none" } }}
-        okButtonProps={{ className: "bg-red-600 hover:bg-red-700" }}
+        okButtonProps={{
+          style: { background: "#fa8c16", borderColor: "#fa8c16" },
+        }}
       >
         <div className="py-4 text-center">
           <div className="mb-4">
-            <CloseCircleOutlined className="text-6xl text-red-500" />
+            <CloseCircleOutlined style={{ fontSize: 64, color: "#fa8c16" }} />
           </div>
-          <div className="text-lg mb-4">
+          <div className="text-lg mb-4" style={{ color: "#faad14" }}>
             Việc từ chối thanh toán đồng nghĩa với việc lịch học của bạn sẽ bị
             hủy bỏ.
           </div>

@@ -46,6 +46,7 @@ import {
   uploadBytesResumable,
   getDownloadURL,
 } from "firebase/storage";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 
 const { Content } = Layout;
 const { Option } = Select;
@@ -77,6 +78,12 @@ const StaffManagement = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStatus, setUploadStatus] = useState("");
   const [previewImage, setPreviewImage] = useState(null);
+  const [apiError, setApiError] = useState("");
+  const [successModal, setSuccessModal] = useState({
+    open: false,
+    message: "",
+  });
+  const [uploadFileKey, setUploadFileKey] = useState(0);
 
   useEffect(() => {
     fetchStaffs();
@@ -112,6 +119,11 @@ const StaffManagement = () => {
     };
     form.setFieldsValue(formValues);
     setPreviewImage("");
+    setUploadFile(null);
+    setUploadStatus("");
+    setIsUploading(false);
+    setUploadProgress(0);
+    setUploadFileKey((prev) => prev + 1);
     setIsModalOpen(true);
   };
 
@@ -155,25 +167,30 @@ const StaffManagement = () => {
               gender: values.gender,
               address: values.address,
               avatar: values.avatar,
-              dateOfEmployment: values.dateOfEmployment
-                ? dayjs(values.dateOfEmployment).format("YYYY-MM-DD")
-                : null,
+              dateOfEmployment:
+                values.dateOfEmployment && values.dateOfEmployment.format
+                  ? values.dateOfEmployment.format("YYYY-MM-DD")
+                  : null,
             }
           );
           if (response.data.isSucceed) {
-            message.success("Cập nhật thông tin nhân viên thành công!");
+            setApiError("");
             setIsModalOpen(false);
             setEditingStaff(null);
             form.resetFields();
             fetchStaffs();
+            setSuccessModal({
+              open: true,
+              message: "Cập nhật thông tin nhân viên thành công!",
+            });
           } else {
-            message.error(
+            setApiError(
               response.data.message || "Không thể cập nhật thông tin nhân viên!"
             );
           }
         } catch (error) {
           console.error("Error updating staff:", error);
-          message.error("Không thể cập nhật thông tin nhân viên!");
+          setApiError("Không thể cập nhật thông tin nhân viên!");
         }
       } else {
         try {
@@ -188,20 +205,25 @@ const StaffManagement = () => {
             }
           );
           if (response.data.isSucceed) {
-            message.success("Thêm nhân viên mới thành công!");
+            setApiError("");
+            setIsModalOpen(false);
+            form.resetFields();
+            fetchStaffs();
+            setSuccessModal({
+              open: true,
+              message: "Thêm nhân viên mới thành công!",
+            });
           } else {
-            message.error(response.data.message || "Không thể thêm nhân viên!");
+            setApiError(response.data.message || "Không thể thêm nhân viên!");
           }
         } catch (error) {
           console.error("Error creating staff:", error);
-          message.error("Không thể thêm nhân viên!");
+          setApiError("Không thể thêm nhân viên!");
         }
       }
-      setIsModalOpen(false);
-      fetchStaffs();
     } catch (error) {
       console.error("Lỗi khi lưu:", error);
-      message.error("Không thể lưu thông tin nhân viên!");
+      setApiError("Không thể lưu thông tin nhân viên!");
     }
   };
 
@@ -395,9 +417,15 @@ const StaffManagement = () => {
               setIsModalOpen(false);
               setUploadFile(null);
               setPreviewImage(null);
+              setApiError("");
             }}
             width={700}
           >
+            {apiError && (
+              <div style={{ color: "red", marginBottom: 12, fontWeight: 500 }}>
+                {apiError}
+              </div>
+            )}
             <Form form={form} layout="vertical">
               {editingStaff ? (
                 <>
@@ -416,7 +444,7 @@ const StaffManagement = () => {
                       },
                     ]}
                   >
-                    <Input prefix={<UserOutlined />} maxLength={50} />
+                    <Input prefix={<UserOutlined />} maxLength={50} showCount />
                   </Form.Item>
 
                   <Form.Item
@@ -431,22 +459,7 @@ const StaffManagement = () => {
                       },
                     ]}
                   >
-                    <Input prefix={<MailOutlined />} maxLength={50} />
-                  </Form.Item>
-
-                  <Form.Item
-                    name="password"
-                    label="Mật khẩu"
-                    rules={[
-                      { required: true, message: "Vui lòng nhập mật khẩu!" },
-                      { min: 8, message: "Mật khẩu phải có ít nhất 8 ký tự!" },
-                      {
-                        max: 50,
-                        message: "Mật khẩu không được vượt quá 50 ký tự!",
-                      },
-                    ]}
-                  >
-                    <Input.Password prefix={<LockOutlined />} maxLength={50} />
+                    <Input prefix={<MailOutlined />} maxLength={50} showCount />
                   </Form.Item>
 
                   <Form.Item
@@ -463,7 +476,11 @@ const StaffManagement = () => {
                       },
                     ]}
                   >
-                    <Input prefix={<PhoneOutlined />} maxLength={10} />
+                    <Input
+                      prefix={<PhoneOutlined />}
+                      maxLength={10}
+                      showCount
+                    />
                   </Form.Item>
 
                   <Form.Item
@@ -491,7 +508,7 @@ const StaffManagement = () => {
                       },
                     ]}
                   >
-                    <Input.TextArea rows={2} maxLength={100} />
+                    <Input.TextArea rows={2} maxLength={100} showCount />
                   </Form.Item>
 
                   <Form.Item
@@ -529,6 +546,7 @@ const StaffManagement = () => {
 
                     <div className="mb-3">
                       <input
+                        key={uploadFileKey}
                         type="file"
                         onChange={handleFileSelect}
                         accept="image/*"
@@ -620,7 +638,7 @@ const StaffManagement = () => {
                       },
                     ]}
                   >
-                    <Input prefix={<UserOutlined />} maxLength={50} />
+                    <Input prefix={<UserOutlined />} maxLength={50} showCount />
                   </Form.Item>
 
                   <Form.Item
@@ -642,7 +660,7 @@ const StaffManagement = () => {
                       },
                     ]}
                   >
-                    <Input prefix={<UserOutlined />} maxLength={50} />
+                    <Input prefix={<UserOutlined />} maxLength={50} showCount />
                   </Form.Item>
 
                   <Form.Item
@@ -657,7 +675,7 @@ const StaffManagement = () => {
                       },
                     ]}
                   >
-                    <Input prefix={<MailOutlined />} maxLength={50} />
+                    <Input prefix={<MailOutlined />} maxLength={50} showCount />
                   </Form.Item>
 
                   <Form.Item
@@ -672,7 +690,11 @@ const StaffManagement = () => {
                       },
                     ]}
                   >
-                    <Input.Password prefix={<LockOutlined />} maxLength={50} />
+                    <Input.Password
+                      prefix={<LockOutlined />}
+                      maxLength={50}
+                      showCount
+                    />
                   </Form.Item>
 
                   <Form.Item
@@ -689,7 +711,11 @@ const StaffManagement = () => {
                       },
                     ]}
                   >
-                    <Input prefix={<PhoneOutlined />} maxLength={10} />
+                    <Input
+                      prefix={<PhoneOutlined />}
+                      maxLength={10}
+                      showCount
+                    />
                   </Form.Item>
                 </>
               )}
@@ -758,6 +784,34 @@ const StaffManagement = () => {
                 </Card>
               </>
             )}
+          </Modal>
+
+          {/* Modal thông báo thành công */}
+          <Modal
+            open={successModal.open}
+            onOk={() => setSuccessModal({ ...successModal, open: false })}
+            onCancel={() => setSuccessModal({ ...successModal, open: false })}
+            footer={[
+              <Button
+                key="ok"
+                type="primary"
+                onClick={() =>
+                  setSuccessModal({ ...successModal, open: false })
+                }
+              >
+                Đóng
+              </Button>,
+            ]}
+            centered
+            closable={false}
+            bodyStyle={{ textAlign: "center", padding: 32 }}
+          >
+            <CheckCircleIcon
+              style={{ color: "#52c41a", fontSize: 64, marginBottom: 16 }}
+            />
+            <div style={{ fontSize: 22, fontWeight: 600, marginBottom: 8 }}>
+              {successModal.message}
+            </div>
           </Modal>
         </Content>
       </Layout>

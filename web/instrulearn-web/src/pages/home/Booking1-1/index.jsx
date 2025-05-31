@@ -78,6 +78,7 @@ const StudentBookingForm = () => {
   const [walletBalance, setWalletBalance] = useState(0);
   const [insufficientBalanceModalVisible, setInsufficientBalanceModalVisible] =
     useState(false);
+  const [registrationFee, setRegistrationFee] = useState(null);
 
   const navigate = useNavigate();
 
@@ -85,6 +86,7 @@ const StudentBookingForm = () => {
     fetchUserProfile();
     fetchMajors();
     fetchSelfAssessments();
+    fetchRegistrationFee();
     window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
   }, [form, navigate]);
 
@@ -180,6 +182,22 @@ const StudentBookingForm = () => {
       return 0;
     } catch (error) {
       return 0;
+    }
+  };
+
+  const fetchRegistrationFee = async () => {
+    try {
+      const response = await axios.get(
+        "https://instrulearnapplication.azurewebsites.net/api/SystemConfiguration"
+      );
+      if (response.data?.isSucceed) {
+        const feeConfig = response.data.data.find(
+          (item) => item.key === "RegistrationDepositAmount"
+        );
+        setRegistrationFee(feeConfig ? parseInt(feeConfig.value) : 0);
+      }
+    } catch (error) {
+      setRegistrationFee(0);
     }
   };
 
@@ -349,6 +367,7 @@ const StudentBookingForm = () => {
           isSubmitting={isSubmitting}
           forceResetTeacherSelection={forceResetTeacherSelection}
           selfAssessments={selfAssessments}
+          registrationFee={registrationFee}
         />
       ),
     },
@@ -359,7 +378,7 @@ const StudentBookingForm = () => {
       <Content className="p-6 bg-gray-50">
         <Card className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
-            <Title level={2}>Đăng Ký Khóa Học 1-1</Title>
+            <Title level={2}>Đăng Ký Khóa Học Theo Yêu Cầu</Title>
             <Text type="secondary">
               Học theo lịch riêng với giáo viên chất lượng cao
             </Text>
@@ -371,9 +390,16 @@ const StudentBookingForm = () => {
             }
             description={
               <span>
-                Việc tạo đơn học theo yêu cầu sẽ phát sinh phí xử lý{" "}
-                <b>50.000 VND</b>. Khoản phí này được áp dụng nhằm đảm bảo chất
-                lượng dịch vụ cá nhân hóa và{" "}
+                Việc tạo đơn học theo yêu cầu sẽ phát sinh phí xử lý
+                <b>
+                  {" "}
+                  {registrationFee !== null
+                    ? registrationFee.toLocaleString("vi-VN")
+                    : "..."}{" "}
+                  VND
+                </b>
+                . Khoản phí này được áp dụng nhằm đảm bảo chất lượng dịch vụ cá
+                nhân hóa và{" "}
                 <b>sẽ không được hoàn lại sau khi đơn đã được gửi</b>. Vui lòng
                 xem xét kỹ trước khi tiến hành.
                 <br />
@@ -512,9 +538,15 @@ const StudentBookingForm = () => {
           >
             <div className="text-center py-4">
               <p className="text-lg mb-2">
-                Bạn sẽ bị trừ{" "}
-                <span className="text-red-500 font-bold">50,000 VNĐ</span> cho
-                phí đăng ký
+                Bạn sẽ bị trừ
+                <span className="text-red-500 font-bold">
+                  {" "}
+                  {registrationFee !== null
+                    ? registrationFee.toLocaleString("vi-VN")
+                    : "..."}{" "}
+                  VNĐ
+                </span>{" "}
+                cho phí đăng ký
               </p>
               <p className="text-gray-600">
                 Số tiền này sẽ được trừ vào tài khoản của bạn sau khi gửi đơn

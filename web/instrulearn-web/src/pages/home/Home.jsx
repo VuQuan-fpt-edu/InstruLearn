@@ -491,7 +491,10 @@ export default function Home() {
                     cover={
                       <img
                         alt={classItem.className}
-                        src="https://ntt.edu.vn/wp-content/uploads/2023/04/KHOA-AM-NHAC-20-scaled.jpg"
+                        src={
+                          classItem.imageUrl ||
+                          "https://placehold.co/600x400?text=No+Image"
+                        }
                         className="w-full h-48 object-cover"
                       />
                     }
@@ -663,7 +666,7 @@ export default function Home() {
           )}
         </div>
 
-        <div className="mb-16 bg-gray-100 p-8 rounded-sm">
+        {/* <div className="mb-16 bg-gray-100 p-8 rounded-sm">
           <h2 className="text-3xl font-bold mb-8 text-center">
             Học viên nói gì về chúng tôi?
           </h2>
@@ -685,7 +688,7 @@ export default function Home() {
               </div>
             ))}
           </div>
-        </div>
+        </div> */}
 
         {/* Call to action section with focus on custom learning */}
         <div className="text-center bg-gray-900 text-white p-12 rounded-sm mb-16">

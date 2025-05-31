@@ -9,6 +9,8 @@ import {
   Typography,
   message,
   Spin,
+  Modal,
+  Space,
 } from "antd";
 import {
   UserOutlined,
@@ -19,6 +21,7 @@ import {
   TrophyOutlined,
   VideoCameraOutlined,
   PlayCircleOutlined,
+  WarningOutlined,
 } from "@ant-design/icons";
 import "antd/dist/reset.css";
 import { login, getCurrentUser, loginWithGoogle } from "../../api/auth";
@@ -33,6 +36,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [errorModal, setErrorModal] = useState({ open: false, message: "" });
 
   const handleGoogleLogin = async () => {
     try {
@@ -141,6 +145,7 @@ export default function Login() {
   const handleLogin = async (values) => {
     setLoading(true);
     setErrorMessage("");
+    setErrorModal({ open: false, message: "" });
 
     try {
       const response = await login({
@@ -175,38 +180,22 @@ export default function Login() {
           navigate("/manager");
         }
       } else {
-        setErrorMessage("Không nhận được token xác thực từ máy chủ");
-        message.error("Đăng nhập thất bại. Vui lòng thử lại sau.");
+        setErrorModal({
+          open: true,
+          message: "Không nhận được token xác thực từ máy chủ",
+        });
       }
     } catch (error) {
       console.error("Login error:", error);
 
+      let apiMsg =
+        "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin đăng nhập!";
       if (error.response) {
-        switch (error.response.status) {
-          case 400:
-            setErrorMessage("Tên đăng nhập hoặc mật khẩu không hợp lệ");
-            break;
-          case 401:
-            setErrorMessage("Tên đăng nhập hoặc mật khẩu không chính xác");
-            break;
-          case 404:
-            setErrorMessage("Không tìm thấy tài khoản");
-            break;
-          case 500:
-            setErrorMessage("Lỗi máy chủ. Vui lòng thử lại sau");
-            break;
-          default:
-            setErrorMessage("Đăng nhập thất bại. Vui lòng thử lại sau");
-        }
-      } else {
-        setErrorMessage(
-          "Lỗi kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng"
-        );
+        apiMsg = error.response.data?.message || apiMsg;
+      } else if (error.message) {
+        apiMsg = error.message;
       }
-
-      message.error(
-        "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin đăng nhập!"
-      );
+      setErrorModal({ open: true, message: apiMsg });
     } finally {
       setLoading(false);
     }
@@ -421,6 +410,42 @@ export default function Login() {
           </div>
         </div>
       </div>
+      <Modal
+        open={errorModal.open}
+        onOk={() => setErrorModal({ ...errorModal, open: false })}
+        onCancel={() => setErrorModal({ ...errorModal, open: false })}
+        footer={[
+          <Button
+            key="ok"
+            type="primary"
+            onClick={() => setErrorModal({ ...errorModal, open: false })}
+          >
+            Đóng
+          </Button>,
+        ]}
+        centered
+        closable={false}
+        bodyStyle={{ padding: 36, borderRadius: 16 }}
+      >
+        <Space direction="vertical" style={{ width: "100%" }} align="center">
+          <WarningOutlined
+            style={{ color: "#faad14", fontSize: 48, marginBottom: 8 }}
+          />
+          <div
+            style={{
+              color: "#d4380d",
+              fontWeight: 700,
+              fontSize: 20,
+              textAlign: "center",
+              marginBottom: 8,
+              letterSpacing: 0.5,
+              lineHeight: 1.4,
+            }}
+          >
+            {errorModal.message}
+          </div>
+        </Space>
+      </Modal>
     </div>
   );
 }

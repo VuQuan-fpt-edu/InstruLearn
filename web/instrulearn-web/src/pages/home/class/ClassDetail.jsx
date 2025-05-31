@@ -27,6 +27,7 @@ import {
   RightOutlined,
   LockOutlined,
   CheckCircleOutlined,
+  WarningOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
 
@@ -47,6 +48,7 @@ const ClassDetail = () => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showInsufficientBalanceModal, setShowInsufficientBalanceModal] =
     useState(false);
+  const [errorModal, setErrorModal] = useState({ open: false, message: "" });
 
   useEffect(() => {
     fetchData();
@@ -262,15 +264,20 @@ const ClassDetail = () => {
         await fetchWalletBalance(userProfile.learnerId);
         await fetchData();
       } else {
-        throw new Error(response.data.message || "Đăng ký thất bại");
+        setErrorModal({
+          open: true,
+          message: response.data.message || "Đăng ký thất bại",
+        });
       }
     } catch (error) {
       console.error("Error joining class:", error);
-      message.error(
-        error.response?.data?.message ||
+      setErrorModal({
+        open: true,
+        message:
+          error.response?.data?.message ||
           error.message ||
-          "Đã xảy ra lỗi khi đăng ký lớp học"
-      );
+          "Đã xảy ra lỗi khi đăng ký lớp học",
+      });
     } finally {
       setJoining(false);
     }
@@ -310,8 +317,17 @@ const ClassDetail = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-purple-900 to-indigo-800 text-white py-12">
-        <div className="max-w-7xl mx-auto px-4">
+      <div className="bg-gradient-to-r from-purple-900 to-indigo-800 text-white py-12 relative">
+        {/* Ảnh đại diện lớp học nổi bật */}
+        {classData.imageUrl && (
+          <img
+            src={classData.imageUrl}
+            alt="Ảnh lớp học"
+            className="absolute top-0 right-0 h-full object-cover opacity-30 w-1/2 hidden md:block rounded-bl-3xl"
+            style={{ zIndex: 1 }}
+          />
+        )}
+        <div className="max-w-7xl mx-auto px-4 relative z-10">
           <Button
             icon={<ArrowLeftOutlined />}
             onClick={handleBack}
@@ -396,6 +412,12 @@ const ClassDetail = () => {
                   </div>
                 </div>
                 <div className="flex items-center">
+                  <div className="text-gray-500 text-sm mr-2">Trình độ</div>
+                  <Tag color="purple" className="mr-2">
+                    {classData.levelName}
+                  </Tag>
+                </div>
+                <div className="flex items-center">
                   <CalendarOutlined className="text-purple-600 text-xl mr-4" />
                   <div>
                     <div className="text-gray-500 text-sm">Thời gian học</div>
@@ -409,10 +431,24 @@ const ClassDetail = () => {
                   <div>
                     <div className="text-gray-500 text-sm">Giờ học</div>
                     <div className="font-medium text-lg">
-                      {classData.classTime?.substring(0, 5)}
+                      {classData.classTime?.substring(0, 5)} -{" "}
+                      {classData.classEndTime?.substring(0, 5)}
                     </div>
                   </div>
                 </div>
+                {/* {classData.syllabusLink && (
+                  <div className="flex items-center">
+                    <a
+                      href={classData.syllabusLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-purple-600 hover:underline font-medium flex items-center"
+                    >
+                      <BookOutlined className="mr-2" />
+                      Tải giáo trình
+                    </a>
+                  </div>
+                )} */}
                 <div className="flex items-center">
                   <TeamOutlined className="text-purple-600 text-xl mr-4" />
                   <div>
@@ -469,6 +505,25 @@ const ClassDetail = () => {
                   />
                 </Col>
               </Row>
+              {/* Lịch học chi tiết nếu có sessionDates */}
+              {classData.sessionDates && classData.sessionDates.length > 0 && (
+                <div className="mt-6">
+                  <Title level={5} className="mb-2">
+                    Lịch học chi tiết
+                  </Title>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    {classData.sessionDates.map((date, idx) => (
+                      <div
+                        key={date}
+                        className="bg-gray-100 rounded px-3 py-2 text-center"
+                      >
+                        Buổi {idx + 1}:{" "}
+                        {new Date(date).toLocaleDateString("vi-VN")}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </Card>
 
             {/* Students List Card */}
@@ -772,6 +827,50 @@ const ClassDetail = () => {
             type="warning"
             showIcon
           />
+        </div>
+      </Modal>
+
+      {/* Modal thông báo lỗi đăng ký lớp học */}
+      <Modal
+        open={errorModal.open}
+        onOk={() => setErrorModal({ ...errorModal, open: false })}
+        onCancel={() => setErrorModal({ ...errorModal, open: false })}
+        footer={[
+          <Button
+            key="ok"
+            type="primary"
+            onClick={() => setErrorModal({ ...errorModal, open: false })}
+          >
+            Đóng
+          </Button>,
+        ]}
+        centered
+        closable={false}
+        bodyStyle={{ padding: 36, borderRadius: 16 }}
+      >
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+          }}
+        >
+          <WarningOutlined
+            style={{ color: "#faad14", fontSize: 48, marginBottom: 8 }}
+          />
+          <div
+            style={{
+              color: "#d4380d",
+              fontWeight: 700,
+              fontSize: 20,
+              textAlign: "center",
+              marginBottom: 8,
+              letterSpacing: 0.5,
+              lineHeight: 1.4,
+            }}
+          >
+            {errorModal.message}
+          </div>
         </div>
       </Modal>
     </div>

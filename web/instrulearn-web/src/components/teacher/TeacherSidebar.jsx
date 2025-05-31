@@ -93,7 +93,7 @@ const TeacherSidebar = ({
     {
       key: "student-management",
       icon: <TeamOutlined />,
-      label: "Quản lý học viên",
+      label: "Quản lý lớp học",
       children: [
         { key: "students", label: "Danh sách học viên" },
         { key: "class-progress", label: "Theo dõi tiến độ" },

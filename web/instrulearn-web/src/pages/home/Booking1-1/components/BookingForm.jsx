@@ -68,6 +68,7 @@ const BookingForm = ({
   isSubmitting,
   forceResetTeacherSelection,
   selfAssessments,
+  registrationFee,
 }) => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);

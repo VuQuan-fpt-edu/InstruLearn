@@ -318,9 +318,7 @@ const LevelFeedbackTemplateManagement = () => {
                   }}
                 >
                   <div style={{ flex: 2, paddingRight: 8 }}>Tên hạng mục</div>
-                  <div style={{ width: 120, paddingRight: 8 }}>
-                    Trọng số (%)
-                  </div>
+                  <div style={{ width: 120, paddingRight: 8 }}>Số (%)</div>
                   <div style={{ flex: 3, paddingRight: 8 }}>Mô tả</div>
                   <div style={{ width: 60 }}></div>
                 </div>
@@ -522,7 +520,7 @@ const LevelFeedbackTemplateManagement = () => {
                         width: "25%",
                       },
                       {
-                        title: "Trọng số",
+                        title: "Số",
                         dataIndex: "weight",
                         key: "weight",
                         width: "15%",
@@ -621,9 +619,7 @@ const LevelFeedbackTemplateManagement = () => {
                   }}
                 >
                   <div style={{ flex: 2, paddingRight: 8 }}>Tên hạng mục</div>
-                  <div style={{ width: 120, paddingRight: 8 }}>
-                    Trọng số (%)
-                  </div>
+                  <div style={{ width: 120, paddingRight: 8 }}>Số (%)</div>
                   <div style={{ flex: 3, paddingRight: 8 }}>Mô tả</div>
                   <div style={{ width: 60 }}></div>
                 </div>

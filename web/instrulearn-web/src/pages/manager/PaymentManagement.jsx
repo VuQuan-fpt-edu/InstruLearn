@@ -74,7 +74,7 @@ const PaymentManagement = () => {
     try {
       setLoading(true);
       const response = await axios.get(
-        "https://instrulearnapplication2025-h7hfdte3etdth7av.southeastasia-01.azurewebsites.net/api/WalletTransactions"
+        "https://instrulearnapplication.azurewebsites.net/api/WalletTransactions"
       );
 
       // Lọc chỉ lấy các giao dịch nạp tiền (AddFuns)
@@ -128,96 +128,6 @@ const PaymentManagement = () => {
     fetchTransactions();
   }, []);
 
-  const handleApprovePayment = async (orderCode) => {
-    try {
-      setProcessingTransaction(orderCode);
-      const response = await axios.put(
-        "https://instrulearnapplication2025-h7hfdte3etdth7av.southeastasia-01.azurewebsites.net/api/wallet/update-payment-status",
-        {
-          orderCode: orderCode,
-        }
-      );
-
-      // Kiểm tra response thành công theo nhiều trường hợp
-      if (
-        response.data?.isSucceed ||
-        (response.data?.message &&
-          response.data.message.includes("successfully")) ||
-        response.status === 200
-      ) {
-        message.success("Xác nhận giao dịch thành công");
-        // Thêm timeout để đảm bảo API cập nhật dữ liệu trước khi fetch lại
-        setTimeout(() => {
-          fetchTransactions();
-        }, 1000);
-      } else {
-        throw new Error(
-          response.data?.message || "Xác nhận giao dịch thất bại"
-        );
-      }
-    } catch (error) {
-      console.error("Error approving payment:", error);
-      // Kiểm tra nếu thông báo lỗi chứa "successfully" thì thực sự là thành công
-      if (error.message && error.message.includes("successfully")) {
-        message.success("Xác nhận giao dịch thành công");
-        setTimeout(() => {
-          fetchTransactions();
-        }, 1000);
-      } else {
-        message.error(
-          "Xác nhận giao dịch thất bại: " +
-            (error.response?.data?.message || error.message)
-        );
-      }
-    } finally {
-      setProcessingTransaction(null);
-    }
-  };
-
-  const handleRejectPayment = async (orderCode) => {
-    try {
-      setProcessingTransaction(orderCode);
-      const response = await axios.put(
-        "https://instrulearnapplication2025-h7hfdte3etdth7av.southeastasia-01.azurewebsites.net/api/wallet/update-fail-payment-status",
-        {
-          orderCode: orderCode,
-        }
-      );
-
-      // Kiểm tra response thành công theo nhiều trường hợp
-      if (
-        response.data?.isSucceed ||
-        (response.data?.message &&
-          response.data.message.includes("successfully")) ||
-        response.status === 200
-      ) {
-        message.success("Đã từ chối giao dịch");
-        // Thêm timeout để đảm bảo API cập nhật dữ liệu trước khi fetch lại
-        setTimeout(() => {
-          fetchTransactions();
-        }, 1000);
-      } else {
-        throw new Error(response.data?.message || "Từ chối giao dịch thất bại");
-      }
-    } catch (error) {
-      console.error("Error rejecting payment:", error);
-      // Kiểm tra nếu thông báo lỗi chứa "successfully" thì thực sự là thành công
-      if (error.message && error.message.includes("successfully")) {
-        message.success("Từ chối giao dịch thành công");
-        setTimeout(() => {
-          fetchTransactions();
-        }, 1000);
-      } else {
-        message.error(
-          "Từ chối giao dịch thất bại: " +
-            (error.response?.data?.message || error.message)
-        );
-      }
-    } finally {
-      setProcessingTransaction(null);
-    }
-  };
-
   const getStatusTag = (status) => {
     switch (status) {
       case "Complete":
@@ -244,20 +154,20 @@ const PaymentManagement = () => {
   };
 
   const columns = [
-    {
-      title: "Mã giao dịch",
-      dataIndex: "transactionId",
-      key: "transactionId",
-      width: 200,
-      ellipsis: true,
-      render: (text) => (
-        <Tooltip title={text}>
-          <div className="font-medium text-blue-600">
-            {text.substring(0, 10)}...
-          </div>
-        </Tooltip>
-      ),
-    },
+    // {
+    //   title: "Mã giao dịch",
+    //   dataIndex: "transactionId",
+    //   key: "transactionId",
+    //   width: 200,
+    //   ellipsis: true,
+    //   render: (text) => (
+    //     <Tooltip title={text}>
+    //       <div className="font-medium text-blue-600">
+    //         {text.substring(0, 10)}...
+    //       </div>
+    //     </Tooltip>
+    //   ),
+    // },
     {
       title: "Học viên",
       dataIndex: "learnerFullname",
@@ -273,15 +183,32 @@ const PaymentManagement = () => {
     },
     {
       title: "Số tiền",
-      dataIndex: "amount",
-      key: "amount",
+      dataIndex: "signedAmount",
+      key: "signedAmount",
       width: 130,
       render: (amount) => (
-        <div className="text-green-600 font-medium text-right">
-          +{amount.toLocaleString("vi-VN")} VNĐ
+        <div
+          className={`font-medium text-right ${
+            amount > 0 ? "text-green-600" : "text-red-600"
+          }`}
+        >
+          {amount > 0 ? "+" : ""}
+          {amount.toLocaleString("vi-VN")} VNĐ
         </div>
       ),
-      sorter: (a, b) => a.amount - b.amount,
+      sorter: (a, b) => a.signedAmount - b.signedAmount,
+    },
+    {
+      title: "Loại giao dịch",
+      dataIndex: "paymentType",
+      key: "paymentType",
+      width: 150,
+      render: (type) => (
+        <div className="flex items-center">
+          <FileTextOutlined className="mr-2 text-gray-500" />
+          <span>{type}</span>
+        </div>
+      ),
     },
     {
       title: "Ngày giao dịch",
@@ -316,50 +243,7 @@ const PaymentManagement = () => {
       width: 80,
       align: "center",
       render: (_, record) => {
-        if (record.status === "Pending") {
-          return (
-            <Tooltip title="Xác nhận/Từ chối">
-              <div className="flex items-center justify-center space-x-2">
-                <Popconfirm
-                  title="Xác nhận thanh toán"
-                  description="Bạn có chắc chắn muốn xác nhận giao dịch này?"
-                  onConfirm={() => handleApprovePayment(record.transactionId)}
-                  okText="Đồng ý"
-                  cancelText="Hủy"
-                  icon={
-                    <ExclamationCircleOutlined style={{ color: "#52c41a" }} />
-                  }
-                >
-                  <Button
-                    type="primary"
-                    shape="circle"
-                    size="small"
-                    icon={<CheckOutlined />}
-                    loading={processingTransaction === record.transactionId}
-                    className="mr-1"
-                  />
-                </Popconfirm>
-                <Popconfirm
-                  title="Từ chối thanh toán"
-                  description="Bạn có chắc chắn muốn từ chối giao dịch này?"
-                  onConfirm={() => handleRejectPayment(record.transactionId)}
-                  okText="Đồng ý"
-                  cancelText="Hủy"
-                  okType="danger"
-                  icon={<ExclamationCircleOutlined style={{ color: "red" }} />}
-                >
-                  <Button
-                    danger
-                    shape="circle"
-                    size="small"
-                    icon={<CloseOutlined />}
-                    loading={processingTransaction === record.transactionId}
-                  />
-                </Popconfirm>
-              </div>
-            </Tooltip>
-          );
-        } else if (record.status === "Complete") {
+        if (record.status === "Complete") {
           return (
             <Tooltip title="Đã hoàn thành">
               <CheckCircleFilled
@@ -371,6 +255,15 @@ const PaymentManagement = () => {
           return (
             <Tooltip title="Đã từ chối">
               <CloseOutlined style={{ fontSize: "18px", color: "#ff4d4f" }} />
+            </Tooltip>
+          );
+        } else if (record.status === "Pending") {
+          return (
+            <Tooltip title="Đang chờ xử lý">
+              <SyncOutlined
+                spin
+                style={{ fontSize: "18px", color: "#faad14" }}
+              />
             </Tooltip>
           );
         }
