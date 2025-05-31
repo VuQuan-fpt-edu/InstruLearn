@@ -356,7 +356,7 @@ const TransactionHistory = () => {
       >
         {/* Thống kê tổng quan */}
         <Row gutter={[16, 16]} className="mb-6">
-          <Col xs={24} sm={12} md={6}>
+          {/* <Col xs={24} sm={12} md={6}>
             <Card className="hover:shadow-md transition-all duration-300 border-l-4 border-l-purple-500">
               <Statistic
                 title={<span className="text-gray-600">Số dư hiện tại</span>}
@@ -367,7 +367,7 @@ const TransactionHistory = () => {
                 formatter={(value) => `${value.toLocaleString()}`}
               />
             </Card>
-          </Col>
+          </Col> */}
           <Col xs={24} sm={12} md={6}>
             <Card className="hover:shadow-md transition-all duration-300 border-l-4 border-l-blue-500">
               <Statistic

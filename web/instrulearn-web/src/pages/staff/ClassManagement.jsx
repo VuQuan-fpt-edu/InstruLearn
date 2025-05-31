@@ -23,6 +23,7 @@ import {
   TimePicker,
   Dropdown,
   Menu,
+  Upload,
 } from "antd";
 import {
   DeleteOutlined,
@@ -38,11 +39,20 @@ import {
   ClockCircleOutlined,
   BookOutlined,
   DownOutlined,
+  CheckCircleOutlined,
+  UploadOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import StaffSidebar from "../../components/staff/StaffSidebar";
 import StaffHeader from "../../components/staff/StaffHeader";
 import dayjs from "dayjs";
+import { initializeApp } from "firebase/app";
+import {
+  getStorage,
+  ref,
+  uploadBytesResumable,
+  getDownloadURL,
+} from "firebase/storage";
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
@@ -58,6 +68,19 @@ const weekDays = [
   { value: 5, label: "Thứ 6" },
   { value: 6, label: "Thứ 7" },
 ];
+
+// Firebase config
+const firebaseConfig = {
+  apiKey: "AIzaSyB4EaRe-CrB3u7lYm2HZmHqIjE6E_PtaFM",
+  authDomain: "sdn-project-aba8a.firebaseapp.com",
+  projectId: "sdn-project-aba8a",
+  storageBucket: "sdn-project-aba8a.appspot.com",
+  messagingSenderId: "953028355031",
+  appId: "1:953028355031:web:7dfc4f2a85c932e507e192",
+  measurementId: "G-63KQ2X3RCL",
+};
+const app = initializeApp(firebaseConfig);
+const storage = getStorage(app);
 
 const ClassManagement = () => {
   const [collapsed, setCollapsed] = useState(false);
@@ -82,6 +105,10 @@ const ClassManagement = () => {
   const [checkClassNameTimer, setCheckClassNameTimer] = useState(null);
   const [levels, setLevels] = useState([]);
   const [selectedMajorId, setSelectedMajorId] = useState(undefined);
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
+  const [imageUrl, setImageUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [uploadedFileName, setUploadedFileName] = useState("");
 
   useEffect(() => {
     Promise.all([
@@ -265,6 +292,7 @@ const ClassManagement = () => {
         maxStudents: Number(values.maxStudents),
         totalDays: Number(values.totalDays),
         price: Number(values.price),
+        imageUrl: values.imageUrl || imageUrl || "",
         status: 0,
         classDays: classDays,
       };
@@ -283,7 +311,7 @@ const ClassManagement = () => {
       );
 
       if (response.ok) {
-        message.success("Tạo lớp học thành công");
+        setSuccessModalVisible(true);
         form.resetFields();
         setIsModalVisible(false);
         setSelectedDays([]);
@@ -340,8 +368,10 @@ const ClassManagement = () => {
       case 0:
         return "blue";
       case 1:
-        return "green";
+        return "orange";
       case 2:
+        return "green";
+      case 3:
         return "red";
       default:
         return "default";
@@ -353,8 +383,10 @@ const ClassManagement = () => {
       case 0:
         return "Đang mở lớp";
       case 1:
-        return "Đang diễn ra";
+        return "Đang kiểm tra đầu vào";
       case 2:
+        return "Đang diễn ra";
+      case 3:
         return "Đã kết thúc";
       default:
         return "Không xác định";
@@ -454,13 +486,13 @@ const ClassManagement = () => {
               onClick={() => handleRowClick(record)}
             />
           </Tooltip>
-          <Tooltip title="Sửa & Quản lý">
+          {/* <Tooltip title="Sửa & Quản lý">
             <Button
               icon={<EditOutlined />}
               size="small"
               onClick={(e) => handleEditClass(record.classId, e)}
             />
-          </Tooltip>
+          </Tooltip> */}
           {/* <Tooltip title="Xóa">
             <Button
               icon={<DeleteOutlined />}
@@ -599,6 +631,36 @@ const ClassManagement = () => {
     return selectedDays.includes(dayOfWeek);
   };
 
+  const handleUploadImage = async (file) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      message.error("Chỉ cho phép tải lên file ảnh!");
+      return false;
+    }
+    setUploading(true);
+    setUploadedFileName("");
+    const storageRef = ref(storage, `class-images/${Date.now()}-${file.name}`);
+    const uploadTask = uploadBytesResumable(storageRef, file);
+    uploadTask.on(
+      "state_changed",
+      null,
+      (error) => {
+        setUploading(false);
+        setUploadedFileName("");
+        message.error("Tải file thất bại: " + error.message);
+      },
+      async () => {
+        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+        setImageUrl(downloadURL);
+        setUploading(false);
+        setUploadedFileName(file.name);
+        message.success("Tải ảnh thành công!");
+        form.setFieldsValue({ imageUrl: downloadURL });
+      }
+    );
+    return false; // Ngăn antd upload tự động
+  };
+
   return (
     <Layout className="min-h-screen">
       <StaffSidebar
@@ -724,13 +786,17 @@ const ClassManagement = () => {
             syllabusId: undefined,
             majorId: undefined,
             levelId: undefined,
+            imageUrl: "",
           }}
         >
           <div className="grid grid-cols-2 gap-4">
             <Form.Item
               name="className"
               label="Tên lớp"
-              rules={[{ required: true, message: "Vui lòng nhập tên lớp" }]}
+              rules={[
+                { required: true, message: "Vui lòng nhập tên lớp" },
+                { max: 50, message: "Tên lớp không được vượt quá 50 ký tự" },
+              ]}
               validateTrigger={["onBlur", "onChange", "onSubmit"]}
               validateStatus={
                 form.getFieldError("className").length > 0 || classNameError
@@ -741,6 +807,8 @@ const ClassManagement = () => {
             >
               <Input
                 placeholder="Nhập tên lớp"
+                maxLength={50}
+                showCount
                 onBlur={(e) => {
                   const value = e.target.value;
                   if (value) {
@@ -762,23 +830,55 @@ const ClassManagement = () => {
             <Form.Item
               name="maxStudents"
               label="Số học viên tối đa"
-              rules={[{ required: true, message: "Vui lòng nhập số học viên" }]}
+              rules={[
+                { required: true, message: "Vui lòng nhập số học viên" },
+                {
+                  type: "number",
+                  min: 1,
+                  max: 100,
+                  message: "Số học viên phải từ 1 đến 100",
+                },
+              ]}
             >
-              <InputNumber className="w-full" min={1} />
+              <Input
+                type="number"
+                min={1}
+                max={100}
+                placeholder="Số học viên tối đa"
+                onChange={(e) => {
+                  let value = Number(e.target.value);
+                  if (value > 100) value = 100;
+                  if (value < 1) value = 1;
+                  if (form) form.setFieldsValue({ maxStudents: value });
+                }}
+              />
             </Form.Item>
 
             <Form.Item
               name="price"
               label="Giá/buổi"
-              rules={[{ required: true, message: "Vui lòng nhập giá" }]}
+              rules={[
+                { required: true, message: "Vui lòng nhập giá" },
+                {
+                  type: "number",
+                  min: 1000,
+                  max: 10000000,
+                  message: "Giá phải từ 1.000 đến 10.000.000 VNĐ",
+                },
+              ]}
+              initialValue={1000}
             >
-              <InputNumber
-                className="w-full"
-                min={0}
-                formatter={(value) =>
-                  `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-                }
-                parser={(value) => value.replace(/\$\s?|(,*)/g, "")}
+              <Input
+                type="number"
+                min={1000}
+                max={10000000}
+                placeholder="Giá/buổi"
+                onChange={(e) => {
+                  let value = Number(e.target.value);
+                  if (value > 10000000) value = 10000000;
+                  if (value < 1000) value = 1000;
+                  if (form) form.setFieldsValue({ price: value });
+                }}
               />
             </Form.Item>
 
@@ -947,6 +1047,45 @@ const ClassManagement = () => {
                 ))}
               </Select>
             </Form.Item>
+
+            <Form.Item name="imageUrl" label="Ảnh đại diện lớp học" rules={[]}>
+              <Input
+                placeholder="Dán link ảnh hoặc tải ảnh lên"
+                addonAfter={
+                  <Upload
+                    showUploadList={false}
+                    beforeUpload={handleUploadImage}
+                    accept="image/*"
+                    disabled={uploading}
+                  >
+                    <Button icon={<UploadOutlined />} loading={uploading}>
+                      Tải ảnh
+                    </Button>
+                  </Upload>
+                }
+              />
+            </Form.Item>
+
+            {uploadedFileName && (
+              <div style={{ color: "green", marginBottom: 8 }}>
+                Đã tải lên: <b>{uploadedFileName}</b>
+              </div>
+            )}
+
+            {form.getFieldValue("imageUrl") && (
+              <div style={{ marginBottom: 8 }}>
+                <img
+                  src={form.getFieldValue("imageUrl")}
+                  alt="Ảnh lớp học"
+                  style={{
+                    maxWidth: 200,
+                    maxHeight: 120,
+                    borderRadius: 8,
+                    border: "1px solid #eee",
+                  }}
+                />
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end gap-2 mt-4">
@@ -965,6 +1104,30 @@ const ClassManagement = () => {
             </Button>
           </div>
         </Form>
+      </Modal>
+
+      {/* Modal thông báo thành công */}
+      <Modal
+        title={
+          <div className="text-center">
+            <div className="text-2xl font-bold text-green-600 mb-2">
+              Tạo lớp học thành công
+            </div>
+          </div>
+        }
+        open={successModalVisible}
+        onOk={() => setSuccessModalVisible(false)}
+        onCancel={() => setSuccessModalVisible(false)}
+        okText="Đồng ý"
+        cancelButtonProps={{ style: { display: "none" } }}
+        okButtonProps={{ className: "bg-green-600 hover:bg-green-700" }}
+      >
+        <div className="py-4 text-center">
+          <div className="mb-4">
+            <CheckCircleOutlined className="text-6xl text-green-500" />
+          </div>
+          <div className="text-lg mb-4">Lớp học đã được tạo thành công!</div>
+        </div>
       </Modal>
     </Layout>
   );

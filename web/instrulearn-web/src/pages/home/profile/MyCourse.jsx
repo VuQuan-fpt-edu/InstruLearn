@@ -14,10 +14,13 @@ const { Title, Text } = Typography;
 
 const TeacherEvaluations = () => {
   const [evaluations, setEvaluations] = useState([]);
+  const [classFeedbacks, setClassFeedbacks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingClass, setLoadingClass] = useState(true);
 
   useEffect(() => {
     fetchEvaluations();
+    fetchClassFeedbacks();
   }, []);
 
   const fetchEvaluations = async () => {
@@ -46,7 +49,29 @@ const TeacherEvaluations = () => {
     }
   };
 
-  if (loading) {
+  const fetchClassFeedbacks = async () => {
+    try {
+      setLoadingClass(true);
+      const learnerId = localStorage.getItem("learnerId");
+      const token = localStorage.getItem("authToken");
+      if (!learnerId || !token) return;
+      const res = await axios.get(
+        `https://instrulearnapplication.azurewebsites.net/api/ClassFeedback/GetFeedbacksByLearner/${learnerId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (Array.isArray(res.data)) {
+        setClassFeedbacks(res.data);
+      } else {
+        setClassFeedbacks([]);
+      }
+    } catch (err) {
+      setClassFeedbacks([]);
+    } finally {
+      setLoadingClass(false);
+    }
+  };
+
+  if (loading || loadingClass) {
     return (
       <div className="flex justify-center py-8">
         <Spin tip="Đang tải đánh giá..." />
@@ -58,6 +83,10 @@ const TeacherEvaluations = () => {
     <Card className="shadow-sm border border-gray-100">
       <Title level={4} className="mb-6">
         Đánh giá của giáo viên về bạn
+      </Title>
+      {/* Đánh giá học theo yêu cầu */}
+      <Title level={5} style={{ color: "#1677ff", marginTop: 16 }}>
+        Đánh giá từ giáo viên (Học theo yêu cầu)
       </Title>
       {evaluations.length > 0 ? (
         <div className="space-y-6">
@@ -138,7 +167,166 @@ const TeacherEvaluations = () => {
         </div>
       ) : (
         <Empty
-          description="Chưa có đánh giá nào từ giáo viên"
+          description="Chưa có đánh giá nào từ giáo viên (học theo yêu cầu)"
+          className="py-12"
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+        />
+      )}
+      {/* Đánh giá học tại lớp */}
+      <Title level={5} style={{ color: "#faad14", marginTop: 32 }}>
+        Đánh giá từ giáo viên (Học tại lớp)
+      </Title>
+      {classFeedbacks.length > 0 ? (
+        <div className="space-y-6">
+          {classFeedbacks.map((fb) => (
+            <Card
+              key={fb.feedbackId}
+              className="bg-white border border-yellow-200 mb-4"
+            >
+              <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>
+                {fb.className}{" "}
+                <span
+                  style={{ color: "#faad14", fontWeight: 400, fontSize: 14 }}
+                >
+                  ({fb.templateName})
+                </span>
+              </div>
+              <div style={{ marginBottom: 8 }}>
+                <Text strong>Ngày chấm:</Text>{" "}
+                {fb.completedAt
+                  ? dayjs(fb.completedAt).format("DD/MM/YYYY HH:mm")
+                  : "Chưa chấm"}
+              </div>
+              <div style={{ marginBottom: 8 }}>
+                <Text strong>Điểm trung bình:</Text>{" "}
+                <Tag color="blue">
+                  {fb.averageScore ?? 0} / {fb.totalWeight ?? 100}
+                </Tag>
+              </div>
+              <div style={{ marginBottom: 8 }}>
+                <Text strong>Nhận xét chung:</Text>{" "}
+                {fb.additionalComments || (
+                  <span style={{ color: "#aaa" }}>Không có</span>
+                )}
+              </div>
+              <div style={{ marginBottom: 8 }}>
+                <Text strong>Bảng chấm điểm:</Text>
+                <div style={{ marginTop: 8 }}>
+                  {fb.evaluations && fb.evaluations.length > 0 ? (
+                    <table
+                      style={{
+                        width: "100%",
+                        background: "#fff",
+                        borderCollapse: "collapse",
+                      }}
+                    >
+                      <thead>
+                        <tr style={{ background: "#f6f7fa" }}>
+                          <th
+                            style={{
+                              padding: 8,
+                              border: "1px solid #eee",
+                              fontWeight: 600,
+                            }}
+                          >
+                            Tiêu chí
+                          </th>
+                          <th
+                            style={{
+                              padding: 8,
+                              border: "1px solid #eee",
+                              fontWeight: 600,
+                            }}
+                          >
+                            Mô tả
+                          </th>
+                          <th
+                            style={{
+                              padding: 8,
+                              border: "1px solid #eee",
+                              fontWeight: 600,
+                            }}
+                          >
+                            Số (%)
+                          </th>
+                          <th
+                            style={{
+                              padding: 8,
+                              border: "1px solid #eee",
+                              fontWeight: 600,
+                            }}
+                          >
+                            Điểm đạt (%)
+                          </th>
+                          <th
+                            style={{
+                              padding: 8,
+                              border: "1px solid #eee",
+                              fontWeight: 600,
+                            }}
+                          >
+                            Nhận xét
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {fb.evaluations.map((e) => (
+                          <tr key={e.evaluationId}>
+                            <td
+                              style={{ padding: 8, border: "1px solid #eee" }}
+                            >
+                              {e.gradeCategory}
+                            </td>
+                            <td
+                              style={{
+                                padding: 8,
+                                border: "1px solid #eee",
+                                color: "#888",
+                              }}
+                            >
+                              {e.description}
+                            </td>
+                            <td
+                              style={{
+                                padding: 8,
+                                border: "1px solid #eee",
+                                textAlign: "center",
+                              }}
+                            >
+                              {e.weight}
+                            </td>
+                            <td
+                              style={{
+                                padding: 8,
+                                border: "1px solid #eee",
+                                textAlign: "center",
+                                fontWeight: 600,
+                              }}
+                            >
+                              {e.achievedPercentage}
+                            </td>
+                            <td
+                              style={{ padding: 8, border: "1px solid #eee" }}
+                            >
+                              {e.comment}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <div className="text-gray-400 mt-2">
+                      Chưa có bảng chấm điểm
+                    </div>
+                  )}
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <Empty
+          description="Chưa có đánh giá nào từ giáo viên (học tại lớp)"
           className="py-12"
           image={Empty.PRESENTED_IMAGE_SIMPLE}
         />

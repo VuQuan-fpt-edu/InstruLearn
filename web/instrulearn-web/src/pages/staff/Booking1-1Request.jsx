@@ -470,9 +470,14 @@ const Booking11Management = () => {
     await checkAvailableTeachers(record);
 
     // Xác định allowedResponseTypes ban đầu dựa vào giáo viên hiện tại
-    setAllowedResponseTypes([
+    const filteredTypes = [
       ...getResponseTypes().filter((type) => type.responseName === "Đồng ý"),
-    ]);
+    ];
+    setAllowedResponseTypes(filteredTypes);
+    if (filteredTypes.length > 0) {
+      setSelectedResponseType(filteredTypes[0].responseTypeId);
+      form.setFieldsValue({ responseTypeId: filteredTypes[0].responseTypeId });
+    }
 
     setStatusModalVisible(true);
   };
@@ -770,22 +775,31 @@ const Booking11Management = () => {
     fetchTeacherSchedule(value);
 
     // Xác định allowedResponseTypes dựa vào lựa chọn giáo viên
+    let filteredTypes = [];
     if (selectedBooking) {
       if (value === selectedBooking.teacherId) {
-        setAllowedResponseTypes([
+        filteredTypes = [
           ...getResponseTypes().filter(
             (type) => type.responseName === "Đồng ý"
           ),
-        ]);
+        ];
       } else {
-        setAllowedResponseTypes([
+        filteredTypes = [
           ...getResponseTypes().filter((type) => type.responseName === "Gợi ý"),
-        ]);
+        ];
       }
+      setAllowedResponseTypes(filteredTypes);
       // Reset cả hai trường khi đổi giáo viên
       form.setFieldsValue({ responseTypeId: undefined, responseId: undefined });
       setSelectedResponseType(undefined);
       setSelectedResponse(null);
+      // Nếu có option thì tự động chọn
+      if (filteredTypes.length > 0) {
+        setSelectedResponseType(filteredTypes[0].responseTypeId);
+        form.setFieldsValue({
+          responseTypeId: filteredTypes[0].responseTypeId,
+        });
+      }
     }
   };
 
@@ -1114,9 +1128,16 @@ const Booking11Management = () => {
     setSelectedResponseType(undefined);
     setSelectedResponse(null);
 
-    setAllowedRejectResponseTypes([
+    const filteredTypes = [
       ...getResponseTypes().filter((type) => type.responseName === "Từ chối"),
-    ]);
+    ];
+    setAllowedRejectResponseTypes(filteredTypes);
+    if (filteredTypes.length > 0) {
+      setSelectedResponseType(filteredTypes[0].responseTypeId);
+      rejectForm.setFieldsValue({
+        responseTypeId: filteredTypes[0].responseTypeId,
+      });
+    }
     setRejectModalVisible(true);
   };
 
@@ -1765,6 +1786,7 @@ const Booking11Management = () => {
               placeholder="Chọn loại phản hồi"
               onChange={handleResponseTypeChange}
               className="w-full"
+              disabled
             >
               {allowedResponseTypes.length > 0
                 ? allowedResponseTypes.map((type) => (
@@ -2001,6 +2023,7 @@ const Booking11Management = () => {
                 placeholder="Chọn loại phản hồi"
                 onChange={handleResponseTypeChange}
                 className="w-full"
+                disabled
               >
                 {allowedRejectResponseTypes.length > 0
                   ? allowedRejectResponseTypes.map((type) => (

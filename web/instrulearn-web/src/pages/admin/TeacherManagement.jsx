@@ -49,6 +49,7 @@ import {
   uploadBytesResumable,
   getDownloadURL,
 } from "firebase/storage";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 
 const { Content } = Layout;
 const { Option } = Select;
@@ -89,6 +90,11 @@ const TeacherManagement = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("");
   const [previewImage, setPreviewImage] = useState("");
+  const [apiError, setApiError] = useState("");
+  const [successModal, setSuccessModal] = useState({
+    open: false,
+    message: "",
+  });
 
   useEffect(() => {
     fetchTeachers();
@@ -112,6 +118,7 @@ const TeacherManagement = () => {
             majorIds: item.data.majors.map((major) => major.majorId),
             isBanned: item.data.isActive === 0,
             email: item.data.email || "",
+            username: item.data.username || "",
             heading: item.data.heading || "Chưa cập nhật",
             details: item.data.details || "Chưa cập nhật",
             links: item.data.links || "",
@@ -211,19 +218,24 @@ const TeacherManagement = () => {
             }
           );
           if (response.data.isSucceed) {
+            setApiError("");
             message.success("Cập nhật thông tin giáo viên thành công!");
             setIsModalOpen(false);
             setEditingTeacher(null);
             form.resetFields();
             fetchTeachers();
+            setSuccessModal({
+              open: true,
+              message: "Cập nhật thông tin giáo viên thành công!",
+            });
           } else {
-            message.error(
+            setApiError(
               response.data.message || "Không thể cập nhật thông tin giáo viên!"
             );
           }
         } catch (error) {
           console.error("Error updating teacher:", error);
-          message.error("Không thể cập nhật thông tin giáo viên!");
+          setApiError("Không thể cập nhật thông tin giáo viên!");
         }
       } else {
         try {
@@ -242,21 +254,26 @@ const TeacherManagement = () => {
             }
           );
           if (response.data.isSucceed) {
+            setApiError("");
             message.success("Thêm giáo viên mới thành công!");
+            setIsModalOpen(false);
+            setAvatarUrl(null);
+            fetchTeachers();
+            setSuccessModal({
+              open: true,
+              message: "Thêm giáo viên mới thành công!",
+            });
           } else {
-            message.error(response.data.message || "Không thể thêm giáo viên!");
+            setApiError(response.data.message || "Không thể thêm giáo viên!");
           }
         } catch (error) {
           console.error("Error creating teacher:", error);
-          message.error("Không thể thêm giáo viên!");
+          setApiError("Không thể thêm giáo viên!");
         }
       }
-      setIsModalOpen(false);
-      setAvatarUrl(null);
-      fetchTeachers();
     } catch (error) {
       console.error("Lỗi khi lưu:", error);
-      message.error("Không thể lưu thông tin giáo viên!");
+      setApiError("Không thể lưu thông tin giáo viên!");
     }
   };
 
@@ -360,6 +377,10 @@ const TeacherManagement = () => {
         message.success("Cập nhật nhạc cụ thành công!");
         setIsUpdateMajorModalOpen(false);
         fetchTeachers();
+        setSuccessModal({
+          open: true,
+          message: "Cập nhật nhạc cụ thành công!",
+        });
       } else {
         message.error(response.data.message || "Không thể cập nhật nhạc cụ!");
       }
@@ -447,13 +468,19 @@ const TeacherManagement = () => {
       title: "Họ và tên",
       dataIndex: "fullname",
       key: "fullname",
-      width: "25%",
+      width: "20%",
+    },
+    {
+      title: "Tên đăng nhập",
+      dataIndex: "username",
+      key: "username",
+      width: "15%",
     },
     {
       title: "Nhạc cụ",
       dataIndex: "majorName",
       key: "majorName",
-      width: "25%",
+      width: "20%",
     },
     {
       title: "Kinh nghiệm",
@@ -576,9 +603,15 @@ const TeacherManagement = () => {
             onCancel={() => {
               setIsModalOpen(false);
               setAvatarUrl(null);
+              setApiError("");
             }}
             width={700}
           >
+            {apiError && (
+              <div style={{ color: "red", marginBottom: 12, fontWeight: 500 }}>
+                {apiError}
+              </div>
+            )}
             <Form form={form} layout="vertical">
               {editingTeacher ? (
                 <>
@@ -596,6 +629,7 @@ const TeacherManagement = () => {
                     <Input
                       placeholder="Ví dụ: Kinh nghiệm 10 năm giảng dạy"
                       maxLength={50}
+                      showCount
                     />
                   </Form.Item>
 
@@ -614,6 +648,7 @@ const TeacherManagement = () => {
                     <Input
                       prefix={<MailOutlined />}
                       maxLength={50}
+                      showCount
                       placeholder="Nhập email"
                     />
                   </Form.Item>
@@ -633,6 +668,7 @@ const TeacherManagement = () => {
                       rows={4}
                       placeholder="Nhập mô tả về giáo viên"
                       maxLength={250}
+                      showCount
                     />
                   </Form.Item>
 
@@ -696,6 +732,7 @@ const TeacherManagement = () => {
                       rows={2}
                       placeholder="Nhập địa chỉ của giáo viên"
                       maxLength={100}
+                      showCount
                     />
                   </Form.Item>
 
@@ -809,7 +846,7 @@ const TeacherManagement = () => {
                       },
                     ]}
                   >
-                    <Input prefix={<UserOutlined />} maxLength={50} />
+                    <Input prefix={<UserOutlined />} maxLength={50} showCount />
                   </Form.Item>
 
                   <Form.Item
@@ -831,7 +868,7 @@ const TeacherManagement = () => {
                       },
                     ]}
                   >
-                    <Input prefix={<UserOutlined />} maxLength={50} />
+                    <Input prefix={<UserOutlined />} maxLength={50} showCount />
                   </Form.Item>
 
                   <Form.Item
@@ -849,6 +886,7 @@ const TeacherManagement = () => {
                     <Input
                       prefix={<MailOutlined />}
                       maxLength={50}
+                      showCount
                       placeholder="Nhập email"
                     />
                   </Form.Item>
@@ -865,7 +903,11 @@ const TeacherManagement = () => {
                       },
                     ]}
                   >
-                    <Input.Password prefix={<LockOutlined />} maxLength={50} />
+                    <Input.Password
+                      prefix={<LockOutlined />}
+                      maxLength={50}
+                      showCount
+                    />
                   </Form.Item>
 
                   <Form.Item
@@ -937,99 +979,6 @@ const TeacherManagement = () => {
                       ))}
                     </Select>
                   </Form.Item>
-
-                  <Form.Item
-                    name="avatar"
-                    label="Ảnh đại diện"
-                    rules={[
-                      {
-                        required: true,
-                        message: "Vui lòng tải lên ảnh đại diện!",
-                      },
-                    ]}
-                    hidden={true}
-                  >
-                    <Input disabled />
-                  </Form.Item>
-
-                  <div className="mb-4 border rounded-lg p-4 bg-gray-50">
-                    <div className="flex items-center mb-3">
-                      <PictureOutlined className="mr-2 text-blue-600" />
-                      <Text strong>Tải ảnh đại diện</Text>
-                    </div>
-
-                    <div className="mb-3">
-                      <input
-                        type="file"
-                        onChange={handleFileSelect}
-                        accept="image/*"
-                        className="block w-full text-sm border border-gray-300 rounded-md p-2 hover:border-blue-500 transition-colors"
-                      />
-                    </div>
-
-                    {uploadFile && !isUploading && (
-                      <Button
-                        type="primary"
-                        onClick={handleUploadImage}
-                        icon={<UploadOutlined />}
-                        block
-                        className="rounded-md"
-                      >
-                        Tải ảnh lên
-                      </Button>
-                    )}
-
-                    {isUploading && (
-                      <div className="mt-2">
-                        <Progress
-                          percent={uploadProgress}
-                          size="small"
-                          status="active"
-                          strokeColor="#1890ff"
-                        />
-                        <Text
-                          type="secondary"
-                          className="block mt-1 text-center"
-                        >
-                          {uploadStatus}
-                        </Text>
-                      </div>
-                    )}
-
-                    {uploadStatus === "Tải ảnh thành công!" && !isUploading && (
-                      <div className="mt-2">
-                        <Text type="success">
-                          Ảnh đã được tải lên thành công!
-                        </Text>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="mt-4">
-                    {previewImage || editingTeacher?.avatar ? (
-                      <div className="text-center">
-                        <img
-                          src={previewImage || editingTeacher?.avatar}
-                          alt="Preview"
-                          className="max-w-full h-auto border rounded-lg shadow-sm"
-                          style={{ maxHeight: "200px" }}
-                        />
-                        <Text type="secondary" className="block mt-2">
-                          Xem trước ảnh đại diện
-                        </Text>
-                      </div>
-                    ) : (
-                      <div
-                        className="border rounded-lg flex items-center justify-center bg-gray-50"
-                        style={{ height: "200px" }}
-                      >
-                        <div className="text-center text-gray-400">
-                          <FileImageOutlined style={{ fontSize: "32px" }} />
-                          <p>Chưa có ảnh xem trước</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
                 </>
               )}
             </Form>
@@ -1088,6 +1037,9 @@ const TeacherManagement = () => {
                   <h2 className="text-xl font-semibold mt-3">
                     {selectedTeacher.fullname}
                   </h2>
+                  <p className="text-gray-500">
+                    Tên đăng nhập: <b>{selectedTeacher.username}</b>
+                  </p>
                   <p className="text-gray-500">{selectedTeacher.majorName}</p>
                 </div>
 
@@ -1095,6 +1047,9 @@ const TeacherManagement = () => {
 
                 <Card title="Thông tin chi tiết" bordered={false}>
                   <Descriptions column={1}>
+                    <Descriptions.Item label="Tên đăng nhập">
+                      {selectedTeacher.username}
+                    </Descriptions.Item>
                     <Descriptions.Item label="Email">
                       {selectedTeacher.email}
                     </Descriptions.Item>
@@ -1185,6 +1140,34 @@ const TeacherManagement = () => {
                 </Select>
               </Form.Item>
             </Form>
+          </Modal>
+
+          {/* Modal thông báo thành công */}
+          <Modal
+            open={successModal.open}
+            onOk={() => setSuccessModal({ ...successModal, open: false })}
+            onCancel={() => setSuccessModal({ ...successModal, open: false })}
+            footer={[
+              <Button
+                key="ok"
+                type="primary"
+                onClick={() =>
+                  setSuccessModal({ ...successModal, open: false })
+                }
+              >
+                Đóng
+              </Button>,
+            ]}
+            centered
+            closable={false}
+            bodyStyle={{ textAlign: "center", padding: 32 }}
+          >
+            <CheckCircleIcon
+              style={{ color: "#52c41a", fontSize: 64, marginBottom: 16 }}
+            />
+            <div style={{ fontSize: 22, fontWeight: 600, marginBottom: 8 }}>
+              {successModal.message}
+            </div>
           </Modal>
         </Content>
       </Layout>

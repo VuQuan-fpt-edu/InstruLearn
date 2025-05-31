@@ -46,6 +46,7 @@ const ClassManagement = () => {
   const [selectedClass, setSelectedClass] = useState(null);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [showSyllabus, setShowSyllabus] = useState(false);
+  const [errorModal, setErrorModal] = useState({ visible: false, message: "" });
 
   useEffect(() => {
     fetchClasses();
@@ -220,7 +221,7 @@ const ClassManagement = () => {
   const handleUpdateEligibility = async (learnerId, classId, isEligible) => {
     try {
       const token = localStorage.getItem("authToken");
-      await axios.put(
+      const response = await axios.put(
         "https://instrulearnapplication.azurewebsites.net/api/Class/update-learner-eligibility",
         {
           learnerId,
@@ -231,14 +232,29 @@ const ClassManagement = () => {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      message.success({
-        content: "Cập nhật trạng thái học viên thành công!",
-        type: "success",
-        duration: 2,
-      });
-      fetchClassDetail(classId);
+      if (response.data && response.data.isSucceed) {
+        message.success({
+          content: "Cập nhật trạng thái học viên thành công!",
+          type: "success",
+          duration: 2,
+        });
+        fetchClassDetail(classId);
+      } else {
+        setErrorModal({
+          visible: true,
+          message: response.data?.message || "Cập nhật trạng thái thất bại!",
+        });
+      }
     } catch (error) {
-      message.error("Cập nhật trạng thái thất bại!");
+      let msg = "Cập nhật trạng thái thất bại!";
+      if (
+        error.response &&
+        error.response.data &&
+        error.response.data.message
+      ) {
+        msg = error.response.data.message;
+      }
+      setErrorModal({ visible: true, message: msg });
     }
   };
 
@@ -534,6 +550,22 @@ const ClassManagement = () => {
           </Drawer>
         </Content>
       </Layout>
+      <Modal
+        title="Thông báo"
+        open={errorModal.visible}
+        onCancel={() => setErrorModal({ visible: false, message: "" })}
+        footer={[
+          <Button
+            key="close"
+            type="primary"
+            onClick={() => setErrorModal({ visible: false, message: "" })}
+          >
+            Đóng
+          </Button>,
+        ]}
+      >
+        <p>{errorModal.message}</p>
+      </Modal>
     </Layout>
   );
 };

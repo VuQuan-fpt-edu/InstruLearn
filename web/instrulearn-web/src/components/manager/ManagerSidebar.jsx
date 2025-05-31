@@ -73,6 +73,12 @@ const ManagerSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
       case "level-feedback-template":
         navigate("/manager/level-feedback-template");
         break;
+      case "payment-registration":
+        navigate("/manager/payment-registration");
+        break;
+      case "tuition-management":
+        navigate("/manager/tuition-management");
+        break;
       default:
         break;
     }
@@ -100,7 +106,11 @@ const ManagerSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
       key: "payment",
       icon: <DollarOutlined />,
       label: "Thanh toán",
-      children: [{ key: "payment-management", label: "Quản lý thanh toán" }],
+      children: [
+        { key: "payment-management", label: "Quản lý thanh toán" },
+        { key: "payment-registration", label: "Quản lý giá xử lý đơn" },
+        { key: "tuition-management", label: "Quản lý học phí lớp học" },
+      ],
     },
     {
       key: "level",

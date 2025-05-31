@@ -47,6 +47,7 @@ import {
   uploadBytesResumable,
   getDownloadURL,
 } from "firebase/storage";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 
 const { Content } = Layout;
 const { Option } = Select;
@@ -78,6 +79,12 @@ const ManagerManagement = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStatus, setUploadStatus] = useState("");
   const [previewImage, setPreviewImage] = useState(null);
+  const [apiError, setApiError] = useState("");
+  const [successModal, setSuccessModal] = useState({
+    open: false,
+    message: "",
+  });
+  const [uploadFileKey, setUploadFileKey] = useState(0);
 
   useEffect(() => {
     fetchManagers();
@@ -114,6 +121,11 @@ const ManagerManagement = () => {
     form.setFieldsValue(formValues);
     setAvatarUrl(record.avatar);
     setPreviewImage("");
+    setUploadFile(null);
+    setUploadStatus("");
+    setIsUploading(false);
+    setUploadProgress(0);
+    setUploadFileKey((prev) => prev + 1);
     setIsModalOpen(true);
   };
 
@@ -189,31 +201,42 @@ const ManagerManagement = () => {
             `https://instrulearnapplication.azurewebsites.net/api/Manager/update/${editingManager.managerId}`,
             {
               fullname: values.fullname,
-              password: values.password,
               email: values.email,
               phoneNumber: values.phoneNumber,
               gender: values.gender,
               address: values.address,
               avatar: values.avatar,
-              dateOfEmployment: values.dateOfEmployment
-                ? dayjs(values.dateOfEmployment).format("YYYY-MM-DD")
-                : null,
+              dateOfEmployment:
+                values.dateOfEmployment && values.dateOfEmployment.format
+                  ? values.dateOfEmployment.format("YYYY-MM-DD")
+                  : null,
             }
           );
           if (response.data.isSucceed) {
-            message.success("Cập nhật thông tin quản lý thành công!");
+            setApiError("");
             setIsModalOpen(false);
             setEditingManager(null);
             form.resetFields();
+            setAvatarUrl(null);
+            setUploadFile(null);
+            setPreviewImage(null);
+            setUploadStatus("");
+            setIsUploading(false);
+            setUploadProgress(0);
+            setUploadFileKey((prev) => prev + 1);
             fetchManagers();
+            setSuccessModal({
+              open: true,
+              message: "Cập nhật thông tin quản lý thành công!",
+            });
           } else {
-            message.error(
+            setApiError(
               response.data.message || "Không thể cập nhật thông tin quản lý!"
             );
           }
         } catch (error) {
           console.error("Error updating manager:", error);
-          message.error("Không thể cập nhật thông tin quản lý!");
+          setApiError("Không thể cập nhật thông tin quản lý!");
         }
       } else {
         try {
@@ -228,23 +251,32 @@ const ManagerManagement = () => {
             }
           );
           if (response.data.isSucceed) {
-            message.success("Thêm quản lý mới thành công!");
+            setApiError("");
+            setIsModalOpen(false);
+            form.resetFields();
+            setAvatarUrl(null);
+            setUploadFile(null);
+            setPreviewImage(null);
+            setUploadStatus("");
+            setIsUploading(false);
+            setUploadProgress(0);
+            setUploadFileKey((prev) => prev + 1);
+            fetchManagers();
+            setSuccessModal({
+              open: true,
+              message: "Thêm quản lý mới thành công!",
+            });
           } else {
-            message.error(response.data.message || "Không thể thêm quản lý!");
+            setApiError(response.data.message || "Không thể thêm quản lý!");
           }
         } catch (error) {
           console.error("Error creating manager:", error);
-          message.error("Không thể thêm quản lý!");
+          setApiError("Không thể thêm quản lý!");
         }
       }
-      setIsModalOpen(false);
-      setAvatarUrl(null);
-      setUploadFile(null);
-      setPreviewImage(null);
-      fetchManagers();
     } catch (error) {
       console.error("Lỗi khi lưu:", error);
-      message.error("Không thể lưu thông tin quản lý!");
+      setApiError("Không thể lưu thông tin quản lý!");
     }
   };
 
@@ -408,9 +440,19 @@ const ManagerManagement = () => {
               setAvatarUrl(null);
               setUploadFile(null);
               setPreviewImage(null);
+              setApiError("");
+              setUploadStatus("");
+              setIsUploading(false);
+              setUploadProgress(0);
+              setUploadFileKey((prev) => prev + 1);
             }}
             width={700}
           >
+            {apiError && (
+              <div style={{ color: "red", marginBottom: 12, fontWeight: 500 }}>
+                {apiError}
+              </div>
+            )}
             <Form form={form} layout="vertical">
               {editingManager ? (
                 <>
@@ -435,7 +477,11 @@ const ManagerManagement = () => {
                           },
                         ]}
                       >
-                        <Input prefix={<UserOutlined />} maxLength={50} />
+                        <Input
+                          prefix={<UserOutlined />}
+                          maxLength={50}
+                          showCount
+                        />
                       </Form.Item>
                     </Col>
                     <Col span={12}>
@@ -459,7 +505,11 @@ const ManagerManagement = () => {
                           },
                         ]}
                       >
-                        <Input prefix={<UserOutlined />} maxLength={50} />
+                        <Input
+                          prefix={<UserOutlined />}
+                          maxLength={50}
+                          showCount
+                        />
                       </Form.Item>
                     </Col>
                   </Row>
@@ -477,31 +527,10 @@ const ManagerManagement = () => {
                           },
                         ]}
                       >
-                        <Input prefix={<MailOutlined />} maxLength={50} />
-                      </Form.Item>
-                    </Col>
-                    <Col span={12}>
-                      <Form.Item
-                        name="password"
-                        label="Mật khẩu"
-                        rules={[
-                          {
-                            required: true,
-                            message: "Vui lòng nhập mật khẩu!",
-                          },
-                          {
-                            min: 8,
-                            message: "Mật khẩu phải có ít nhất 8 ký tự!",
-                          },
-                          {
-                            max: 50,
-                            message: "Mật khẩu không được vượt quá 50 ký tự!",
-                          },
-                        ]}
-                      >
-                        <Input.Password
-                          prefix={<LockOutlined />}
+                        <Input
+                          prefix={<MailOutlined />}
                           maxLength={50}
+                          showCount
                         />
                       </Form.Item>
                     </Col>
@@ -522,7 +551,11 @@ const ManagerManagement = () => {
                           },
                         ]}
                       >
-                        <Input prefix={<PhoneOutlined />} maxLength={10} />
+                        <Input
+                          prefix={<PhoneOutlined />}
+                          maxLength={10}
+                          showCount
+                        />
                       </Form.Item>
                     </Col>
                     <Col span={12}></Col>
@@ -558,7 +591,7 @@ const ManagerManagement = () => {
                           },
                         ]}
                       >
-                        <Input.TextArea rows={2} maxLength={100} />
+                        <Input.TextArea rows={2} maxLength={100} showCount />
                       </Form.Item>
                     </Col>
                   </Row>
@@ -599,6 +632,7 @@ const ManagerManagement = () => {
                     </div>
                     <div className="mb-3">
                       <input
+                        key={uploadFileKey}
                         type="file"
                         onChange={handleFileSelect}
                         accept="image/*"
@@ -686,7 +720,11 @@ const ManagerManagement = () => {
                           },
                         ]}
                       >
-                        <Input prefix={<UserOutlined />} maxLength={50} />
+                        <Input
+                          prefix={<UserOutlined />}
+                          maxLength={50}
+                          showCount
+                        />
                       </Form.Item>
                     </Col>
                     <Col span={12}>
@@ -710,7 +748,11 @@ const ManagerManagement = () => {
                           },
                         ]}
                       >
-                        <Input prefix={<UserOutlined />} maxLength={50} />
+                        <Input
+                          prefix={<UserOutlined />}
+                          maxLength={50}
+                          showCount
+                        />
                       </Form.Item>
                     </Col>
                   </Row>
@@ -728,7 +770,11 @@ const ManagerManagement = () => {
                           },
                         ]}
                       >
-                        <Input prefix={<MailOutlined />} maxLength={50} />
+                        <Input
+                          prefix={<MailOutlined />}
+                          maxLength={50}
+                          showCount
+                        />
                       </Form.Item>
                     </Col>
                     <Col span={12}>
@@ -753,6 +799,7 @@ const ManagerManagement = () => {
                         <Input.Password
                           prefix={<LockOutlined />}
                           maxLength={50}
+                          showCount
                         />
                       </Form.Item>
                     </Col>
@@ -773,7 +820,11 @@ const ManagerManagement = () => {
                           },
                         ]}
                       >
-                        <Input prefix={<PhoneOutlined />} maxLength={10} />
+                        <Input
+                          prefix={<PhoneOutlined />}
+                          maxLength={10}
+                          showCount
+                        />
                       </Form.Item>
                     </Col>
                     <Col span={12}></Col>
@@ -845,6 +896,34 @@ const ManagerManagement = () => {
                 </Card>
               </>
             )}
+          </Modal>
+
+          {/* Modal thông báo thành công */}
+          <Modal
+            open={successModal.open}
+            onOk={() => setSuccessModal({ ...successModal, open: false })}
+            onCancel={() => setSuccessModal({ ...successModal, open: false })}
+            footer={[
+              <Button
+                key="ok"
+                type="primary"
+                onClick={() =>
+                  setSuccessModal({ ...successModal, open: false })
+                }
+              >
+                Đóng
+              </Button>,
+            ]}
+            centered
+            closable={false}
+            bodyStyle={{ textAlign: "center", padding: 32 }}
+          >
+            <CheckCircleIcon
+              style={{ color: "#52c41a", fontSize: 64, marginBottom: 16 }}
+            />
+            <div style={{ fontSize: 22, fontWeight: 600, marginBottom: 8 }}>
+              {successModal.message}
+            </div>
           </Modal>
         </Content>
       </Layout>

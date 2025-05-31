@@ -87,6 +87,10 @@ import TeacherFeedbackManagement from "./pages/staff/TeacherFeedbackManagement";
 import LevelFeedbackTemplateManagement from "./pages/manager/LevelFeedbackTemplateManagement";
 import SelfAssessmentManagement from "./pages/staff/SelfAssessmentManagement";
 import ClassesManagement from "./pages/teacher/ClassManagement";
+import ManagerProfile from "./pages/manager/Profile";
+import AdminProfile from "./pages/admin/Profile";
+import PaymentRegistration from "./pages/manager/PaymentRegistration";
+import TuitionManagement from "./pages/manager/TuitionManagement";
 export default function App() {
   return (
     <Router>
@@ -128,6 +132,7 @@ export default function App() {
           path="/admin/teacher-management"
           element={<TeacherManagement />}
         />
+        <Route path="/admin/profile" element={<AdminProfile />} />
 
         {/* Staff Routes */}
         <Route path="/staff" element={<StaffDashboard />} />
@@ -277,6 +282,15 @@ export default function App() {
           path="manager/level-feedback-template"
           element={<LevelFeedbackTemplateManagement />}
         />
+        <Route
+          path="manager/payment-registration"
+          element={<PaymentRegistration />}
+        />
+        <Route
+          path="manager/tuition-management"
+          element={<TuitionManagement />}
+        />
+        <Route path="manager/profile" element={<ManagerProfile />} />
         {/* Auth Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />

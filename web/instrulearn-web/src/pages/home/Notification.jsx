@@ -29,6 +29,7 @@ import {
   HomeOutlined,
   BellOutlined,
   RightOutlined,
+  InfoCircleOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
 import dayjs from "dayjs";
@@ -672,36 +673,57 @@ const Notification = () => {
                                         },
                                       ]}
                                       extra={
-                                        <div className="text-orange-600 text-sm mt-1 bg-orange-50 p-3 rounded-md border border-orange-200">
-                                          <div className="mb-2">
-                                            <span className="font-semibold">
-                                              Lưu ý quan trọng:
-                                            </span>
+                                        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md shadow-sm flex items-start gap-3 mt-1">
+                                          <span className="mt-1">
+                                            <InfoCircleOutlined
+                                              style={{
+                                                color: "#faad14",
+                                                fontSize: 24,
+                                              }}
+                                            />
+                                          </span>
+                                          <div>
+                                            <div className="font-semibold text-yellow-700 text-base mb-1">
+                                              Lưu ý quan trọng
+                                            </div>
+                                            <div className="text-gray-800 text-sm leading-relaxed">
+                                              <span className="inline-flex items-start mb-1">
+                                                <span className="mr-2 text-yellow-500 font-bold">
+                                                  •
+                                                </span>
+                                                Nếu bạn cảm thấy cần thay đổi
+                                                giáo viên để phù hợp hơn với
+                                                phong cách học tập của mình, hãy
+                                                chia sẻ rõ lý do để trung tâm có
+                                                thể lắng nghe và hỗ trợ bạn tốt
+                                                nhất.
+                                              </span>
+                                              <br />
+                                              <span className="inline-flex items-start mb-1">
+                                                <span className="mr-2 text-yellow-500 font-bold">
+                                                  •
+                                                </span>
+                                                <span className="font-medium text-yellow-800">
+                                                  Chúng tôi luôn trân trọng
+                                                  những phản hồi chân thành nhằm
+                                                  mang đến trải nghiệm học tập
+                                                  hiệu quả và tích cực cho bạn.
+                                                </span>
+                                              </span>
+                                              <br />
+                                              <span className="inline-flex items-start">
+                                                <span className="mr-2 text-red-500 font-bold">
+                                                  •
+                                                </span>
+                                                <span className="text-red-600 font-medium">
+                                                  Trong một số trường hợp không
+                                                  phù hợp, trung tâm có thể từ
+                                                  chối yêu cầu đổi giáo viên,
+                                                  rất mong bạn thông cảm.
+                                                </span>
+                                              </span>
+                                            </div>
                                           </div>
-                                          <ul className="list-disc pl-4 space-y-1">
-                                            <li>
-                                              <span className="font-medium">
-                                                Ghi rõ lý do cụ thể, chính đáng
-                                              </span>{" "}
-                                              khi muốn đổi giáo viên
-                                            </li>
-                                            <li>
-                                              Việc đổi giáo viên chỉ được chấp
-                                              nhận khi có{" "}
-                                              <span className="font-medium">
-                                                lý do hợp lý, trung thực
-                                              </span>
-                                            </li>
-                                            <li className="text-red-600">
-                                              Nếu phát hiện{" "}
-                                              <span className="font-medium">
-                                                viện cớ hoặc khai báo không đúng
-                                                sự thật
-                                              </span>
-                                              , trung tâm có quyền từ chối yêu
-                                              cầu đổi giáo viên
-                                            </li>
-                                          </ul>
                                         </div>
                                       }
                                     >

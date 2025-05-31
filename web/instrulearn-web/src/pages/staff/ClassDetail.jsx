@@ -16,6 +16,9 @@ import {
   Dropdown,
   Modal,
   Avatar,
+  Select,
+  Form,
+  Input,
 } from "antd";
 import {
   ArrowLeftOutlined,
@@ -28,6 +31,7 @@ import {
   DollarOutlined,
   ExclamationCircleOutlined,
   DownOutlined,
+  CheckCircleOutlined,
 } from "@ant-design/icons";
 import { useParams, useNavigate } from "react-router-dom";
 import StaffSidebar from "../../components/staff/StaffSidebar";
@@ -53,10 +57,30 @@ const ClassDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [isSyllabusModalVisible, setIsSyllabusModalVisible] = useState(false);
+  const [changeClassModal, setChangeClassModal] = useState({
+    visible: false,
+    learner: null,
+  });
+  const [allClasses, setAllClasses] = useState([]);
+  const [changeClassLoading, setChangeClassLoading] = useState(false);
+  const [changeClassForm] = Form.useForm();
+  const [successChangeModal, setSuccessChangeModal] = useState(false);
+  const [removeModal, setRemoveModal] = useState({
+    visible: false,
+    learner: null,
+  });
+  const [removeLoading, setRemoveLoading] = useState(false);
+  const [removeSuccessModal, setRemoveSuccessModal] = useState(false);
 
   useEffect(() => {
     fetchClassDetail();
   }, [id]);
+
+  useEffect(() => {
+    if (changeClassModal.visible) {
+      fetchAllClasses();
+    }
+  }, [changeClassModal.visible]);
 
   const fetchClassDetail = async () => {
     try {
@@ -78,13 +102,34 @@ const ClassDetail = () => {
     }
   };
 
+  const fetchAllClasses = async () => {
+    try {
+      const res = await axios.get(
+        "https://instrulearnapplication.azurewebsites.net/api/Class/get-all"
+      );
+      console.log("API get-all classes result:", res.data);
+      if (res.data?.isSucceed) {
+        setAllClasses(res.data.data);
+      } else if (Array.isArray(res.data)) {
+        // Trường hợp API trả về mảng trực tiếp
+        setAllClasses(res.data);
+      } else {
+        setAllClasses([]);
+      }
+    } catch (e) {
+      setAllClasses([]);
+    }
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 0:
         return "blue";
       case 1:
-        return "green";
+        return "orange";
       case 2:
+        return "green";
+      case 3:
         return "red";
       default:
         return "default";
@@ -96,8 +141,10 @@ const ClassDetail = () => {
       case 0:
         return "Đang mở lớp";
       case 1:
-        return "Đang diễn ra";
+        return "Đang kiểm tra đầu vào";
       case 2:
+        return "Đang diễn ra";
+      case 3:
         return "Đã kết thúc";
       default:
         return "Không xác định";
@@ -274,17 +321,73 @@ const ClassDetail = () => {
     },
     {
       key: "1",
-      label: "Đang diễn ra",
+      label: "Đang kiểm tra đầu vào",
       onClick: () => directUpdateStatus(1),
       disabled: classData?.status === 1,
     },
     {
       key: "2",
-      label: "Đã kết thúc",
+      label: "Đang diễn ra",
       onClick: () => directUpdateStatus(2),
       disabled: classData?.status === 2,
     },
+    {
+      key: "3",
+      label: "Đã kết thúc",
+      onClick: () => directUpdateStatus(3),
+      disabled: classData?.status === 3,
+    },
   ];
+
+  const openChangeClassModal = (learner) => {
+    setChangeClassModal({ visible: true, learner });
+    changeClassForm.resetFields();
+  };
+
+  const handleChangeClass = async () => {
+    try {
+      setChangeClassLoading(true);
+      const values = await changeClassForm.validateFields();
+      await axios.put(
+        "https://instrulearnapplication.azurewebsites.net/api/Class/change-class",
+        {
+          learnerId: changeClassModal.learner.learnerId,
+          classId: values.classId,
+          reason: values.reason,
+        }
+      );
+      // message.success("Đổi lớp thành công!");
+      setChangeClassModal({ visible: false, learner: null });
+      setSuccessChangeModal(true);
+    } catch (error) {
+      message.error(error?.response?.data?.message || "Đổi lớp thất bại");
+    } finally {
+      setChangeClassLoading(false);
+    }
+  };
+
+  const openRemoveModal = (learner) => {
+    setRemoveModal({ visible: true, learner });
+  };
+
+  const handleRemoveLearner = async () => {
+    try {
+      setRemoveLoading(true);
+      await axios.post(
+        "https://instrulearnapplication.azurewebsites.net/api/Class/remove-learner",
+        {
+          learnerId: removeModal.learner.learnerId,
+          classId: classData.classId,
+        }
+      );
+      setRemoveModal({ visible: false, learner: null });
+      setRemoveSuccessModal(true);
+    } catch (error) {
+      message.error(error?.response?.data?.message || "Loại học viên thất bại");
+    } finally {
+      setRemoveLoading(false);
+    }
+  };
 
   return (
     <Layout className="min-h-screen">
@@ -340,18 +443,73 @@ const ClassDetail = () => {
               {classData && (
                 <Row gutter={[24, 24]}>
                   <Col xs={24} lg={16}>
-                    <Box
-                      component={Paper}
-                      elevation={3}
-                      sx={{ p: 3, mb: 3, borderRadius: 2 }}
-                    >
-                      <Typography
-                        variant="h5"
-                        sx={{ fontWeight: 700, mb: 2, color: "#1976d2" }}
+                    {classData.imageUrl && (
+                      <div
+                        style={{
+                          textAlign: "center",
+                          marginBottom: 24,
+                          background: "#fff",
+                          borderRadius: 20,
+                          boxShadow: "0 4px 24px #e0e7ef",
+                          padding: 16,
+                          maxWidth: 500,
+                          margin: "0 auto",
+                        }}
                       >
-                        {classData.className}
-                      </Typography>
-                      <Descriptions column={2} bordered size="middle">
+                        <img
+                          src={classData.imageUrl}
+                          alt="Ảnh lớp học"
+                          style={{
+                            maxWidth: 420,
+                            maxHeight: 240,
+                            borderRadius: 16,
+                            border: "3px solid #1677ff",
+                            transition: "transform 0.2s",
+                            boxShadow: "0 2px 12px #e0e7ef",
+                          }}
+                          onMouseOver={(e) =>
+                            (e.currentTarget.style.transform = "scale(1.03)")
+                          }
+                          onMouseOut={(e) =>
+                            (e.currentTarget.style.transform = "scale(1)")
+                          }
+                        />
+                      </div>
+                    )}
+                    <Title
+                      level={2}
+                      style={{
+                        color: "#1677ff",
+                        fontWeight: 800,
+                        marginBottom: 12,
+                        textAlign: "center",
+                      }}
+                    >
+                      {classData.className}
+                    </Title>
+                    <Card
+                      style={{
+                        borderRadius: 16,
+                        boxShadow: "0 2px 12px #e0e7ef",
+                        marginBottom: 24,
+                        background: "#f9fafb",
+                      }}
+                    >
+                      <Descriptions
+                        column={2}
+                        bordered
+                        size="middle"
+                        labelStyle={{
+                          fontWeight: 600,
+                          color: "#444",
+                          background: "#f4f6fb",
+                        }}
+                        contentStyle={{
+                          fontWeight: 500,
+                          color: "#222",
+                          background: "#fff",
+                        }}
+                      >
                         <Descriptions.Item label="Chuyên ngành">
                           {classData.majorName}
                         </Descriptions.Item>
@@ -359,16 +517,22 @@ const ClassDetail = () => {
                           {classData.levelName}
                         </Descriptions.Item>
                         <Descriptions.Item label="Giáo trình">
-                          {classData.syllabusName}
-                          {classData.syllabusLink && (
-                            <Button
-                              type="link"
-                              size="small"
-                              style={{ marginLeft: 8, padding: 0 }}
-                              onClick={() => setIsSyllabusModalVisible(true)}
-                            >
-                              Xem giáo trình
-                            </Button>
+                          {classData.syllabusLink ? (
+                            <>
+                              {classData.syllabusName && (
+                                <span>{classData.syllabusName} </span>
+                              )}
+                              <Button
+                                type="link"
+                                size="small"
+                                style={{ marginLeft: 8, padding: 0 }}
+                                onClick={() => setIsSyllabusModalVisible(true)}
+                              >
+                                Xem giáo trình
+                              </Button>
+                            </>
+                          ) : (
+                            "Chưa có giáo trình"
                           )}
                         </Descriptions.Item>
                         <Descriptions.Item label="Giáo viên">
@@ -379,8 +543,18 @@ const ClassDetail = () => {
                             "vi-VN"
                           )}
                         </Descriptions.Item>
+                        <Descriptions.Item label="Ngày kiểm tra đầu vào">
+                          {classData.testDay
+                            ? new Date(classData.testDay).toLocaleDateString(
+                                "vi-VN"
+                              )
+                            : "Chưa có"}
+                        </Descriptions.Item>
                         <Descriptions.Item label="Thời gian học">
                           {classData.classTime?.substring(0, 5) || "N/A"}
+                          {classData.classEndTime
+                            ? ` - ${classData.classEndTime.substring(0, 5)}`
+                            : ""}
                         </Descriptions.Item>
                         <Descriptions.Item label="Số học viên tối đa">
                           {classData.maxStudents}
@@ -388,7 +562,7 @@ const ClassDetail = () => {
                         <Descriptions.Item label="Tổng số buổi học">
                           {classData.totalDays}
                         </Descriptions.Item>
-                        <Descriptions.Item label="Học phí">
+                        <Descriptions.Item label="Học phí từng buổi">
                           <span style={{ color: "#d32f2f", fontWeight: 600 }}>
                             {classData.price?.toLocaleString()} VND
                           </span>
@@ -437,13 +611,16 @@ const ClassDetail = () => {
                           </Box>
                         </Descriptions.Item>
                       </Descriptions>
-                    </Box>
+                    </Card>
                   </Col>
                   <Col xs={24} lg={8}>
-                    <Box
-                      component={Paper}
-                      elevation={3}
-                      sx={{ p: 3, mb: 3, borderRadius: 2 }}
+                    <Card
+                      style={{
+                        borderRadius: 16,
+                        boxShadow: "0 2px 12px #e0e7ef",
+                        marginBottom: 24,
+                        background: "#f6ffed",
+                      }}
                     >
                       <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
                         Thống kê học viên
@@ -487,8 +664,7 @@ const ClassDetail = () => {
                           </Typography>
                         </Box>
                       </Box>
-                    </Box>
-
+                    </Card>
                     {classData.students && classData.students.length > 0 && (
                       <Box
                         component={Paper}
@@ -534,6 +710,38 @@ const ClassDetail = () => {
                                       <span style={{ color: "#888" }}>
                                         {student.phoneNumber}
                                       </span>
+                                      <br />
+                                      <Tag
+                                        color={
+                                          student.isEligible
+                                            ? "success"
+                                            : "error"
+                                        }
+                                      >
+                                        {student.isEligible
+                                          ? "Đủ điều kiện"
+                                          : "Không đủ điều kiện"}
+                                      </Tag>
+                                      <br />
+                                      <Button
+                                        size="small"
+                                        type="dashed"
+                                        style={{ marginTop: 8, marginRight: 8 }}
+                                        onClick={() =>
+                                          openChangeClassModal(student)
+                                        }
+                                      >
+                                        Đổi lớp
+                                      </Button>
+                                      <Button
+                                        size="small"
+                                        danger
+                                        type="dashed"
+                                        style={{ marginTop: 8 }}
+                                        onClick={() => openRemoveModal(student)}
+                                      >
+                                        Loại khỏi lớp
+                                      </Button>
                                     </>
                                   }
                                 />
@@ -561,15 +769,149 @@ const ClassDetail = () => {
             bodyStyle={{ padding: 0, height: 700 }}
             destroyOnClose
           >
-            {classData?.syllabusLink && (
+            {classData?.syllabusLink ? (
               <iframe
-                src={`https://docs.google.com/viewer?url=${encodeURIComponent(
-                  classData.syllabusLink
-                )}&embedded=true`}
+                src={classData.syllabusLink}
                 style={{ width: "100%", height: "100%", border: "none" }}
                 title="Syllabus PDF Viewer"
               />
+            ) : (
+              <div style={{ padding: 24, textAlign: "center" }}>
+                Không có file giáo trình
+              </div>
             )}
+          </Modal>
+          {/* Modal đổi lớp */}
+          <Modal
+            title="Đổi lớp cho học viên"
+            open={changeClassModal.visible}
+            onCancel={() =>
+              setChangeClassModal({ visible: false, learner: null })
+            }
+            onOk={handleChangeClass}
+            okText="Xác nhận đổi lớp"
+            confirmLoading={changeClassLoading}
+            destroyOnClose
+          >
+            <Form form={changeClassForm} layout="vertical">
+              <Form.Item
+                name="classId"
+                label="Chọn lớp mới"
+                rules={[{ required: true, message: "Vui lòng chọn lớp mới" }]}
+              >
+                <Select
+                  showSearch
+                  placeholder="Chọn lớp mới"
+                  filterOption={(input, option) =>
+                    (option?.children ?? "")
+                      .toLowerCase()
+                      .includes(input.toLowerCase())
+                  }
+                >
+                  {(classData && classData.classId && classData.majorId
+                    ? allClasses.filter(
+                        (c) =>
+                          c.classId !== classData.classId &&
+                          c.majorId === classData.majorId
+                      )
+                    : allClasses
+                  ).map((c) => (
+                    <Select.Option key={c.classId} value={c.classId}>
+                      {c.className} | Trình độ: {c.levelName}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+              <Form.Item
+                name="reason"
+                label="Lý do đổi lớp"
+                rules={[{ required: true, message: "Vui lòng nhập lý do" }]}
+              >
+                <Input.TextArea
+                  rows={3}
+                  placeholder="Nhập lý do đổi lớp"
+                  maxLength={100}
+                  showCount
+                />
+              </Form.Item>
+            </Form>
+          </Modal>
+          {/* Modal thành công đổi lớp */}
+          <Modal
+            open={successChangeModal}
+            onCancel={() => {
+              setSuccessChangeModal(false);
+              fetchClassDetail();
+            }}
+            footer={[
+              <Button
+                key="close"
+                type="primary"
+                onClick={() => {
+                  setSuccessChangeModal(false);
+                  fetchClassDetail();
+                }}
+              >
+                Đóng
+              </Button>,
+            ]}
+            centered
+          >
+            <div style={{ textAlign: "center" }}>
+              <CheckCircleOutlined
+                style={{ fontSize: 48, color: "#52c41a", marginBottom: 16 }}
+              />
+              <div style={{ fontSize: 18, fontWeight: 500, marginBottom: 8 }}>
+                Đổi lớp thành công!
+              </div>
+              <div>Học viên đã được chuyển sang lớp mới.</div>
+            </div>
+          </Modal>
+          {/* Modal xác nhận loại học viên */}
+          <Modal
+            open={removeModal.visible}
+            onCancel={() => setRemoveModal({ visible: false, learner: null })}
+            onOk={handleRemoveLearner}
+            okText="Xác nhận loại"
+            confirmLoading={removeLoading}
+            cancelText="Hủy"
+            title="Xác nhận loại học viên khỏi lớp"
+            centered
+          >
+            <div>
+              Bạn có chắc chắn muốn loại học viên{" "}
+              <b>{removeModal.learner?.fullName}</b> khỏi lớp này không?
+            </div>
+          </Modal>
+          {/* Modal thành công loại học viên */}
+          <Modal
+            open={removeSuccessModal}
+            onCancel={() => {
+              setRemoveSuccessModal(false);
+              fetchClassDetail();
+            }}
+            footer={[
+              <Button
+                key="close"
+                type="primary"
+                onClick={() => {
+                  setRemoveSuccessModal(false);
+                  fetchClassDetail();
+                }}
+              >
+                Đóng
+              </Button>,
+            ]}
+            centered
+          >
+            <div style={{ textAlign: "center" }}>
+              <CheckCircleOutlined
+                style={{ fontSize: 48, color: "#52c41a", marginBottom: 16 }}
+              />
+              <div style={{ fontSize: 18, fontWeight: 500, marginBottom: 8 }}>
+                Đã loại học viên khỏi lớp thành công!
+              </div>
+            </div>
           </Modal>
         </Content>
       </Layout>

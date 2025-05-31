@@ -493,7 +493,10 @@ export default function OpenClasses() {
                       cover={
                         <img
                           alt={classItem.className}
-                          src="https://ntt.edu.vn/wp-content/uploads/2023/04/KHOA-AM-NHAC-20-scaled.jpg"
+                          src={
+                            classItem.imageUrl ||
+                            "https://placehold.co/600x400?text=No+Image"
+                          }
                           className="w-full h-48 object-cover"
                         />
                       }
