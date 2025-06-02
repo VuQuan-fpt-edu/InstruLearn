@@ -66,7 +66,7 @@ import ClassDetail from "./pages/staff/ClassDetail";
 import AddTeacher from "./pages/staff/AddTeacher";
 import ClassDetails from "./pages/home/class/ClassDetail";
 import Syllabus from "./pages/staff/Syllabus";
-import Dashboard from "./pages/manager/Dashboard";
+import Dashboard from "./pages/manager/ManagerDashBoard";
 import LevelManagement from "./pages/manager/LevelManagement";
 import ResponseManagement from "./pages/manager/ResponseManagement";
 import ResponseTypeManagement from "./pages/manager/ResponseTypeManagement";
@@ -91,215 +91,255 @@ import ManagerProfile from "./pages/manager/Profile";
 import AdminProfile from "./pages/admin/Profile";
 import PaymentRegistration from "./pages/staff/PaymentRegistration";
 import TuitionManagement from "./pages/staff/TuitionManagement";
-import PaymentSuccess from "./pages/home/PaymentSuccess";
+import ProtectedRoute from "./pages/protectRoute/ProtectedRoute";
+
 export default function App() {
   return (
     <Router>
       <Routes>
-        <Route element={<AppLayout />}>
-          <Route path="/" element={<Home />} />
-          <Route path="/booking1-1" element={<StudentBookingForm />} />
-          <Route path="/open-classes" element={<OpenClasses />} />
-          <Route path="/center-class-detail" element={<CenterClassDetail />} />
-          <Route path="/home-allcourse" element={<Courses />} />
-          <Route path="/teacher-list" element={<MusicTeachersList />} />
-          <Route path="/search" element={<Search />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/profile/topup" element={<TopUp />} />
-          <Route path="/purchase-history" element={<PurchaseHistory />} />
-          <Route path="/student-schedule" element={<StudentSchedule />} />
-          <Route path="/teacher-profile/:id" element={<TeacherInfo />} />
-          <Route path="/package/:id" element={<PackageDetail />} />
-          <Route path="/class-detail/:id" element={<ClassDetails />} />
-          <Route path="/notification" element={<Notification />} />
-          <Route
-            path="/profile/registration-detail/:id"
-            element={<RegistrationDetail />}
-          />
-          <Route path="/payment-success" element={<PaymentSuccess />} />
-        </Route>
-
-        {/* Admin Routes */}
-        <Route path="/admin" element={<AdminDashboard />} />
-        <Route path="admin/staff-management" element={<StaffManagement />} />
-        <Route
-          path="admin/manager-management"
-          element={<ManagerManagement />}
-        />
-        <Route
-          path="admin/learner-management"
-          element={<LearnerManagement />}
-        />
-        <Route
-          path="/admin/teacher-management"
-          element={<TeacherManagement />}
-        />
-        <Route path="/admin/profile" element={<AdminProfile />} />
-
-        {/* Staff Routes */}
-        <Route path="/staff" element={<StaffDashboard />} />
-        <Route
-          path="staff/instrument-type-management"
-          element={<InstrumentManagement />}
-        />
-        <Route path="staff/add-course" element={<AddCourse />} />
-        <Route path="staff/course-management" element={<CourseManagement />} />
-        <Route
-          path="staff/course-detail/:courseId"
-          element={<CourseDetail />}
-        />
-        <Route
-          path="staff/course-content-detail/:contentId"
-          element={<CourseContentDetail />}
-        />
-        <Route path="staff/item-type" element={<ItemTypeManagement />} />
-        <Route path="staff/refund-requests" element={<RequestManagement />} />
-        <Route
-          path="/staff/teacher-center-schedule"
-          element={<TeacherCenterSchedule />}
-        />
-        <Route path="staff/profile" element={<StaffProfile />} />
-        <Route
-          path="staff/booking1-1-requests"
-          element={<Booking11Management />}
-        />
-        <Route path="staff/class-management" element={<ClassManagement />} />
-        <Route path="staff/add-class" element={<AddClass />} />
-        <Route
-          path="staff/teacher-personal-schedule"
-          element={<TeacherPersonalSchedule />}
-        />
-        <Route
-          path="staff/student-center-schedule"
-          element={<StudentCenterSchedule />}
-        />
-        <Route
-          path="staff/student-personal-schedule"
-          element={<StudentPersonalSchedule />}
-        />
-        <Route
-          path="staff/makeup-class-requests"
-          element={<MakeupClassRequests />}
-        />
-        <Route
-          path="staff/center-class-registration"
-          element={<CenterClassRegistration />}
-        />
-        <Route
-          path="staff/instrument-management"
-          element={<MusicalInstrument />}
-        />
-        <Route path="staff/major-test" element={<MajorTest />} />
-        <Route
-          path="staff/teacher-management"
-          element={<TeacherListManagement />}
-        />
-        <Route path="staff/teacher-detail/:id" element={<TeacherDetail />} />
-        <Route path="staff/class-detail/:id" element={<ClassDetail />} />
-        <Route path="staff/add-teacher" element={<AddTeacher />} />
-        <Route path="staff/syllabus" element={<Syllabus />} />
-        <Route
-          path="staff/feedback-management"
-          element={<FeedbackManagement />}
-        />
-        <Route
-          path="staff/student-notification"
-          element={<StudentNotification />}
-        />
-        <Route
-          path="staff/response-management"
-          element={<ResponsesManagement />}
-        />
-        <Route path="staff/change-teacher" element={<ChangeTeacher />} />
-        <Route path="staff/change-all-teacher" element={<ChangeAllTeacher />} />
-        <Route
-          path="staff/teacher-evaluation-question-management"
-          element={<TeacherEvaluationQuestionManagement />}
-        />
-        <Route
-          path="staff/teacher-feedback-management"
-          element={<TeacherFeedbackManagement />}
-        />
-        <Route
-          path="staff/self-assessment-management"
-          element={<SelfAssessmentManagement />}
-        />
-        <Route
-          path="teacher/class-management"
-          element={<ClassesManagement />}
-        />
-        <Route
-          path="staff/payment-registration"
-          element={<PaymentRegistration />}
-        />
-        <Route
-          path="staff/tuition-management"
-          element={<TuitionManagement />}
-        />
-        {/* Teacher Routes */}
-        <Route path="/teacher" element={<TeacherDashBoard />} />
-        <Route path="/teacher/profile" element={<TeacherProfiles />} />
-        <Route path="teacher/students" element={<TeacherClassManagement />} />
-        <Route path="/teacher/student-list" element={<StudentList />} />
-        <Route path="teacher/center-schedule" element={<CenterSchedule />} />
-        <Route path="teacher/private-schedule" element={<PrivateSchedule />} />
-        <Route
-          path="/teacher/class-attendance/:classId"
-          element={<ClassAttendance />}
-        />
-        <Route path="/teacher/class-progress" element={<ClassProgress />} />
-        <Route
-          path="/teacher/student-evaluation"
-          element={<StudentEvaluation />}
-        />
-        <Route path="/teacher/makeup-class" element={<MakeupClass />} />
-        <Route path="/teacher/student-feedback" element={<ClassFeedbacks />} />
-        <Route path="/teacher/learning-path" element={<LearningPath />} />
-        <Route path="/teacher/notification" element={<TeacherNotification />} />
-
-        {/* Manager Routes */}
-        <Route path="manager" element={<Dashboard />} />
-        <Route path="manager/revenue" element={<RevenueReport />} />
-        <Route path="manager/revenue/date-revenue" element={<DateRevenue />} />
-        <Route
-          path="manager/revenue/month-revenue"
-          element={<MonthRevenue />}
-        />
-        <Route path="manager/revenue/year-revenue" element={<YearRevenue />} />
-        <Route
-          path="manager/revenue/history-transaction"
-          element={<HistoryTransaction />}
-        />
-        <Route path="manager/promotions" element={<PromotionCodes />} />
-        <Route path="manager/level-management" element={<LevelManagement />} />
-        <Route
-          path="manager/response-management"
-          element={<ResponseManagement />}
-        />
-        <Route
-          path="manager/response-type-management"
-          element={<ResponseTypeManagement />}
-        />
-        <Route
-          path="manager/payment-management"
-          element={<PaymentManagement />}
-        />
-        <Route
-          path="manager/level-syllabus"
-          element={<Syllabus11Management />}
-        />
-        <Route
-          path="manager/level-feedback-template"
-          element={<LevelFeedbackTemplateManagement />}
-        />
-        <Route path="manager/profile" element={<ManagerProfile />} />
-        {/* Auth Routes */}
+        {/* Public Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/404" element={<Page404 />} />
         <Route path="/test" element={<TestFireBase />} />
         <Route path="/email-verification" element={<EmailVerification />} />
+
+        {/* Protected Routes for All Authenticated Users */}
+        <Route element={<ProtectedRoute />}>
+          <Route element={<AppLayout />}>
+            <Route path="/" element={<Home />} />
+            <Route path="/booking1-1" element={<StudentBookingForm />} />
+            <Route path="/open-classes" element={<OpenClasses />} />
+            <Route
+              path="/center-class-detail"
+              element={<CenterClassDetail />}
+            />
+            <Route path="/home-allcourse" element={<Courses />} />
+            <Route path="/teacher-list" element={<MusicTeachersList />} />
+            <Route path="/search" element={<Search />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/profile/topup" element={<TopUp />} />
+            <Route path="/purchase-history" element={<PurchaseHistory />} />
+            <Route path="/student-schedule" element={<StudentSchedule />} />
+            <Route path="/teacher-profile/:id" element={<TeacherInfo />} />
+            <Route path="/package/:id" element={<PackageDetail />} />
+            <Route path="/class-detail/:id" element={<ClassDetails />} />
+            <Route path="/notification" element={<Notification />} />
+            <Route
+              path="/profile/registration-detail/:id"
+              element={<RegistrationDetail />}
+            />
+          </Route>
+        </Route>
+
+        {/* Admin Routes */}
+        <Route element={<ProtectedRoute allowedRoles={["Admin"]} />}>
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="admin/staff-management" element={<StaffManagement />} />
+          <Route
+            path="admin/manager-management"
+            element={<ManagerManagement />}
+          />
+          <Route
+            path="admin/learner-management"
+            element={<LearnerManagement />}
+          />
+          <Route
+            path="/admin/teacher-management"
+            element={<TeacherManagement />}
+          />
+          <Route path="/admin/profile" element={<AdminProfile />} />
+        </Route>
+
+        {/* Staff Routes */}
+        <Route element={<ProtectedRoute allowedRoles={["Staff"]} />}>
+          <Route path="/staff" element={<StaffDashboard />} />
+          <Route
+            path="staff/instrument-type-management"
+            element={<InstrumentManagement />}
+          />
+          <Route path="staff/add-course" element={<AddCourse />} />
+          <Route
+            path="staff/course-management"
+            element={<CourseManagement />}
+          />
+          <Route
+            path="staff/course-detail/:courseId"
+            element={<CourseDetail />}
+          />
+          <Route
+            path="staff/course-content-detail/:contentId"
+            element={<CourseContentDetail />}
+          />
+          <Route path="staff/item-type" element={<ItemTypeManagement />} />
+          <Route path="staff/refund-requests" element={<RequestManagement />} />
+          <Route
+            path="/staff/teacher-center-schedule"
+            element={<TeacherCenterSchedule />}
+          />
+          <Route path="staff/profile" element={<StaffProfile />} />
+          <Route
+            path="staff/booking1-1-requests"
+            element={<Booking11Management />}
+          />
+          <Route path="staff/class-management" element={<ClassManagement />} />
+          <Route path="staff/add-class" element={<AddClass />} />
+          <Route
+            path="staff/teacher-personal-schedule"
+            element={<TeacherPersonalSchedule />}
+          />
+          <Route
+            path="staff/student-center-schedule"
+            element={<StudentCenterSchedule />}
+          />
+          <Route
+            path="staff/student-personal-schedule"
+            element={<StudentPersonalSchedule />}
+          />
+          <Route
+            path="staff/makeup-class-requests"
+            element={<MakeupClassRequests />}
+          />
+          <Route
+            path="staff/center-class-registration"
+            element={<CenterClassRegistration />}
+          />
+          <Route
+            path="staff/instrument-management"
+            element={<MusicalInstrument />}
+          />
+          <Route path="staff/major-test" element={<MajorTest />} />
+          <Route
+            path="staff/teacher-management"
+            element={<TeacherListManagement />}
+          />
+          <Route path="staff/teacher-detail/:id" element={<TeacherDetail />} />
+          <Route path="staff/class-detail/:id" element={<ClassDetail />} />
+          <Route path="staff/add-teacher" element={<AddTeacher />} />
+          <Route path="staff/syllabus" element={<Syllabus />} />
+          <Route
+            path="staff/feedback-management"
+            element={<FeedbackManagement />}
+          />
+          <Route
+            path="staff/student-notification"
+            element={<StudentNotification />}
+          />
+          <Route
+            path="staff/response-management"
+            element={<ResponsesManagement />}
+          />
+          <Route path="staff/change-teacher" element={<ChangeTeacher />} />
+          <Route
+            path="staff/change-all-teacher"
+            element={<ChangeAllTeacher />}
+          />
+          <Route
+            path="staff/teacher-evaluation-question-management"
+            element={<TeacherEvaluationQuestionManagement />}
+          />
+          <Route
+            path="staff/teacher-feedback-management"
+            element={<TeacherFeedbackManagement />}
+          />
+          <Route
+            path="staff/self-assessment-management"
+            element={<SelfAssessmentManagement />}
+          />
+          <Route
+            path="staff/payment-registration"
+            element={<PaymentRegistration />}
+          />
+          <Route
+            path="staff/tuition-management"
+            element={<TuitionManagement />}
+          />
+        </Route>
+
+        {/* Teacher Routes */}
+        <Route element={<ProtectedRoute allowedRoles={["Teacher"]} />}>
+          <Route path="/teacher" element={<TeacherDashBoard />} />
+          <Route path="/teacher/profile" element={<TeacherProfiles />} />
+          <Route path="teacher/students" element={<TeacherClassManagement />} />
+          <Route path="/teacher/student-list" element={<StudentList />} />
+          <Route path="teacher/center-schedule" element={<CenterSchedule />} />
+          <Route
+            path="teacher/private-schedule"
+            element={<PrivateSchedule />}
+          />
+          <Route
+            path="/teacher/class-attendance/:classId"
+            element={<ClassAttendance />}
+          />
+          <Route path="/teacher/class-progress" element={<ClassProgress />} />
+          <Route
+            path="/teacher/student-evaluation"
+            element={<StudentEvaluation />}
+          />
+          <Route path="/teacher/makeup-class" element={<MakeupClass />} />
+          <Route
+            path="/teacher/student-feedback"
+            element={<ClassFeedbacks />}
+          />
+          <Route path="/teacher/learning-path" element={<LearningPath />} />
+          <Route
+            path="/teacher/notification"
+            element={<TeacherNotification />}
+          />
+          <Route
+            path="teacher/class-management"
+            element={<ClassesManagement />}
+          />
+        </Route>
+
+        {/* Manager Routes */}
+        <Route element={<ProtectedRoute allowedRoles={["Manager"]} />}>
+          <Route path="manager" element={<Dashboard />} />
+          <Route path="manager/revenue" element={<RevenueReport />} />
+          <Route
+            path="manager/revenue/date-revenue"
+            element={<DateRevenue />}
+          />
+          <Route
+            path="manager/revenue/month-revenue"
+            element={<MonthRevenue />}
+          />
+          <Route
+            path="manager/revenue/year-revenue"
+            element={<YearRevenue />}
+          />
+          <Route
+            path="manager/revenue/history-transaction"
+            element={<HistoryTransaction />}
+          />
+          <Route path="manager/promotions" element={<PromotionCodes />} />
+          <Route
+            path="manager/level-management"
+            element={<LevelManagement />}
+          />
+          <Route
+            path="manager/response-management"
+            element={<ResponseManagement />}
+          />
+          <Route
+            path="manager/response-type-management"
+            element={<ResponseTypeManagement />}
+          />
+          <Route
+            path="manager/payment-management"
+            element={<PaymentManagement />}
+          />
+          <Route
+            path="manager/level-syllabus"
+            element={<Syllabus11Management />}
+          />
+          <Route
+            path="manager/level-feedback-template"
+            element={<LevelFeedbackTemplateManagement />}
+          />
+          <Route path="manager/profile" element={<ManagerProfile />} />
+        </Route>
       </Routes>
     </Router>
   );

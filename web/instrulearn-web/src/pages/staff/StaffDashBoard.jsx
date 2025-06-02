@@ -1,420 +1,760 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import {
   Layout,
   Card,
+  Typography,
+  Table,
+  Spin,
+  Alert,
+  Button,
+  Space,
+  Tag,
+  Modal,
   Row,
   Col,
-  Typography,
-  Avatar,
-  Space,
-  Progress,
-  Tag,
+  Statistic,
+  Divider,
+  Rate,
+  Input,
+  Select,
+  Empty,
+  Tooltip,
+  message,
 } from "antd";
 import {
+  UserOutlined,
   BookOutlined,
   TeamOutlined,
-  BellOutlined,
-  UserOutlined,
   ClockCircleOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  ExclamationCircleOutlined,
 } from "@ant-design/icons";
 import StaffSidebar from "../../components/staff/StaffSidebar";
 import StaffHeader from "../../components/staff/StaffHeader";
+import dayjs from "dayjs";
+// MUI
+import Chip from "@mui/material/Chip";
+import Avatar from "@mui/material/Avatar";
+import SchoolIcon from "@mui/icons-material/School";
+import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
+import GroupIcon from "@mui/icons-material/Group";
+import FeedbackIcon from "@mui/icons-material/Feedback";
+import MusicNoteIcon from "@mui/icons-material/MusicNote";
+import PersonIcon from "@mui/icons-material/Person";
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
+const { Option } = Select;
 
-// Dữ liệu mẫu cho các yêu cầu gần đây
-const recentRequests = [
-  {
-    id: 1,
-    type: "Học bù",
-    student: "Nguyễn Văn A",
-    course: "Guitar cơ bản A1",
-    status: "pending",
-    date: "2024-03-20",
-  },
-  {
-    id: 2,
-    type: "Hoàn tiền",
-    student: "Trần Thị B",
-    course: "Piano nâng cao B2",
-    status: "approved",
-    date: "2024-03-19",
-  },
-  {
-    id: 3,
-    type: "Đăng ký lớp",
-    student: "Lê Văn C",
-    course: "Violin cơ bản A2",
-    status: "pending",
-    date: "2024-03-18",
-  },
-];
-
-// Dữ liệu mẫu cho lớp học hôm nay
-const todayClasses = [
-  {
-    id: 1,
-    className: "Guitar cơ bản A1",
-    teacher: "Nguyễn Văn X",
-    time: "09:00 - 10:30",
-    room: "Phòng 101",
-    students: 12,
-  },
-  {
-    id: 2,
-    className: "Piano nâng cao B2",
-    teacher: "Trần Thị Y",
-    time: "14:00 - 15:30",
-    room: "Phòng 202",
-    students: 8,
-  },
-  {
-    id: 3,
-    className: "Violin cơ bản A2",
-    teacher: "Lê Văn Z",
-    time: "16:00 - 17:30",
-    room: "Phòng 303",
-    students: 10,
-  },
-];
+const gradientCard = {
+  borderRadius: 18,
+  background: "linear-gradient(90deg, #e3f2fd 0%, #fff 100%)",
+  boxShadow: "0 2px 8px #e3f2fd",
+};
 
 const StaffDashboard = () => {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [collapsed, setCollapsed] = useState(false);
+  const [selectedMenu, setSelectedMenu] = useState("dashboard");
+  const [dashboardData, setDashboardData] = useState({
+    courses: [],
+    learningRegistrations: [],
+    classes: [],
+    feedbacks: [],
+    teacherEvaluations: [],
+    majors: [],
+    teachers: [],
+    teacherChangeRequests: [],
+  });
+  const [viewModalVisible, setViewModalVisible] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [searchText, setSearchText] = useState("");
+  const [statusFilter, setStatusFilter] = useState(null);
+
+  const fetchDashboardData = async () => {
+    try {
+      const [
+        coursesRes,
+        learningRegisRes,
+        classesRes,
+        feedbacksRes,
+        teacherEvalsRes,
+        majorsRes,
+        teachersRes,
+        teacherChangeRequestsRes,
+      ] = await Promise.all([
+        axios.get(
+          "https://instrulearnapplication.azurewebsites.net/api/Course/get-all"
+        ),
+        axios.get(
+          "https://instrulearnapplication.azurewebsites.net/api/LearningRegis/get-all"
+        ),
+        axios.get(
+          "https://instrulearnapplication.azurewebsites.net/api/Class/get-all"
+        ),
+        axios.get(
+          "https://instrulearnapplication.azurewebsites.net/api/LearningRegisFeedback/get-all"
+        ),
+        axios.get(
+          "https://instrulearnapplication.azurewebsites.net/api/TeacherEvaluation/get-all"
+        ),
+        axios.get(
+          "https://instrulearnapplication.azurewebsites.net/api/Major/get-all"
+        ),
+        axios.get(
+          "https://instrulearnapplication.azurewebsites.net/api/Teacher/get-all"
+        ),
+        axios.get(
+          "https://instrulearnapplication.azurewebsites.net/api/StaffNotification/teacher-change-requests"
+        ),
+      ]);
+
+      setDashboardData({
+        courses: coursesRes.data,
+        learningRegistrations: learningRegisRes.data.data.filter(
+          (reg) => reg.RegisTypeName === "Đăng kí học theo yêu cầu"
+        ),
+        classes: classesRes.data,
+        feedbacks: feedbacksRes.data.data,
+        teacherEvaluations: teacherEvalsRes.data.data,
+        majors: majorsRes.data.data,
+        teachers: teachersRes.data.map((t) => t.data),
+        teacherChangeRequests: teacherChangeRequestsRes.data.data || [],
+      });
+      setLoading(false);
+    } catch (err) {
+      setError("Có lỗi xảy ra khi tải dữ liệu");
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const handleViewRequest = (request) => {
+    setSelectedRequest(request);
+    setViewModalVisible(true);
+  };
+
+  const handleMarkAsResolved = async (notificationId) => {
+    try {
+      await axios.put(
+        `https://instrulearnapplication.azurewebsites.net/api/StaffNotification/mark-as-resolved/${notificationId}`
+      );
+      message.success("Đã đánh dấu đã xử lý");
+      fetchDashboardData(); // Gọi lại API để cập nhật dữ liệu
+    } catch (error) {
+      message.error("Không thể đánh dấu đã xử lý");
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <Spin size="large" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <Alert message="Lỗi" description={error} type="error" showIcon />
+      </div>
+    );
+  }
+
+  // Tính toán các thống kê
+  const totalCourses = dashboardData.courses.length;
+  const totalRegistrations = dashboardData.learningRegistrations.length;
+  const totalClasses = dashboardData.classes.length;
+  const totalTeachers = dashboardData.teachers.length;
+  const totalMajors = dashboardData.majors.length;
+  const totalFeedbacks = dashboardData.feedbacks.length;
+  const totalTeacherEvaluations = dashboardData.teacherEvaluations.length;
+  const totalTeacherChangeRequests = dashboardData.teacherChangeRequests.length;
+
+  const getStatusTag = (status, paymentStatus) => {
+    switch (status) {
+      case "Pending":
+        return (
+          <Tag icon={<ClockCircleOutlined />} color="warning">
+            Chờ xác nhận
+          </Tag>
+        );
+      case "Accepted":
+        return (
+          <Tag icon={<CheckCircleOutlined />} color="success">
+            Đã chấp nhận
+          </Tag>
+        );
+      case "Fourty":
+        return (
+          <Tag icon={<CheckCircleOutlined />} color="orange">
+            Đã thanh toán 40%
+          </Tag>
+        );
+      case "Sixty":
+        return (
+          <Tag icon={<CheckCircleOutlined />} color="blue">
+            Đã thanh toán 60%
+          </Tag>
+        );
+      case "Rejected":
+        return (
+          <Tag icon={<CloseCircleOutlined />} color="error">
+            Từ chối
+          </Tag>
+        );
+      case "FourtyFeedbackDone":
+        return (
+          <Tag icon={<CheckCircleOutlined />} color="purple">
+            Đã phản hồi
+          </Tag>
+        );
+      case "Cancelled":
+        return (
+          <Tag icon={<CloseCircleOutlined />} color="red">
+            Đã hủy
+          </Tag>
+        );
+      case "FullyPaid":
+        return (
+          <Tag icon={<CheckCircleOutlined />} color="success">
+            Đã thanh toán đầy đủ
+          </Tag>
+        );
+      case "Payment40Rejected":
+        return (
+          <Tag icon={<CloseCircleOutlined />} color="red">
+            Từ chối thanh toán 40%
+          </Tag>
+        );
+      case "Payment60Rejected":
+        return (
+          <Tag icon={<CloseCircleOutlined />} color="red">
+            Từ chối thanh toán 60%
+          </Tag>
+        );
+      default:
+        return <Tag color="default">{status}</Tag>;
+    }
+  };
+
+  const statusMap = {
+    0: { color: "primary", text: "Chưa xử lý" },
+    1: { color: "warning", text: "Đã đọc" },
+    2: { color: "success", text: "Đã xử lý" },
+  };
+
+  const columns = [
+    {
+      title: "Học viên",
+      dataIndex: "learnerName",
+      key: "learnerName",
+      render: (text) => <b>{text}</b>,
+    },
+    {
+      title: "Lý do đổi giáo viên",
+      dataIndex: "teacherChangeReason",
+      key: "teacherChangeReason",
+      render: (text) => <span style={{ color: "#d32f2f" }}>{text || "-"}</span>,
+    },
+    {
+      title: "Thời gian gửi",
+      dataIndex: "createdAt",
+      key: "createdAt",
+      render: (date) => dayjs(date).format("DD/MM/YYYY HH:mm"),
+    },
+    {
+      title: "Trạng thái",
+      dataIndex: "status",
+      key: "status",
+      render: (status) => (
+        <Chip
+          label={statusMap[status]?.text}
+          color={statusMap[status]?.color}
+          size="small"
+        />
+      ),
+    },
+    {
+      title: "",
+      key: "actions",
+      render: (_, record) => (
+        <Button
+          variant="outlined"
+          color="primary"
+          size="small"
+          onClick={() => {
+            setSelectedRequest(record);
+            setViewModalVisible(true);
+          }}
+        >
+          Xem chi tiết
+        </Button>
+      ),
+    },
+  ];
+
+  const recentRegistrationsColumns = [
+    {
+      title: "ID",
+      dataIndex: "LearningRegisId",
+      key: "LearningRegisId",
+    },
+    {
+      title: "Học viên",
+      dataIndex: "FullName",
+      key: "FullName",
+    },
+    {
+      title: "Giáo viên",
+      dataIndex: "TeacherName",
+      key: "TeacherName",
+    },
+    {
+      title: "Môn học",
+      dataIndex: "MajorName",
+      key: "MajorName",
+    },
+    {
+      title: "Trạng thái",
+      dataIndex: "Status",
+      key: "Status",
+      render: (status) => (
+        <Chip
+          label={status}
+          color={
+            status === "Pending"
+              ? "warning"
+              : status === "Accepted"
+              ? "success"
+              : "default"
+          }
+          size="small"
+        />
+      ),
+    },
+    {
+      title: "Ngày đăng ký",
+      dataIndex: "RequestDate",
+      key: "RequestDate",
+      render: (text) => dayjs(text).format("DD/MM/YYYY"),
+    },
+  ];
+
+  const recentClassesColumns = [
+    {
+      title: "ID",
+      dataIndex: "classId",
+      key: "classId",
+    },
+    {
+      title: "Tên lớp",
+      dataIndex: "className",
+      key: "className",
+    },
+    {
+      title: "Giáo viên",
+      dataIndex: "teacherName",
+      key: "teacherName",
+    },
+    {
+      title: "Môn học",
+      dataIndex: "majorName",
+      key: "majorName",
+    },
+    {
+      title: "Ngày bắt đầu",
+      dataIndex: "startDate",
+      key: "startDate",
+      render: (text) => dayjs(text).format("DD/MM/YYYY"),
+    },
+  ];
+
+  const recentCoursesColumns = [
+    {
+      title: "ID",
+      dataIndex: "coursePackageId",
+      key: "coursePackageId",
+    },
+    {
+      title: "Tên khóa học",
+      dataIndex: "courseName",
+      key: "courseName",
+      ellipsis: true,
+    },
+    {
+      title: "Loại khóa học",
+      dataIndex: "courseTypeName",
+      key: "courseTypeName",
+    },
+    {
+      title: "Mô tả",
+      dataIndex: "courseDescription",
+      key: "courseDescription",
+      ellipsis: true,
+    },
+    {
+      title: "Giá/buổi",
+      dataIndex: "price",
+      key: "price",
+      render: (price) => `${price.toLocaleString("vi-VN")} VNĐ`,
+    },
+    {
+      title: "Trạng thái",
+      dataIndex: "status",
+      key: "status",
+      render: (status) => (
+        <Chip
+          label={
+            status === 0
+              ? "Đang xử lý"
+              : status === 1
+              ? "Đang mở bán"
+              : "Không xác định"
+          }
+          color={
+            status === 1 ? "success" : status === 0 ? "warning" : "default"
+          }
+          size="small"
+        />
+      ),
+    },
+  ];
 
   return (
-    <Layout style={{ minHeight: "100vh" }}>
+    <Layout style={{ minHeight: "100vh", background: "#f6f8fa" }}>
       <StaffSidebar
         collapsed={collapsed}
         setCollapsed={setCollapsed}
-        selectedMenu="dashboard"
+        selectedMenu={selectedMenu}
       />
       <Layout
-        style={{ marginLeft: collapsed ? 80 : 250, transition: "all 0.2s" }}
+        style={{
+          marginLeft: collapsed ? "80px" : "250px",
+          transition: "all 0.2s",
+        }}
       >
         <StaffHeader collapsed={collapsed} setCollapsed={setCollapsed} />
-        <Content style={{ margin: "24px 16px", marginTop: "88px" }}>
-          <div
-            style={{
-              padding: "16px 24px",
-              background: "#fff",
-              marginBottom: "16px",
-              borderRadius: "8px",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-            }}
+        <Content className="p-6 min-h-screen" style={{ marginTop: "64px" }}>
+          <Title level={2} className="mb-6">
+            Tổng quan của Staff
+          </Title>
+
+          {/* Thống kê tổng quan */}
+          <Row gutter={[24, 24]} className="mb-6">
+            <Col xs={24} sm={12} md={6}>
+              <Card style={gradientCard} bordered={false}>
+                <Statistic
+                  title={
+                    <span style={{ fontWeight: 600 }}>Tổng số khóa học</span>
+                  }
+                  value={totalCourses}
+                  prefix={
+                    <BookOutlined style={{ color: "#1976d2", fontSize: 28 }} />
+                  }
+                  valueStyle={{
+                    color: "#1976d2",
+                    fontWeight: 700,
+                    fontSize: 28,
+                  }}
+                />
+              </Card>
+            </Col>
+            <Col xs={24} sm={12} md={6}>
+              <Card style={gradientCard} bordered={false}>
+                <Statistic
+                  title={
+                    <span style={{ fontWeight: 600 }}>Tổng số đơn đăng ký</span>
+                  }
+                  value={totalRegistrations}
+                  prefix={
+                    <PersonIcon style={{ color: "#388e3c", fontSize: 28 }} />
+                  }
+                  valueStyle={{
+                    color: "#388e3c",
+                    fontWeight: 700,
+                    fontSize: 28,
+                  }}
+                />
+              </Card>
+            </Col>
+            <Col xs={24} sm={12} md={6}>
+              <Card style={gradientCard} bordered={false}>
+                <Statistic
+                  title={
+                    <span style={{ fontWeight: 600 }}>Tổng số lớp học</span>
+                  }
+                  value={totalClasses}
+                  prefix={
+                    <GroupIcon style={{ color: "#ff9800", fontSize: 28 }} />
+                  }
+                  valueStyle={{
+                    color: "#ff9800",
+                    fontWeight: 700,
+                    fontSize: 28,
+                  }}
+                />
+              </Card>
+            </Col>
+            <Col xs={24} sm={12} md={6}>
+              <Card style={gradientCard} bordered={false}>
+                <Statistic
+                  title={
+                    <span style={{ fontWeight: 600 }}>Tổng số giáo viên</span>
+                  }
+                  value={totalTeachers}
+                  prefix={
+                    <AssignmentIndIcon
+                      style={{ color: "#d32f2f", fontSize: 28 }}
+                    />
+                  }
+                  valueStyle={{
+                    color: "#d32f2f",
+                    fontWeight: 700,
+                    fontSize: 28,
+                  }}
+                />
+              </Card>
+            </Col>
+            <Col xs={24} sm={12} md={6}>
+              <Card style={gradientCard} bordered={false}>
+                <Statistic
+                  title={
+                    <span style={{ fontWeight: 600 }}>Tổng số nhạc cụ</span>
+                  }
+                  value={totalMajors}
+                  prefix={
+                    <MusicNoteIcon style={{ color: "#1976d2", fontSize: 28 }} />
+                  }
+                  valueStyle={{
+                    color: "#1976d2",
+                    fontWeight: 700,
+                    fontSize: 28,
+                  }}
+                />
+              </Card>
+            </Col>
+            <Col xs={24} sm={12} md={6}>
+              <Card style={gradientCard} bordered={false}>
+                <Statistic
+                  title={
+                    <span style={{ fontWeight: 600 }}>Phản hồi học viên</span>
+                  }
+                  value={totalFeedbacks}
+                  prefix={
+                    <FeedbackIcon style={{ color: "#388e3c", fontSize: 28 }} />
+                  }
+                  valueStyle={{
+                    color: "#388e3c",
+                    fontWeight: 700,
+                    fontSize: 28,
+                  }}
+                />
+              </Card>
+            </Col>
+            <Col xs={24} sm={12} md={6}>
+              <Card style={gradientCard} bordered={false}>
+                <Statistic
+                  title={
+                    <span style={{ fontWeight: 600 }}>Phản hồi giáo viên</span>
+                  }
+                  value={totalTeacherEvaluations}
+                  prefix={
+                    <FeedbackIcon style={{ color: "#d32f2f", fontSize: 28 }} />
+                  }
+                  valueStyle={{
+                    color: "#d32f2f",
+                    fontWeight: 700,
+                    fontSize: 28,
+                  }}
+                />
+              </Card>
+            </Col>
+          </Row>
+
+          {/* Yêu cầu thay đổi giáo viên */}
+          <Card
+            title={
+              <span style={{ fontWeight: 700, fontSize: 18 }}>
+                <ExclamationCircleOutlined
+                  style={{ color: "#ff9800", fontSize: 22, marginRight: 8 }}
+                />
+                Yêu cầu thay đổi giáo viên
+                {totalTeacherChangeRequests > 0 && (
+                  <Chip
+                    label={totalTeacherChangeRequests}
+                    color="warning"
+                    size="small"
+                    style={{ marginLeft: 12 }}
+                  />
+                )}
+              </span>
+            }
+            className="mb-6"
+            style={{ borderRadius: 18, boxShadow: "0 2px 8px #e3f2fd" }}
           >
-            <Title level={4} style={{ margin: 0 }}>
-              Tổng quan
-            </Title>
-          </div>
+            <Table
+              columns={columns}
+              dataSource={dashboardData.teacherChangeRequests.slice(0, 5)}
+              rowKey="notificationId"
+              loading={loading}
+              pagination={false}
+              locale={{
+                emptyText: (
+                  <Empty
+                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                    description="Không có yêu cầu nào"
+                  />
+                ),
+              }}
+            />
+          </Card>
 
-          <div
-            style={{
-              padding: "24px",
-              background: "#fff",
-              borderRadius: "8px",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-            }}
+          {/* Danh sách đăng ký gần đây */}
+          <Card
+            title={
+              <span style={{ fontWeight: 700, fontSize: 18 }}>
+                <PersonIcon
+                  style={{ color: "#388e3c", fontSize: 22, marginRight: 8 }}
+                />
+                Đăng ký gần đây
+              </span>
+            }
+            className="mb-6"
+            style={{ borderRadius: 18, boxShadow: "0 2px 8px #e3f2fd" }}
           >
-            <Row gutter={[24, 24]}>
-              <Col xs={24} sm={8}>
-                <Card
-                  bordered={false}
-                  style={{
-                    background: "#fff",
-                    borderRadius: 8,
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-                  }}
-                >
-                  <Space
-                    direction="vertical"
-                    size={16}
-                    style={{ width: "100%" }}
-                  >
-                    <Space>
-                      <BookOutlined
-                        style={{ fontSize: 24, color: "#1890ff" }}
-                      />
-                      <Text>Tổng số lớp đang hoạt động</Text>
-                    </Space>
-                    <Text
-                      style={{
-                        fontSize: 32,
-                        fontWeight: 600,
-                        color: "#1890ff",
-                      }}
-                    >
-                      15
-                    </Text>
-                    <Progress
-                      percent={80}
-                      showInfo={false}
-                      strokeColor="#1890ff"
-                    />
-                    <Text type="secondary">Tăng 20% so với tháng trước</Text>
-                  </Space>
-                </Card>
-              </Col>
+            <Table
+              columns={recentRegistrationsColumns}
+              dataSource={dashboardData.learningRegistrations.slice(0, 5)}
+              rowKey="LearningRegisId"
+              pagination={false}
+            />
+          </Card>
 
-              <Col xs={24} sm={8}>
-                <Card
-                  bordered={false}
-                  style={{
-                    background: "#fff",
-                    borderRadius: 8,
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-                  }}
-                >
-                  <Space
-                    direction="vertical"
-                    size={16}
-                    style={{ width: "100%" }}
-                  >
-                    <Space>
-                      <TeamOutlined
-                        style={{ fontSize: 24, color: "#52c41a" }}
-                      />
-                      <Text>Tổng số học viên</Text>
-                    </Space>
-                    <Text
-                      style={{
-                        fontSize: 32,
-                        fontWeight: 600,
-                        color: "#52c41a",
-                      }}
-                    >
-                      180
-                    </Text>
-                    <Progress
-                      percent={65}
-                      showInfo={false}
-                      strokeColor="#52c41a"
-                    />
-                    <Text type="secondary">Tăng 15% so với tháng trước</Text>
-                  </Space>
-                </Card>
-              </Col>
+          {/* Danh sách khóa học gần đây */}
+          <Card
+            title={
+              <span style={{ fontWeight: 700, fontSize: 18 }}>
+                <SchoolIcon
+                  style={{ color: "#1976d2", fontSize: 22, marginRight: 8 }}
+                />
+                Khóa học gần đây
+                <Chip
+                  label={dashboardData.courses.length}
+                  color="primary"
+                  size="small"
+                  style={{ marginLeft: 12 }}
+                />
+              </span>
+            }
+            className="mb-6"
+            style={{ borderRadius: 18, boxShadow: "0 2px 8px #e3f2fd" }}
+          >
+            <Table
+              columns={recentCoursesColumns}
+              dataSource={dashboardData.courses}
+              rowKey="coursePackageId"
+              pagination={false}
+            />
+          </Card>
 
-              <Col xs={24} sm={8}>
-                <Card
-                  bordered={false}
-                  style={{
-                    background: "#fff",
-                    borderRadius: 8,
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-                  }}
-                >
-                  <Space
-                    direction="vertical"
-                    size={16}
-                    style={{ width: "100%" }}
-                  >
-                    <Space>
-                      <BellOutlined
-                        style={{ fontSize: 24, color: "#faad14" }}
-                      />
-                      <Text>Yêu cầu chờ xử lý</Text>
-                    </Space>
-                    <Text
-                      style={{
-                        fontSize: 32,
-                        fontWeight: 600,
-                        color: "#faad14",
-                      }}
-                    >
-                      8
-                    </Text>
-                    <Progress
-                      percent={40}
-                      showInfo={false}
-                      strokeColor="#faad14"
-                    />
-                    <Text type="secondary">4 yêu cầu mới hôm nay</Text>
-                  </Space>
-                </Card>
-              </Col>
-
-              <Col xs={24} lg={12}>
-                <Card
-                  title="Yêu cầu gần đây"
-                  bordered={false}
-                  style={{
-                    background: "#fff",
-                    borderRadius: 8,
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-                  }}
-                >
-                  <div style={{ overflowX: "auto" }}>
-                    <table
-                      style={{ width: "100%", borderCollapse: "collapse" }}
-                    >
-                      <thead>
-                        <tr style={{ borderBottom: "1px solid #f0f0f0" }}>
-                          <th
-                            style={{ padding: "12px 8px", textAlign: "left" }}
-                          >
-                            Loại yêu cầu
-                          </th>
-                          <th
-                            style={{ padding: "12px 8px", textAlign: "left" }}
-                          >
-                            Học viên
-                          </th>
-                          <th
-                            style={{ padding: "12px 8px", textAlign: "left" }}
-                          >
-                            Khóa học
-                          </th>
-                          <th
-                            style={{ padding: "12px 8px", textAlign: "left" }}
-                          >
-                            Trạng thái
-                          </th>
-                          <th
-                            style={{ padding: "12px 8px", textAlign: "left" }}
-                          >
-                            Ngày yêu cầu
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {recentRequests.map((request) => (
-                          <tr
-                            key={request.id}
-                            style={{ borderBottom: "1px solid #f0f0f0" }}
-                          >
-                            <td style={{ padding: "12px 8px" }}>
-                              <Tag
-                                color={
-                                  request.type === "Hoàn tiền"
-                                    ? "orange"
-                                    : request.type === "Đăng ký lớp"
-                                    ? "green"
-                                    : "blue"
-                                }
-                              >
-                                {request.type}
-                              </Tag>
-                            </td>
-                            <td style={{ padding: "12px 8px" }}>
-                              <Space>
-                                <Avatar icon={<UserOutlined />} />
-                                {request.student}
-                              </Space>
-                            </td>
-                            <td style={{ padding: "12px 8px" }}>
-                              {request.course}
-                            </td>
-                            <td style={{ padding: "12px 8px" }}>
-                              <Tag
-                                color={
-                                  request.status === "approved"
-                                    ? "success"
-                                    : "processing"
-                                }
-                              >
-                                {request.status === "approved"
-                                  ? "Đã duyệt"
-                                  : "Đang chờ"}
-                              </Tag>
-                            </td>
-                            <td style={{ padding: "12px 8px" }}>
-                              {new Date(request.date).toLocaleDateString(
-                                "vi-VN"
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </Card>
-              </Col>
-
-              <Col xs={24} lg={12}>
-                <Card
-                  title="Lớp học hôm nay"
-                  bordered={false}
-                  style={{
-                    background: "#fff",
-                    borderRadius: 8,
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-                  }}
-                >
-                  <div style={{ overflowX: "auto" }}>
-                    <table
-                      style={{ width: "100%", borderCollapse: "collapse" }}
-                    >
-                      <thead>
-                        <tr style={{ borderBottom: "1px solid #f0f0f0" }}>
-                          <th
-                            style={{ padding: "12px 8px", textAlign: "left" }}
-                          >
-                            Lớp học
-                          </th>
-                          <th
-                            style={{ padding: "12px 8px", textAlign: "left" }}
-                          >
-                            Giáo viên
-                          </th>
-                          <th
-                            style={{ padding: "12px 8px", textAlign: "left" }}
-                          >
-                            Thời gian
-                          </th>
-                          <th
-                            style={{ padding: "12px 8px", textAlign: "left" }}
-                          >
-                            Phòng
-                          </th>
-                          <th
-                            style={{ padding: "12px 8px", textAlign: "left" }}
-                          >
-                            Sĩ số
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {todayClasses.map((classItem) => (
-                          <tr
-                            key={classItem.id}
-                            style={{ borderBottom: "1px solid #f0f0f0" }}
-                          >
-                            <td style={{ padding: "12px 8px" }}>
-                              {classItem.className}
-                            </td>
-                            <td style={{ padding: "12px 8px" }}>
-                              <Space>
-                                <Avatar icon={<UserOutlined />} />
-                                {classItem.teacher}
-                              </Space>
-                            </td>
-                            <td style={{ padding: "12px 8px" }}>
-                              <Space>
-                                <ClockCircleOutlined />
-                                {classItem.time}
-                              </Space>
-                            </td>
-                            <td style={{ padding: "12px 8px" }}>
-                              {classItem.room}
-                            </td>
-                            <td style={{ padding: "12px 8px" }}>
-                              <Space>
-                                <TeamOutlined />
-                                {classItem.students}
-                              </Space>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </Card>
-              </Col>
-            </Row>
-          </div>
+          {/* Danh sách lớp học gần đây */}
+          <Card
+            title={
+              <span style={{ fontWeight: 700, fontSize: 18 }}>
+                <GroupIcon
+                  style={{ color: "#ff9800", fontSize: 22, marginRight: 8 }}
+                />
+                Lớp học gần đây
+              </span>
+            }
+            style={{ borderRadius: 18, boxShadow: "0 2px 8px #e3f2fd" }}
+          >
+            <Table
+              columns={recentClassesColumns}
+              dataSource={dashboardData.classes.slice(0, 5)}
+              rowKey="classId"
+              pagination={false}
+            />
+          </Card>
         </Content>
       </Layout>
+
+      {/* Modal xem chi tiết yêu cầu thay đổi giáo viên */}
+      <Modal
+        title={
+          <span style={{ fontWeight: 700, fontSize: 20 }}>
+            Chi tiết yêu cầu thay đổi giáo viên
+          </span>
+        }
+        open={viewModalVisible}
+        onCancel={() => setViewModalVisible(false)}
+        footer={[
+          <Button
+            key="close"
+            variant="contained"
+            color="primary"
+            onClick={() => setViewModalVisible(false)}
+          >
+            Đóng
+          </Button>,
+        ]}
+        width={700}
+        style={{ borderRadius: 18 }}
+      >
+        {selectedRequest && (
+          <div className="space-y-4">
+            <div>
+              <Text type="secondary">Học viên</Text>
+              <div className="text-lg font-medium">
+                {selectedRequest.learnerName}
+              </div>
+            </div>
+            <Divider />
+            <div>
+              <Text type="secondary">Tiêu đề</Text>
+              <div className="text-lg font-medium">{selectedRequest.title}</div>
+            </div>
+            <Divider />
+            <div>
+              <Text type="secondary">Nội dung</Text>
+              <div className="text-lg">{selectedRequest.message}</div>
+            </div>
+            <Divider />
+            <div>
+              <Text type="secondary">Lý do thay đổi</Text>
+              <div className="text-lg">
+                {selectedRequest.teacherChangeReason}
+              </div>
+            </div>
+            <Divider />
+            <div>
+              <Text type="secondary">Ngày tạo</Text>
+              <div className="text-lg">
+                {dayjs(selectedRequest.createdAt).format("DD/MM/YYYY HH:mm")}
+              </div>
+            </div>
+            <Divider />
+            <div>
+              <Text type="secondary">Trạng thái</Text>
+              <div>
+                <Chip
+                  label={statusMap[selectedRequest.status]?.text}
+                  color={statusMap[selectedRequest.status]?.color}
+                  size="small"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
     </Layout>
   );
 };

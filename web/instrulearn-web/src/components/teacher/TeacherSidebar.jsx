@@ -87,7 +87,7 @@ const TeacherSidebar = ({
       children: [
         { key: "center-schedule", label: "Lịch ở trung tâm" },
         { key: "private-schedule", label: "Lịch dạy tại nhà" },
-        { key: "makeup-class", label: "Yêu cầu thay đổi" },
+        // { key: "makeup-class", label: "Yêu cầu thay đổi" },
       ],
     },
     {
@@ -95,8 +95,8 @@ const TeacherSidebar = ({
       icon: <TeamOutlined />,
       label: "Quản lý lớp học",
       children: [
-        { key: "students", label: "Danh sách học viên" },
-        { key: "class-progress", label: "Theo dõi tiến độ" },
+        // { key: "students", label: "Danh sách học viên" },
+        // { key: "class-progress", label: "Theo dõi tiến độ" },
         { key: "student-feedback", label: "Phản hồi học viên" },
         { key: "class-management", label: "Quản lý lớp học" },
       ],
@@ -107,8 +107,8 @@ const TeacherSidebar = ({
       label: "Nội dung giảng dạy",
       children: [
         { key: "learning-path", label: "Lộ trình học" },
-        { key: "materials", label: "Tài liệu giảng dạy" },
-        { key: "assignments", label: "Bài tập & Kiểm tra" },
+        // { key: "materials", label: "Tài liệu giảng dạy" },
+        // { key: "assignments", label: "Bài tập & Kiểm tra" },
       ],
     },
     {
@@ -117,31 +117,31 @@ const TeacherSidebar = ({
       label: "Đánh giá",
       children: [
         { key: "assessments", label: "Đánh giá học viên" },
-        { key: "grades", label: "Quản lý điểm số" },
-        { key: "reports", label: "Báo cáo tiến độ" },
+        // { key: "grades", label: "Quản lý điểm số" },
+        // { key: "reports", label: "Báo cáo tiến độ" },
       ],
     },
-    {
-      key: "communication",
-      icon: <MessageOutlined />,
-      label: "Liên lạc",
-      children: [
-        { key: "messages", label: "Tin nhắn" },
-        { key: "announcements", label: "Thông báo lớp học" },
-        { key: "parent-communication", label: "Liên hệ phụ huynh" },
-      ],
-    },
+    // {
+    //   key: "communication",
+    //   icon: <MessageOutlined />,
+    //   label: "Liên lạc",
+    //   children: [
+    //     { key: "messages", label: "Tin nhắn" },
+    //     { key: "announcements", label: "Thông báo lớp học" },
+    //     { key: "parent-communication", label: "Liên hệ phụ huynh" },
+    //   ],
+    // },
     {
       key: "notification",
       icon: <NotificationOutlined />,
       label: "Thông báo",
       children: [{ key: "notification", label: "Thông báo" }],
     },
-    {
-      key: "resources",
-      icon: <FileTextOutlined />,
-      label: "Tài nguyên giảng dạy",
-    },
+    // {
+    //   key: "resources",
+    //   icon: <FileTextOutlined />,
+    //   label: "Tài nguyên giảng dạy",
+    // },
   ];
 
   return (
