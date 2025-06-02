@@ -144,30 +144,29 @@ const CourseContentDetail = () => {
     } else {
       setAddItemFileAccept(".pdf,application/pdf");
     }
-    // Reset file khi đổi loại
-    setFile(null);
-    setFileType("");
-    setFileURL("");
-    setPreviewImage("");
+    // Không reset file ở đây nữa!
   };
 
   const handleFileSelect = (e) => {
     if (e.target.files[0]) {
       const selectedFile = e.target.files[0];
-      // Lấy loại nội dung hiện tại
       const itemTypeId = form.getFieldValue("itemTypeId");
       const type = itemTypes.find((t) => t.itemTypeId === itemTypeId);
+      console.log("File đã chọn:", selectedFile);
+      console.log("itemTypeId:", itemTypeId, "type:", type);
       // Kiểm tra loại file phù hợp
       if (type && type.itemTypeName.toLowerCase().includes("video")) {
         if (!selectedFile.type.startsWith("video/")) {
           message.error("Vui lòng chỉ chọn file video cho loại nội dung này");
           return;
         }
+        setFileType("video");
       } else {
         if (selectedFile.type !== "application/pdf") {
           message.error("Vui lòng chỉ chọn file PDF cho loại nội dung này");
           return;
         }
+        setFileType("pdf");
       }
       // Validate file size (maximum 10MB)
       if (selectedFile.size > 10 * 1024 * 1024) {
@@ -176,8 +175,6 @@ const CourseContentDetail = () => {
       }
       setFile(selectedFile);
       setFileURL("");
-      // Không set lại itemTypeId ở đây!
-      // ... preview logic ...
       if (selectedFile.type.startsWith("image/")) {
         const reader = new FileReader();
         reader.onloadend = () => {
@@ -190,8 +187,8 @@ const CourseContentDetail = () => {
     }
   };
 
-  const uploadFileToFirebase = async () => {
-    if (!file) {
+  const uploadFileToFirebase = async (uploadFile) => {
+    if (!uploadFile) {
       message.error("Vui lòng chọn file trước khi tải lên");
       return null;
     }
@@ -199,18 +196,18 @@ const CourseContentDetail = () => {
     setIsUploading(true);
     setUploadProgress(0);
 
-    console.log("Starting upload to Firebase for file:", file.name);
+    console.log("Starting upload to Firebase for file:", uploadFile.name);
 
     return new Promise((resolve, reject) => {
       const folderPath = fileType || "other";
       const timestamp = new Date().getTime();
-      const fileName = `${timestamp}_${file.name}`;
+      const fileName = `${timestamp}_${uploadFile.name}`;
       const storageRef = ref(
         storage,
         `course_content/${folderPath}/${fileName}`
       );
 
-      const uploadTask = uploadBytesResumable(storageRef, file);
+      const uploadTask = uploadBytesResumable(storageRef, uploadFile);
 
       uploadTask.on(
         "state_changed",
@@ -251,12 +248,17 @@ const CourseContentDetail = () => {
   };
 
   const handleAddItemSubmit = async () => {
+    console.log("Đã bấm nút Thêm");
     try {
       const values = await form.validateFields();
       setAddingItem(true);
 
-      // Kiểm tra xem có file được chọn không
-      if (!file && !fileURL) {
+      const fileFromForm = form.getFieldValue("file");
+      console.log("File lấy từ form:", fileFromForm);
+      // Log trạng thái trước khi upload
+      console.log("Trước khi upload:", { fileFromForm, fileType, fileURL });
+
+      if (!fileFromForm && !fileURL) {
         message.error("Vui lòng chọn file để tải lên");
         setAddingItem(false);
         return;
@@ -264,11 +266,16 @@ const CourseContentDetail = () => {
 
       let itemDesValue = "";
 
-      // Nếu có file được chọn và chưa upload
-      if (file && !fileURL) {
+      // Nếu có file và chưa upload thì upload luôn
+      if (fileFromForm && !fileURL) {
+        console.log(
+          "Chuẩn bị upload file lên Firebase:",
+          fileFromForm,
+          fileType
+        );
         try {
           console.log("Uploading file for new item");
-          const fileUrl = await uploadFileToFirebase();
+          const fileUrl = await uploadFileToFirebase(fileFromForm);
           if (fileUrl) {
             console.log("File uploaded successfully:", fileUrl);
             itemDesValue = fileUrl;
@@ -319,6 +326,7 @@ const CourseContentDetail = () => {
         setFileURL("");
         setUploadProgress(0);
         setPreviewImage("");
+        form.resetFields(["file"]);
       } else {
         message.error(response.data?.message || "Thêm nội dung thất bại");
       }
@@ -369,7 +377,7 @@ const CourseContentDetail = () => {
       if (file && !fileURL) {
         try {
           console.log("Uploading file for edit item");
-          const fileUrl = await uploadFileToFirebase();
+          const fileUrl = await uploadFileToFirebase(file);
           if (fileUrl) {
             console.log("File uploaded successfully:", fileUrl);
             itemDesValue = fileUrl;
@@ -758,17 +766,30 @@ const CourseContentDetail = () => {
                 </Select>
               </Form.Item>
 
-              <Form.Item label="Tải lên tệp">
+              <Form.Item
+                label="Tải lên tệp"
+                name="file"
+                valuePropName="file"
+                getValueFromEvent={(e) => {
+                  if (
+                    e &&
+                    e.target &&
+                    e.target.files &&
+                    e.target.files.length > 0
+                  ) {
+                    return e.target.files[0];
+                  }
+                  return null;
+                }}
+                rules={[
+                  { required: true, message: "Vui lòng chọn file để tải lên" },
+                ]}
+              >
                 <input
-                  key={inputFileKey}
                   type="file"
-                  onChange={handleFileSelect}
                   accept={addItemFileAccept}
                   className="block w-full text-sm border border-gray-300 rounded p-2"
-                  required
                 />
-                {file && renderUploadButton()}
-                {filePreview()}
               </Form.Item>
 
               {/* Show a message about the field being overridden if file is uploaded */}
@@ -837,7 +858,6 @@ const CourseContentDetail = () => {
 
               <Form.Item label="Tải lên tệp mới">
                 <input
-                  key={inputFileKey}
                   type="file"
                   onChange={handleFileSelect}
                   className="block w-full text-sm border border-gray-300 rounded p-2"

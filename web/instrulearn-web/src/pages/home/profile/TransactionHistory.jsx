@@ -94,7 +94,7 @@ const TransactionHistory = () => {
 
   const calculateStatistics = (data) => {
     const totalDeposit = data
-      .filter((t) => t.transactionType === "AddFuns")
+      .filter((t) => t.transactionType === "AddFuns" && t.status === "Complete")
       .reduce((sum, t) => sum + t.amount, 0);
 
     const totalPayment = data
@@ -169,7 +169,7 @@ const TransactionHistory = () => {
         </Tag>
       );
     } else if (status === "Pending") {
-      return <Tag color="warning">Đang xử lý</Tag>;
+      return <Tag color="error">Đã hủy</Tag>;
     } else if (status === "Failed") {
       return <Tag color="error">Thất bại</Tag>;
     } else {
@@ -381,7 +381,7 @@ const TransactionHistory = () => {
           <Col xs={24} sm={12} md={6}>
             <Card className="hover:shadow-md transition-all duration-300 border-l-4 border-l-green-500">
               <Statistic
-                title={<span className="text-gray-600">Tổng nạp tiền</span>}
+                title={<span className="text-gray-600">Tổng số tiền nạp</span>}
                 value={statistics.totalDeposit}
                 valueStyle={{ color: "#3f8600" }}
                 prefix={<ArrowUpOutlined />}
@@ -393,7 +393,9 @@ const TransactionHistory = () => {
           <Col xs={24} sm={12} md={6}>
             <Card className="hover:shadow-md transition-all duration-300 border-l-4 border-l-red-500">
               <Statistic
-                title={<span className="text-gray-600">Tổng thanh toán</span>}
+                title={
+                  <span className="text-gray-600">Tổng số tiền thanh toán</span>
+                }
                 value={statistics.totalPayment}
                 valueStyle={{ color: "#cf1322" }}
                 prefix={<ArrowDownOutlined />}
