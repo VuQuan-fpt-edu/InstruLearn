@@ -94,6 +94,9 @@ const Profile = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
   const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const initialTab = queryParams.get("tab") || "profile";
+  const [selectedMenu, setSelectedMenu] = useState(initialTab);
 
   // Firebase upload states
   const [uploadFile, setUploadFile] = useState(null);
@@ -103,7 +106,6 @@ const Profile = () => {
   const [previewImage, setPreviewImage] = useState("");
 
   const [activeContent, setActiveContent] = useState(null);
-  const [selectedMenu, setSelectedMenu] = useState("profile");
   const [visible, setVisible] = useState(false);
 
   const convertRoleToVietnamese = (role) => {
@@ -477,6 +479,11 @@ const Profile = () => {
     }
   };
 
+  const handleMenuChange = (key) => {
+    setSelectedMenu(key);
+    navigate(`/profile?tab=${key}`);
+  };
+
   const renderMenuContent = () => {
     switch (selectedMenu) {
       case "profile":
@@ -769,7 +776,7 @@ const Profile = () => {
                 mode="vertical"
                 selectedKeys={[selectedMenu]}
                 style={{ borderRight: 0 }}
-                onClick={({ key }) => setSelectedMenu(key)}
+                onClick={({ key }) => handleMenuChange(key)}
                 items={menuItems}
                 className="profile-menu"
               />
@@ -789,7 +796,7 @@ const Profile = () => {
                 <Button
                   type="link"
                   icon={<HomeOutlined />}
-                  onClick={() => setSelectedMenu("profile")}
+                  onClick={() => handleMenuChange("profile")}
                   className="hidden xs:inline-block"
                 >
                   Trang chủ
@@ -814,7 +821,7 @@ const Profile = () => {
             mode="vertical"
             selectedKeys={[selectedMenu]}
             onClick={({ key }) => {
-              setSelectedMenu(key);
+              handleMenuChange(key);
               setVisible(false);
             }}
             items={menuItems}

@@ -89,8 +89,9 @@ import SelfAssessmentManagement from "./pages/staff/SelfAssessmentManagement";
 import ClassesManagement from "./pages/teacher/ClassManagement";
 import ManagerProfile from "./pages/manager/Profile";
 import AdminProfile from "./pages/admin/Profile";
-import PaymentRegistration from "./pages/manager/PaymentRegistration";
-import TuitionManagement from "./pages/manager/TuitionManagement";
+import PaymentRegistration from "./pages/staff/PaymentRegistration";
+import TuitionManagement from "./pages/staff/TuitionManagement";
+import PaymentSuccess from "./pages/home/PaymentSuccess";
 export default function App() {
   return (
     <Router>
@@ -115,6 +116,7 @@ export default function App() {
             path="/profile/registration-detail/:id"
             element={<RegistrationDetail />}
           />
+          <Route path="/payment-success" element={<PaymentSuccess />} />
         </Route>
 
         {/* Admin Routes */}
@@ -226,6 +228,14 @@ export default function App() {
           path="teacher/class-management"
           element={<ClassesManagement />}
         />
+        <Route
+          path="staff/payment-registration"
+          element={<PaymentRegistration />}
+        />
+        <Route
+          path="staff/tuition-management"
+          element={<TuitionManagement />}
+        />
         {/* Teacher Routes */}
         <Route path="/teacher" element={<TeacherDashBoard />} />
         <Route path="/teacher/profile" element={<TeacherProfiles />} />
@@ -281,14 +291,6 @@ export default function App() {
         <Route
           path="manager/level-feedback-template"
           element={<LevelFeedbackTemplateManagement />}
-        />
-        <Route
-          path="manager/payment-registration"
-          element={<PaymentRegistration />}
-        />
-        <Route
-          path="manager/tuition-management"
-          element={<TuitionManagement />}
         />
         <Route path="manager/profile" element={<ManagerProfile />} />
         {/* Auth Routes */}

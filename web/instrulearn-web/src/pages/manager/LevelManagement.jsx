@@ -58,6 +58,7 @@ const LevelManagement = () => {
   const [selectedMajor, setSelectedMajor] = useState(null);
   const [selectedLevelName, setSelectedLevelName] = useState(null);
   const [priceConstraintError, setPriceConstraintError] = useState("");
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 8 });
 
   const showNotification = (type, message, description) => {
     setNotificationModal({
@@ -125,18 +126,21 @@ const LevelManagement = () => {
     return LEVEL_ORDER[a.levelName] - LEVEL_ORDER[b.levelName];
   });
 
+  const pagedLevels = sortedLevels.slice(
+    (pagination.current - 1) * pagination.pageSize,
+    pagination.current * pagination.pageSize
+  );
+
   const columns = [
     {
       title: "Chuyên ngành",
       dataIndex: "majorId",
       key: "majorId",
       render: (majorId, row, index) => {
-        // Tìm tất cả các dòng cùng chuyên ngành
-        const sameMajorRows = sortedLevels.filter(
+        const sameMajorRows = pagedLevels.filter(
           (lv) => lv.majorId === majorId
         );
-        // Tìm index đầu tiên của chuyên ngành này trong sortedLevels
-        const firstIndex = sortedLevels.findIndex(
+        const firstIndex = pagedLevels.findIndex(
           (lv) => lv.majorId === majorId
         );
         if (index === firstIndex) {
@@ -370,9 +374,16 @@ const LevelManagement = () => {
             </div>
             <Table
               columns={columns}
-              dataSource={sortedLevels}
+              dataSource={pagedLevels}
               loading={loading}
               rowKey="levelAssignedId"
+              pagination={{
+                current: pagination.current,
+                pageSize: pagination.pageSize,
+                total: sortedLevels.length,
+                onChange: (page, pageSize) =>
+                  setPagination({ current: page, pageSize }),
+              }}
             />
             <Modal
               title={editingLevel ? "Sửa cấp độ" : "Thêm cấp độ mới"}

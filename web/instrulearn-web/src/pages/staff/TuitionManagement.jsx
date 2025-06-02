@@ -23,8 +23,8 @@ import Paper from "@mui/material/Paper";
 import Grid from "@mui/material/Grid";
 import Divider from "@mui/material/Divider";
 import MTypography from "@mui/material/Typography";
-import ManagerSidebar from "../../components/manager/ManagerSidebar";
-import ManagerHeader from "../../components/manager/ManagerHeader";
+import StaffSidebar from "../../components/staff/StaffSidebar";
+import StaffHeader from "../../components/staff/StaffHeader";
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
@@ -110,7 +110,7 @@ const TuitionManagement = () => {
 
   return (
     <Layout className="min-h-screen">
-      <ManagerSidebar
+      <StaffSidebar
         collapsed={collapsed}
         selectedMenu={selectedMenu}
         onMenuSelect={setSelectedMenu}
@@ -122,7 +122,7 @@ const TuitionManagement = () => {
           transition: "all 0.2s",
         }}
       >
-        <ManagerHeader
+        <StaffHeader
           collapsed={collapsed}
           toggleCollapsed={() => setCollapsed(!collapsed)}
           selectedMenu={selectedMenu}
