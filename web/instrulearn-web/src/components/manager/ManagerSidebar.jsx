@@ -73,12 +73,6 @@ const ManagerSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
       case "level-feedback-template":
         navigate("/manager/level-feedback-template");
         break;
-      case "payment-registration":
-        navigate("/manager/payment-registration");
-        break;
-      case "tuition-management":
-        navigate("/manager/tuition-management");
-        break;
       default:
         break;
     }
@@ -99,18 +93,14 @@ const ManagerSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
         { key: "year-revenue", label: "Doanh thu theo năm" },
         { key: "month-revenue", label: "Doanh thu theo tháng" },
         { key: "date-revenue", label: "Doanh thu theo ngày" },
-        { key: "history-transaction", label: "Lịch sử giao dịch" },
+        // { key: "history-transaction", label: "Lịch sử giao dịch" },
       ],
     },
     {
       key: "payment",
       icon: <DollarOutlined />,
       label: "Thanh toán",
-      children: [
-        { key: "payment-management", label: "Quản lý thanh toán" },
-        { key: "payment-registration", label: "Quản lý giá xử lý đơn" },
-        { key: "tuition-management", label: "Quản lý học phí lớp học" },
-      ],
+      children: [{ key: "payment-management", label: "Quản lý thanh toán" }],
     },
     {
       key: "level",
@@ -121,7 +111,7 @@ const ManagerSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
         { key: "level-syllabus", label: "Giáo trình " },
         {
           key: "level-feedback-template",
-          label: "Template phản hồi (Trung tâm)",
+          label: "Template chấm điểm (Trung tâm)",
         },
       ],
     },
@@ -137,21 +127,21 @@ const ManagerSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
         },
       ],
     },
-    {
-      key: "teacher-performance",
-      icon: <TeamOutlined />,
-      label: "Hiệu suất giáo viên",
-    },
-    {
-      key: "class-status",
-      icon: <BookOutlined />,
-      label: "Trạng thái lớp học",
-    },
-    {
-      key: "promotions",
-      icon: <GiftOutlined />,
-      label: "Quản lý khuyến mại",
-    },
+    // {
+    //   key: "teacher-performance",
+    //   icon: <TeamOutlined />,
+    //   label: "Hiệu suất giáo viên",
+    // },
+    // {
+    //   key: "class-status",
+    //   icon: <BookOutlined />,
+    //   label: "Trạng thái lớp học",
+    // },
+    // {
+    //   key: "promotions",
+    //   icon: <GiftOutlined />,
+    //   label: "Quản lý khuyến mại",
+    // },
   ];
 
   return (

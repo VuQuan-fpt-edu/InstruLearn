@@ -77,6 +77,7 @@ const Syllabus1_1Management = () => {
     description: "",
   });
   const [majors, setMajors] = useState([]);
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 8 });
   const [pdfModal, setPdfModal] = useState({ visible: false, url: "" });
   const [uploading, setUploading] = useState(false);
   const [uploadedFileName, setUploadedFileName] = useState("");
@@ -133,16 +134,21 @@ const Syllabus1_1Management = () => {
     return LEVEL_ORDER[a.levelName] - LEVEL_ORDER[b.levelName];
   });
 
+  const pagedLevels = sortedLevels.slice(
+    (pagination.current - 1) * pagination.pageSize,
+    pagination.current * pagination.pageSize
+  );
+
   const columns = [
     {
       title: "Chuyên ngành",
       dataIndex: "majorId",
       key: "majorId",
       render: (majorId, row, index) => {
-        const sameMajorRows = sortedLevels.filter(
+        const sameMajorRows = pagedLevels.filter(
           (lv) => lv.majorId === majorId
         );
-        const firstIndex = sortedLevels.findIndex(
+        const firstIndex = pagedLevels.findIndex(
           (lv) => lv.majorId === majorId
         );
         if (index === firstIndex) {
@@ -329,9 +335,16 @@ const Syllabus1_1Management = () => {
           <div style={{ padding: "24px", background: "#fff", borderRadius: 8 }}>
             <Table
               columns={columns}
-              dataSource={sortedLevels}
+              dataSource={pagedLevels}
               loading={loading}
               rowKey="levelAssignedId"
+              pagination={{
+                current: pagination.current,
+                pageSize: pagination.pageSize,
+                total: sortedLevels.length,
+                onChange: (page, pageSize) =>
+                  setPagination({ current: page, pageSize }),
+              }}
             />
             <Modal
               title={"Sửa cấp độ"}

@@ -28,8 +28,8 @@ import {
 } from "@ant-design/icons";
 import axios from "axios";
 import dayjs from "dayjs";
-import ManagerSidebar from "../../components/manager/ManagerSidebar";
-import ManagerHeader from "../../components/manager/ManagerHeader";
+import StaffSidebar from "../../components/staff/StaffSidebar";
+import StaffHeader from "../../components/staff/StaffHeader";
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
@@ -168,7 +168,7 @@ const PaymentRegistration = () => {
 
   return (
     <Layout className="min-h-screen">
-      <ManagerSidebar
+      <StaffSidebar
         collapsed={collapsed}
         selectedMenu={selectedMenu}
         onMenuSelect={setSelectedMenu}
@@ -180,7 +180,7 @@ const PaymentRegistration = () => {
           transition: "all 0.2s",
         }}
       >
-        <ManagerHeader
+        <StaffHeader
           collapsed={collapsed}
           toggleCollapsed={() => setCollapsed(!collapsed)}
           selectedMenu={selectedMenu}

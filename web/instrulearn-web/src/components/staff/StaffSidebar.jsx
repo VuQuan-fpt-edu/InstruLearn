@@ -15,6 +15,7 @@ import {
   CalendarOutlined,
   SoundOutlined,
   LineChartOutlined,
+  DollarOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 
@@ -128,6 +129,12 @@ const StaffSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
       case "self-assessment-management":
         navigate("/staff/self-assessment-management");
         break;
+      case "payment-registration":
+        navigate("/staff/payment-registration");
+        break;
+      case "tuition-management":
+        navigate("/staff/tuition-management");
+        break;
       default:
         break;
     }
@@ -151,6 +158,15 @@ const StaffSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
           label: "Quản lý nhạc cụ khóa học",
         },
         { key: "item-type", label: "Quản lý nội dung khóa học" },
+      ],
+    },
+    {
+      key: "payment",
+      icon: <DollarOutlined />,
+      label: "Thanh toán",
+      children: [
+        { key: "payment-registration", label: "Quản lý giá xử lý đơn" },
+        { key: "tuition-management", label: "Quản lý học phí lớp học" },
       ],
     },
     {

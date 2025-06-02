@@ -346,7 +346,7 @@ const DateRevenue = () => {
                   <Panel header="Chi tiết doanh thu theo loại" key="1">
                     <Row gutter={[16, 16]}>
                       <Col xs={24} sm={12} md={8}>
-                        <Card title="Học 1-1" size="small">
+                        <Card title="Học theo yêu cầu" size="small">
                           <Statistic
                             title="Số đăng ký"
                             value={
