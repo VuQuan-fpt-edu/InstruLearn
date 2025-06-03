@@ -92,6 +92,7 @@ import AdminProfile from "./pages/admin/Profile";
 import PaymentRegistration from "./pages/staff/PaymentRegistration";
 import TuitionManagement from "./pages/staff/TuitionManagement";
 import ProtectedRoute from "./pages/protectRoute/ProtectedRoute";
+import PaymentSuccess from "./pages/home/PaymentSuccess";
 
 export default function App() {
   return (
@@ -106,7 +107,7 @@ export default function App() {
         <Route path="/email-verification" element={<EmailVerification />} />
 
         {/* Protected Routes for All Authenticated Users */}
-        <Route element={<ProtectedRoute />}>
+        <Route element={<ProtectedRoute allowedRoles={["Learner"]} />}>
           <Route element={<AppLayout />}>
             <Route path="/" element={<Home />} />
             <Route path="/booking1-1" element={<StudentBookingForm />} />
@@ -132,8 +133,9 @@ export default function App() {
             />
           </Route>
         </Route>
-
+        <Route path="/payment-success" element={<PaymentSuccess />} />
         {/* Admin Routes */}
+
         <Route element={<ProtectedRoute allowedRoles={["Admin"]} />}>
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="admin/staff-management" element={<StaffManagement />} />
