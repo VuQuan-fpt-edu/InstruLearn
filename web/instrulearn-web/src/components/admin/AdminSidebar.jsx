@@ -93,55 +93,55 @@ const AdminSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
         },
       ],
     },
-    {
-      key: "packages",
-      icon: <ShoppingOutlined />,
-      label: "Gói dịch vụ",
-      children: [
-        {
-          key: "all-packages",
-          icon: <ShoppingOutlined />,
-          label: "Tất cả gói",
-        },
-        {
-          key: "add-package",
-          icon: <ShoppingOutlined />,
-          label: "Thêm gói mới",
-        },
-      ],
-    },
-    {
-      key: "users",
-      icon: <UsergroupAddOutlined />,
-      label: "Người dùng",
-      children: [
-        {
-          key: "all-users",
-          icon: <TeamOutlined />,
-          label: "Tất cả người dùng",
-        },
-        {
-          key: "add-user",
-          icon: <UserAddOutlined />,
-          label: "Thêm người dùng",
-        },
-        {
-          key: "roles",
-          icon: <SafetyCertificateOutlined />,
-          label: "Phân quyền",
-        },
-      ],
-    },
-    {
-      key: "analytics",
-      icon: <BarChartOutlined />,
-      label: "Thống kê",
-    },
-    {
-      key: "settings",
-      icon: <SettingOutlined />,
-      label: "Cài đặt",
-    },
+    // {
+    //   key: "packages",
+    //   icon: <ShoppingOutlined />,
+    //   label: "Gói dịch vụ",
+    //   children: [
+    //     {
+    //       key: "all-packages",
+    //       icon: <ShoppingOutlined />,
+    //       label: "Tất cả gói",
+    //     },
+    //     {
+    //       key: "add-package",
+    //       icon: <ShoppingOutlined />,
+    //       label: "Thêm gói mới",
+    //     },
+    //   ],
+    // },
+    // {
+    //   key: "users",
+    //   icon: <UsergroupAddOutlined />,
+    //   label: "Người dùng",
+    //   children: [
+    //     {
+    //       key: "all-users",
+    //       icon: <TeamOutlined />,
+    //       label: "Tất cả người dùng",
+    //     },
+    //     {
+    //       key: "add-user",
+    //       icon: <UserAddOutlined />,
+    //       label: "Thêm người dùng",
+    //     },
+    //     {
+    //       key: "roles",
+    //       icon: <SafetyCertificateOutlined />,
+    //       label: "Phân quyền",
+    //     },
+    //   ],
+    // },
+    // {
+    //   key: "analytics",
+    //   icon: <BarChartOutlined />,
+    //   label: "Thống kê",
+    // },
+    // {
+    //   key: "settings",
+    //   icon: <SettingOutlined />,
+    //   label: "Cài đặt",
+    // },
   ];
 
   return (
