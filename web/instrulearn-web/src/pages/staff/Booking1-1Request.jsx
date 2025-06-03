@@ -345,6 +345,7 @@ const Booking11Management = () => {
           firstPaymentPeriod: item.firstPaymentPeriod,
           secondPaymentPeriod: item.secondPaymentPeriod,
           sessionDates: item.SessionDates || [],
+          learnerAddress: item.learnerAddress,
         }));
         console.log("Mapped bookings:", bookings);
         setBookings(bookings);
@@ -1335,6 +1336,12 @@ const Booking11Management = () => {
                 <div>
                   <p className="text-gray-500">Mã học viên</p>
                   <p className="font-medium">{selectedBooking.learnerId}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Địa chỉ</p>
+                  <p className="font-medium">
+                    {selectedBooking.learnerAddress}
+                  </p>
                 </div>
               </div>
             </div>
