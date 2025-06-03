@@ -243,6 +243,7 @@ class _TeacherEvaluationScreenState extends State<TeacherEvaluationScreen> {
         builder: (context) => EvaluationFormDialog(
           evaluation: evaluation,
           questions: questions,
+          onEvaluationSubmitted: _loadData,
         ),
       );
     }
@@ -252,11 +253,13 @@ class _TeacherEvaluationScreenState extends State<TeacherEvaluationScreen> {
 class EvaluationFormDialog extends StatefulWidget {
   final EvaluationFeedback evaluation;
   final List<EvaluationQuestion> questions;
+  final VoidCallback onEvaluationSubmitted;
 
   const EvaluationFormDialog({
     Key? key,
     required this.evaluation,
     required this.questions,
+    required this.onEvaluationSubmitted,
   }) : super(key: key);
 
   @override
@@ -349,6 +352,7 @@ class _EvaluationFormDialogState extends State<EvaluationFormDialog> {
 
       if (response.statusCode == 200) {
         Navigator.pop(context);
+        widget.onEvaluationSubmitted();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Đánh giá đã được gửi thành công')),
         );

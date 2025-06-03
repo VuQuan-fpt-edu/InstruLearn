@@ -30,6 +30,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
   List<Schedule> schedules = [];
   bool isLoading = true;
   String? errorMessage;
+  String? noScheduleMessage;
   FilterType _currentFilter = FilterType.month;
   final ScheduleService _scheduleService = ScheduleService();
 
@@ -57,27 +58,31 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
 
       setState(() {
         if (fetchedSchedules.isEmpty) {
-          errorMessage = 'Hiện tại bạn chưa có lịch dạy nào';
+          noScheduleMessage = _getNoScheduleMessage();
+          errorMessage = null;
         } else {
           schedules = fetchedSchedules;
           errorMessage = null;
+          noScheduleMessage = null;
         }
         isLoading = false;
       });
     } catch (e) {
       if (e
           .toString()
-          .contains('No Learning Registrations found for this teacher')) {
+          .contains('Không tìm thấy đăng ký học tập nào cho giáo viên này.')) {
         setState(() {
-          errorMessage = 'Hiện tại bạn chưa có lịch dạy nào';
-          isLoading = false;
+          noScheduleMessage = _getNoScheduleMessage();
+          errorMessage = null;
           schedules = [];
+          isLoading = false;
         });
       } else {
         setState(() {
           errorMessage = 'Lỗi: $e';
           isLoading = false;
           schedules = [];
+          noScheduleMessage = null;
         });
       }
     }
@@ -510,6 +515,29 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
   Widget _buildScheduleList() {
     final filteredSchedules = _getCurrentFilteredSchedules();
     if (filteredSchedules.isEmpty) {
+      if (noScheduleMessage != null) {
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.calendar_today,
+                size: 64,
+                color: Colors.grey,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                noScheduleMessage!,
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        );
+      }
       String message;
       switch (_currentFilter) {
         case FilterType.day:
@@ -750,6 +778,23 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
       'Thứ 7',
     ];
     return dayNames[weekday % 7];
+  }
+
+  String _getNoScheduleMessage() {
+    switch (_currentFilter) {
+      case FilterType.day:
+        return 'Không có lịch dạy vào ngày ' +
+            DateFormat('dd/MM/yyyy').format(_selectedDate);
+      case FilterType.week:
+        final startOfWeek = _getStartOfWeek(_selectedDate);
+        final endOfWeek = startOfWeek.add(const Duration(days: 6));
+        return 'Không có lịch dạy từ ' +
+            DateFormat('dd/MM/yyyy').format(startOfWeek) +
+            ' đến ' +
+            DateFormat('dd/MM/yyyy').format(endOfWeek);
+      case FilterType.month:
+        return 'Không có lịch dạy trong tháng ${_selectedDate.month}/${_selectedDate.year}';
+    }
   }
 
   void _showAttendanceBottomSheet(BuildContext context, Schedule schedule) {
