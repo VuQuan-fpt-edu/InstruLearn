@@ -43,47 +43,123 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
       _hasShownTeacherChangeWarning = true;
       showDialog(
         context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Lưu ý khi đổi giáo viên'),
-          content: RichText(
-            text: TextSpan(
-              style: const TextStyle(
-                  color: Colors.black, fontSize: 16, height: 1.5),
-              children: [
-                const TextSpan(text: 'Học viên lưu ý ghi rõ '),
-                const TextSpan(
-                  text: 'lý do cụ thể, chính đáng',
-                  style:
-                      TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
-                ),
-                const TextSpan(
-                    text: ' khi muốn đổi giáo viên. Việc đổi giáo viên '),
-                const TextSpan(
-                  text: 'chỉ được chấp nhận khi có lý do hợp lý, trung thực',
-                  style:
-                      TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
-                ),
-                const TextSpan(text: '.\n\nNếu phát hiện '),
-                const TextSpan(
-                  text: 'viện cớ hoặc khai báo không đúng sự thật',
-                  style:
-                      TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
-                ),
-                const TextSpan(text: ', trung tâm có quyền '),
-                const TextSpan(
-                  text: 'từ chối yêu cầu đổi giáo viên.',
-                  style:
-                      TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
-                ),
-              ],
-            ),
+        builder: (context) => Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Đã hiểu'),
-            ),
-          ],
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: const BoxDecoration(
+                  color: Color(0xFF8C9EFF),
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(15),
+                    topRight: Radius.circular(15),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.info_outline,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Lưu ý khi đổi giáo viên',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                child: RichText(
+                  text: TextSpan(
+                    style: const TextStyle(
+                      color: Colors.black87,
+                      fontSize: 16,
+                      height: 1.5,
+                    ),
+                    children: [
+                      const TextSpan(text: 'Nếu bạn cảm thấy cần '),
+                      TextSpan(
+                        text: 'thay đổi giáo viên',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red[700],
+                        ),
+                      ),
+                      const TextSpan(text: ' để phù hợp hơn với '),
+                      TextSpan(
+                        text: 'phong cách học tập',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red[700],
+                        ),
+                      ),
+                      const TextSpan(text: ' của mình, hãy '),
+                      TextSpan(
+                        text: 'chia sẻ rõ lý do',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red[700],
+                        ),
+                      ),
+                      const TextSpan(
+                          text:
+                              ' để trung tâm có thể lắng nghe và hỗ trợ bạn tốt nhất. Chúng tôi luôn '),
+                      TextSpan(
+                        text: 'trân trọng những phản hồi chân thành',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red[700],
+                        ),
+                      ),
+                      const TextSpan(text: ' nhằm mang đến '),
+                      TextSpan(
+                        text: 'trải nghiệm học tập hiệu quả và tích cực',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red[700],
+                        ),
+                      ),
+                      const TextSpan(text: ' cho bạn.'),
+                    ],
+                  ),
+                ),
+              ),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: TextButton(
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFF8C9EFF),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text(
+                    'Đã hiểu',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -118,7 +194,6 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
         return;
       }
 
-      // Kiểm tra nếu học viên muốn tiếp tục học thì phải chọn đổi giáo viên
       if (continueStudying == true && changeTeacher == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -127,7 +202,6 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
         return;
       }
 
-      // Hiển thị dialog xác nhận
       final bool? confirm = await showDialog<bool>(
         context: context,
         builder: (BuildContext context) {
@@ -189,7 +263,6 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['isSucceed'] == true) {
-          // Hiển thị thông báo tương ứng với lựa chọn của học viên
           String message = continueStudying == true
               ? 'Cảm ơn vì đóng góp ý kiến của bạn. Bạn lưu ý trong phần "Đơn của học viên" để theo dõi và thanh toán phần học phí còn lại.'
               : 'Cảm ơn bạn đã đồng hành cùng khóa học vừa qua!\nChúng tôi rất tiếc vì khóa học chưa mang lại trải nghiệm như mong đợi. Mọi phản hồi của bạn đều giúp chúng tôi cải thiện tốt hơn trong tương lai.';
@@ -252,8 +325,7 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
                     ),
                     onPressed: () {
                       Navigator.of(context).pop();
-                      Navigator.pop(context,
-                          true); // Trả về true để báo hiệu cần fetch lại
+                      Navigator.pop(context, true);
                     },
                   ),
                 ],
@@ -447,7 +519,6 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
                       onChanged: (value) {
                         setState(() {
                           continueStudying = value;
-                          // Reset changeTeacher khi chọn không tiếp tục học
                           changeTeacher = null;
                         });
                       },

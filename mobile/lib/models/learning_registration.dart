@@ -38,6 +38,7 @@ class LearningRegistration {
   final String? previousStatus;
   final Map<String, dynamic>? firstPaymentPeriod;
   final Map<String, dynamic>? secondPaymentPeriod;
+  final Map<String, dynamic>? teacherChangeStatus;
 
   LearningRegistration({
     this.learningRegisId,
@@ -79,6 +80,7 @@ class LearningRegistration {
     this.previousStatus,
     this.firstPaymentPeriod,
     this.secondPaymentPeriod,
+    this.teacherChangeStatus,
   });
 
   factory LearningRegistration.fromJson(Map<String, dynamic> json) {
@@ -148,6 +150,11 @@ class LearningRegistration {
           json['FirstPaymentPeriod']) as Map<String, dynamic>?,
       secondPaymentPeriod: (json['secondPaymentPeriod'] ??
           json['SecondPaymentPeriod']) as Map<String, dynamic>?,
+      teacherChangeStatus:
+          (json['teacherChangeStatus'] ?? json['TeacherChangeStatus']) != null
+              ? Map<String, dynamic>.from(
+                  json['teacherChangeStatus'] ?? json['TeacherChangeStatus'])
+              : null,
     );
   }
 

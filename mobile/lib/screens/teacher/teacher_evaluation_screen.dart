@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class TeacherEvaluationScreen extends StatefulWidget {
   const TeacherEvaluationScreen({Key? key}) : super(key: key);
@@ -23,16 +24,33 @@ class _TeacherEvaluationScreenState extends State<TeacherEvaluationScreen> {
 
   Future<void> _loadData() async {
     try {
-      // Lấy danh sách đánh giá
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      final teacherId = prefs.getInt('teacherId');
+
+      if (token == null || teacherId == null) {
+        setState(() {
+          isLoading = false;
+        });
+        return;
+      }
+
       final evaluationResponse = await http.get(
         Uri.parse(
-            'https://instrulearnapplication.azurewebsites.net/api/TeacherEvaluation/by-teacher/1'),
+            'https://instrulearnapplication.azurewebsites.net/api/TeacherEvaluation/by-teacher/$teacherId'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
       );
 
-      // Lấy danh sách câu hỏi
       final questionsResponse = await http.get(
         Uri.parse(
             'https://instrulearnapplication.azurewebsites.net/api/TeacherEvaluation/questions/active'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
       );
 
       if (evaluationResponse.statusCode == 200 &&
@@ -67,26 +85,60 @@ class _TeacherEvaluationScreenState extends State<TeacherEvaluationScreen> {
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
-          : Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    const Color(0xFF8C9EFF).withOpacity(0.2),
-                    Colors.white
-                  ],
+          : evaluations.isEmpty
+              ? Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        const Color(0xFF8C9EFF).withOpacity(0.2),
+                        Colors.white
+                      ],
+                    ),
+                  ),
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.assignment_outlined,
+                          size: 64,
+                          color: Colors.grey[400],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Không có học viên cần đánh giá',
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        const Color(0xFF8C9EFF).withOpacity(0.2),
+                        Colors.white
+                      ],
+                    ),
+                  ),
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: evaluations.length,
+                    itemBuilder: (context, index) {
+                      final evaluation = evaluations[index];
+                      return _buildEvaluationCard(evaluation);
+                    },
+                  ),
                 ),
-              ),
-              child: ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: evaluations.length,
-                itemBuilder: (context, index) {
-                  final evaluation = evaluations[index];
-                  return _buildEvaluationCard(evaluation);
-                },
-              ),
-            ),
     );
   }
 
@@ -153,7 +205,6 @@ class _TeacherEvaluationScreenState extends State<TeacherEvaluationScreen> {
 
   void _showEvaluationDialog(EvaluationFeedback evaluation) {
     if (evaluation.status == 2) {
-      // Hiển thị kết quả đánh giá nếu đã hoàn thành
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
@@ -187,12 +238,12 @@ class _TeacherEvaluationScreenState extends State<TeacherEvaluationScreen> {
         ),
       );
     } else {
-      // Hiển thị form đánh giá nếu chưa hoàn thành
       showDialog(
         context: context,
         builder: (context) => EvaluationFormDialog(
           evaluation: evaluation,
           questions: questions,
+          onEvaluationSubmitted: _loadData,
         ),
       );
     }
@@ -202,11 +253,13 @@ class _TeacherEvaluationScreenState extends State<TeacherEvaluationScreen> {
 class EvaluationFormDialog extends StatefulWidget {
   final EvaluationFeedback evaluation;
   final List<EvaluationQuestion> questions;
+  final VoidCallback onEvaluationSubmitted;
 
   const EvaluationFormDialog({
     Key? key,
     required this.evaluation,
     required this.questions,
+    required this.onEvaluationSubmitted,
   }) : super(key: key);
 
   @override
@@ -299,6 +352,7 @@ class _EvaluationFormDialogState extends State<EvaluationFormDialog> {
 
       if (response.statusCode == 200) {
         Navigator.pop(context);
+        widget.onEvaluationSubmitted();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Đánh giá đã được gửi thành công')),
         );

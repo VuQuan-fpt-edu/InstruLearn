@@ -8,9 +8,11 @@ import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:path/path.dart' as path;
 import '../../models/teacher.dart';
+import '../../models/self_assessment.dart';
 import '../../services/teacher_service.dart';
 import '../../services/major_service.dart';
 import '../../services/schedule_service.dart';
+import '../../services/self_assessment_service.dart';
 
 class LearningRegisType {
   final int regisTypeId;
@@ -58,6 +60,7 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
   final _teacherService = TeacherService();
   final _majorService = MajorService();
   final _scheduleService = ScheduleService();
+  final _selfAssessmentService = SelfAssessmentService();
 
   int learnerId = 0;
   int? selectedTeacherId;
@@ -71,25 +74,20 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
   int numberOfWeeks = 1;
   Set<int> selectedLearningDays = {};
   final TextEditingController learningGoalController = TextEditingController();
+  String registrationDepositAmount = "0";
+  DateTime? registrationDepositLastUpdated;
 
   List<Teacher> teachers = [];
   List<Teacher> availableTeachers = [];
   List<Major> majors = [];
+  List<SelfAssessment> selfAssessments = [];
   bool isLoading = true;
   bool isLoadingAvailableTeachers = false;
   String? errorMessage;
-  String? selectedExperience;
+  SelfAssessment? selectedSelfAssessment;
   MajorTest? majorTest;
   bool isLoadingMajorTest = false;
   VideoPlayerController? _videoController;
-
-  final List<String> experiences = [
-    "Tôi chưa chơi nhạc cụ này bao giờ",
-    "Tôi đã chơi nhạc cụ này được 1-3 tháng",
-    "Tôi đã chơi nhạc cụ này được 3-6 tháng",
-    "Tôi đã chơi nhạc cụ này được 6-9 tháng",
-    "Tôi đã chơi nhạc cụ này được hơn 1 năm rồi"
-  ];
 
   @override
   void initState() {
@@ -97,6 +95,8 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
     _fetchUserProfile();
     _fetchMajors();
     _fetchTeachers();
+    _fetchSelfAssessments();
+    _fetchSystemConfiguration();
   }
 
   @override
@@ -178,6 +178,17 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
     }
   }
 
+  Future<void> _fetchSelfAssessments() async {
+    try {
+      final assessments = await _selfAssessmentService.getAllSelfAssessments();
+      setState(() {
+        selfAssessments = assessments;
+      });
+    } catch (e) {
+      print('Lỗi khi tải danh sách đánh giá trình độ: $e');
+    }
+  }
+
   Future<void> _fetchMajorTest() async {
     if (selectedMajorId == null) return;
 
@@ -238,8 +249,8 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
   @override
   void didUpdateWidget(TutoringRegistrationForm oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (selectedMajorId != null && selectedExperience != null) {
-      if (selectedExperience != "Tôi chưa chơi nhạc cụ này bao giờ") {
+    if (selectedMajorId != null && selectedSelfAssessment != null) {
+      if (selectedSelfAssessment!.selfAssessmentId != 1) {
         _fetchMajorTest();
       } else {
         setState(() {
@@ -491,6 +502,42 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
     return '${date.day}/${date.month}/${date.year}';
   }
 
+  String _formatCurrency(String amount) {
+    try {
+      final number = int.parse(amount);
+      return '${number.toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')} VNĐ';
+    } catch (e) {
+      return '$amount VNĐ';
+    }
+  }
+
+  Future<void> _fetchSystemConfiguration() async {
+    try {
+      final response = await http.get(
+        Uri.parse(
+            'https://instrulearnapplication.azurewebsites.net/api/SystemConfiguration'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['isSucceed'] == true && data['data'] != null) {
+          for (var config in data['data']) {
+            if (config['key'] == 'RegistrationDepositAmount') {
+              setState(() {
+                registrationDepositAmount = config['value'];
+                registrationDepositLastUpdated =
+                    DateTime.parse(config['lastUpdated']);
+              });
+              break;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      print('Lỗi khi tải cấu hình hệ thống: $e');
+    }
+  }
+
   Future<void> _submitForm() async {
     if (learnerId == 0) {
       _showError('Vui lòng đăng nhập lại');
@@ -522,13 +569,12 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
       return;
     }
 
-    if (selectedExperience == null) {
+    if (selectedSelfAssessment == null) {
       _showError('Vui lòng chọn kinh nghiệm của bạn');
       return;
     }
 
-    if (selectedExperience != "Tôi chưa chơi nhạc cụ này bao giờ" &&
-        videoUrl == null) {
+    if (selectedSelfAssessment!.selfAssessmentId != 1 && videoUrl == null) {
       _showError('Vui lòng tải video đánh giá trình độ lên');
       return;
     }
@@ -541,25 +587,173 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
     bool? confirmed = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Xác nhận đăng ký'),
-          content: const Text(
-            'Bạn sẽ tốn 50.000đ phí làm đơn yêu cầu học theo yêu cầu.\nBạn có chắc chắn muốn tiếp tục?',
-            style: TextStyle(fontSize: 16),
+        String depositMessage =
+            'Bạn sẽ tốn ${_formatCurrency(registrationDepositAmount)} phí làm đơn yêu cầu học theo yêu cầu.';
+        if (registrationDepositLastUpdated != null) {
+          depositMessage +=
+              '\n\nÁp dụng từ ngày ${_formatDate(registrationDepositLastUpdated!)}';
+        }
+        depositMessage += '\n\nBạn có chắc chắn muốn tiếp tục?';
+
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Hủy'),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.blue[50],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        color: Colors.blue[700],
+                        size: 28,
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Text(
+                          'Xác nhận đăng ký',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1A237E),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey[200]!),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.payments_outlined,
+                            color: Colors.orange[700],
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Phí xử lý đơn:',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                          const Spacer(),
+                          Text(
+                            _formatCurrency(registrationDepositAmount),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.red,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (registrationDepositLastUpdated != null) ...[
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.calendar_today_outlined,
+                              color: Colors.blue[700],
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Áp dụng từ:',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey[700],
+                              ),
+                            ),
+                            const Spacer(),
+                            Text(
+                              _formatDate(registrationDepositLastUpdated!),
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey[700],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'Lưu ý: Khoản phí này sẽ không được hoàn lại sau khi đơn đã được gửi.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.red,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 12,
+                        ),
+                      ),
+                      child: const Text(
+                        'Hủy',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton(
+                      onPressed: () => Navigator.of(context).pop(true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF8C9EFF),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Text(
+                        'Xác nhận',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text(
-                'Xác nhận',
-                style: TextStyle(color: Color(0xFF8C9EFF)),
-              ),
-            ),
-          ],
+          ),
         );
       },
     );
@@ -635,7 +829,7 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
                   .split('T')[0],
           'timeLearning': timeLearning,
           'learningRequest': learningGoalController.text.trim(),
-          'selfAssessment': selectedExperience ?? '',
+          'selfAssessmentId': selectedSelfAssessment!.selfAssessmentId,
         }),
       );
 
@@ -695,7 +889,6 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
       final String formattedTime =
           '${selectedTimeStart!.hour.toString().padLeft(2, '0')}:${selectedTimeStart!.minute.toString().padLeft(2, '0')}:00';
 
-      // Tính toán tất cả các ngày học
       List<DateTime> learningDates = [];
       DateTime currentDate = startDay!;
 
@@ -704,7 +897,6 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
         currentDate = currentDate.add(const Duration(days: 7));
       }
 
-      // Chuyển đổi các ngày thành chuỗi định dạng yyyy-MM-dd và nối lại với nhau
       final String formattedStartDay = learningDates
           .map((date) =>
               '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}')
@@ -792,6 +984,84 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.orange[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange[100]!),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.warning_amber_rounded,
+                          color: Colors.orange[800]),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Lưu ý quan trọng',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Colors.orange,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  RichText(
+                    text: TextSpan(
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.black87,
+                        height: 1.5,
+                      ),
+                      children: [
+                        const TextSpan(
+                          text: 'Việc tạo đơn học theo yêu cầu sẽ phát sinh ',
+                        ),
+                        TextSpan(
+                          text:
+                              'phí xử lý ${_formatCurrency(registrationDepositAmount)}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.red,
+                          ),
+                        ),
+                        const TextSpan(
+                          text:
+                              '. Khoản phí này được áp dụng nhằm đảm bảo chất lượng dịch vụ cá nhân hóa và sẽ ',
+                        ),
+                        const TextSpan(
+                          text: 'không được hoàn lại',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.red,
+                          ),
+                        ),
+                        const TextSpan(
+                          text:
+                              ' sau khi đơn đã được gửi. Vui lòng xem xét kỹ trước khi tiến hành.',
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (registrationDepositLastUpdated != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'Áp dụng từ ngày ${_formatDate(registrationDepositLastUpdated!)}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
             _buildSectionTitle('Chọn chuyên ngành'),
             _buildMajorSelector(),
             const SizedBox(height: 24),
@@ -820,8 +1090,8 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
             _buildSectionTitle('Kinh nghiệm của bạn'),
             _buildExperienceSelector(),
             const SizedBox(height: 24),
-            if (selectedExperience != null &&
-                selectedExperience != "Tôi chưa chơi nhạc cụ này bao giờ") ...[
+            if (selectedSelfAssessment != null &&
+                selectedSelfAssessment!.selfAssessmentId != 1) ...[
               _buildSectionTitle('Tải video đánh giá trình độ'),
               _buildVideoUploadSection(),
               const SizedBox(height: 24),
@@ -948,9 +1218,8 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
                     majorTest = null;
                     availableTeachers = [];
                   });
-                  if (selectedExperience != null &&
-                      selectedExperience !=
-                          "Tôi chưa chơi nhạc cụ này bao giờ") {
+                  if (selectedSelfAssessment != null &&
+                      selectedSelfAssessment!.selfAssessmentId != 1) {
                     _fetchMajorTest();
                   }
                   _checkAndFetchAvailableTeachers();
@@ -968,21 +1237,21 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
         borderRadius: BorderRadius.circular(8),
       ),
       child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
+        child: DropdownButton<SelfAssessment>(
           isExpanded: true,
-          value: selectedExperience,
+          value: selectedSelfAssessment,
           hint: const Text('Chọn kinh nghiệm của bạn'),
-          items: experiences.map((String experience) {
-            return DropdownMenuItem<String>(
-              value: experience,
-              child: Text(experience),
+          items: selfAssessments.map((SelfAssessment assessment) {
+            return DropdownMenuItem<SelfAssessment>(
+              value: assessment,
+              child: Text(assessment.description),
             );
           }).toList(),
-          onChanged: (String? value) {
+          onChanged: (SelfAssessment? value) {
             setState(() {
-              selectedExperience = value;
+              selectedSelfAssessment = value;
               majorTest = null;
-              if (value == "Tôi chưa chơi nhạc cụ này bao giờ") {
+              if (value?.selfAssessmentId == 1) {
                 if (_videoController != null) {
                   _videoController!.dispose();
                   _videoController = null;
@@ -990,8 +1259,7 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
                 videoUrl = null;
               }
             });
-            if (selectedMajorId != null &&
-                value != "Tôi chưa chơi nhạc cụ này bao giờ") {
+            if (selectedMajorId != null && value?.selfAssessmentId != 1) {
               _fetchMajorTest();
             }
           },
@@ -1001,8 +1269,8 @@ class _TutoringRegistrationFormState extends State<TutoringRegistrationForm> {
   }
 
   Widget _buildVideoUploadSection() {
-    if (selectedExperience == null ||
-        selectedExperience == "Tôi chưa chơi nhạc cụ này bao giờ") {
+    if (selectedSelfAssessment == null ||
+        selectedSelfAssessment!.selfAssessmentId == 1) {
       return const SizedBox.shrink();
     }
 

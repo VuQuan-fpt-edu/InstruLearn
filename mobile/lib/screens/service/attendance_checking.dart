@@ -80,8 +80,29 @@ class _AttendanceCheckingScreenState extends State<AttendanceCheckingScreen> {
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
-          : attendanceData == null
-              ? const Center(child: Text('Không có dữ liệu'))
+          : attendanceData == null ||
+                  (attendanceData!['registrationStatistics'] as List).isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.event_busy,
+                        size: 64,
+                        color: Colors.grey[400],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Hiện tại không có báo cáo điểm danh',
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
               : ListView.builder(
                   padding: const EdgeInsets.all(16),
                   itemCount: (attendanceData!['registrationStatistics'] as List)
@@ -159,7 +180,7 @@ class _AttendanceCheckingScreenState extends State<AttendanceCheckingScreen> {
                                     ),
                                     child: Text(
                                       registration['type'] == 'One-on-One'
-                                          ? 'Học kèm 1:1'
+                                          ? 'Học theo yêu cầu'
                                           : registration['type'],
                                       style: TextStyle(
                                         color: Colors.blue[900],

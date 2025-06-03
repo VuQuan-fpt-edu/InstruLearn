@@ -24,6 +24,7 @@ class ClassDetailModel {
   final List<ClassDay> classDays;
   final int studentCount;
   final List<Student> students;
+  final String imageUrl;
 
   ClassDetailModel({
     required this.classId,
@@ -46,6 +47,7 @@ class ClassDetailModel {
     required this.classDays,
     required this.studentCount,
     required this.students,
+    required this.imageUrl,
   });
 
   factory ClassDetailModel.fromJson(Map<String, dynamic> json) {
@@ -74,6 +76,7 @@ class ClassDetailModel {
       students: (json['students'] as List)
           .map((student) => Student.fromJson(student))
           .toList(),
+      imageUrl: json['imageUrl'] ?? '',
     );
   }
 }
@@ -150,17 +153,17 @@ class TeacherDetailModel {
   factory TeacherDetailModel.fromJson(Map<String, dynamic> json) {
     return TeacherDetailModel(
       teacherId: json['teacherId'],
-      accountId: json['accountId'],
-      email: json['email'],
-      fullname: json['fullname'],
-      heading: json['heading'],
-      details: json['details'],
-      links: json['links'],
-      phoneNumber: json['phoneNumber'],
-      gender: json['gender'],
-      address: json['address'],
-      avatar: json['avatar'],
-      dateOfEmployment: json['dateOfEmployment'],
+      accountId: json['accountId'] ?? 'Chưa có',
+      email: json['email'] ?? 'Chưa có',
+      fullname: json['fullname'] ?? 'Chưa có',
+      heading: json['heading'] ?? 'Chưa có',
+      details: json['details'] ?? 'Chưa có',
+      links: json['links'] ?? 'Chưa có',
+      phoneNumber: json['phoneNumber'] ?? 'Chưa có',
+      gender: json['gender'] ?? 'Chưa có',
+      address: json['address'] ?? 'Chưa có',
+      avatar: json['avatar'] ?? 'Chưa có',
+      dateOfEmployment: json['dateOfEmployment'] ?? 'Chưa có',
       isActive: json['isActive'],
       majors: (json['majors'] as List)
           .map((major) => TeacherMajor.fromJson(major))
@@ -234,6 +237,78 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
     }
   }
 
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.check_circle,
+                    color: Colors.green,
+                    size: 60,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Tham gia thành công!',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Chúc mừng bạn đã đăng ký thành công lớp học. Vui lòng theo dõi phần Thông báo -> Lưu ý tại trung tâm để không bỏ lỡ những thông báo quan trọng',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 16),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF8C9EFF),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text(
+                    'Đóng',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _joinClass() async {
     if (learnerId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -262,33 +337,60 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
         final jsonResponse = json.decode(response.body);
         if (jsonResponse['isSucceed']) {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'Chúc mừng bạn đã tham gia lớp thành công, Lưu ý bấm vào phần Application để xem lại đơn đăng ký',
-                ),
-                duration: Duration(seconds: 3),
-              ),
-            );
-            Navigator.pop(context);
+            _showSuccessDialog();
           }
         } else {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  jsonResponse['message'] ?? 'Không thể tham gia lớp học',
-                ),
-              ),
+            showDialog(
+              context: context,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  title: const Text('Thông báo từ hệ thống'),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        jsonResponse['message'] ?? 'Không thể tham gia lớp học',
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ],
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('Đóng'),
+                    ),
+                  ],
+                );
+              },
             );
           }
         }
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Đã có lỗi xảy ra khi tham gia lớp học'),
-            ),
+          String? errorMessage;
+          try {
+            final jsonResponse = json.decode(response.body);
+            errorMessage = jsonResponse['message'];
+          } catch (_) {}
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Text('Thông báo từ hệ thống'),
+                content: Text(
+                  errorMessage ?? 'Đã có lỗi xảy ra khi tham gia lớp học',
+                  style: const TextStyle(fontSize: 14),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Đóng'),
+                  ),
+                ],
+              );
+            },
           );
         }
       }
@@ -306,16 +408,66 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
   void _showJoinConfirmationDialog() {
     if (classDetail == null) return;
 
-    final depositAmount = (classDetail!.price * classDetail!.totalDays * 0.1)
-        .round(); // 10% tổng học phí
+    final depositAmount =
+        (classDetail!.price * classDetail!.totalDays * 0.1).round();
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Xác nhận tham gia'),
-          content: Text(
-            'Bạn có chắc muốn tham gia ${classDetail!.className}. Bạn sẽ phải đóng ${depositAmount.toStringAsFixed(0)}đ (10% học phí) chi phí giữ chỗ',
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Bạn có chắc muốn tham gia ${classDetail!.className}?',
+                style: const TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.red.withOpacity(0.3)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Lưu ý quan trọng:',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.red,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '• Phí giữ chỗ: ${_formatCurrency(depositAmount)} (10% học phí)',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      '• Phí giữ chỗ sẽ KHÔNG được hoàn trả nếu:',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                        '  - Không tham gia kiểm tra chất lượng đầu vào'),
+                    const Text(
+                        '  - Không thanh toán phần học phí còn lại sau khi kiểm tra'),
+                  ],
+                ),
+              ),
+            ],
           ),
           actions: [
             TextButton(
@@ -736,7 +888,7 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
                     _formatDate(date),
                     style: const TextStyle(
                       fontSize: 14,
-                      color: Color(0xFF8C9EFF),
+                      color: Colors.black,
                     ),
                   ),
                 );
@@ -770,78 +922,163 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF8C9EFF),
-                              borderRadius: const BorderRadius.only(
-                                bottomLeft: Radius.circular(30),
-                                bottomRight: Radius.circular(30),
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.grey.withOpacity(0.3),
-                                  spreadRadius: 2,
-                                  blurRadius: 5,
-                                  offset: const Offset(0, 3),
+                          if (classDetail!.imageUrl.isNotEmpty)
+                            Container(
+                              width: double.infinity,
+                              height: 250,
+                              decoration: BoxDecoration(
+                                image: DecorationImage(
+                                  image: NetworkImage(classDetail!.imageUrl),
+                                  fit: BoxFit.cover,
                                 ),
-                              ],
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  classDetail!.className,
-                                  style: const TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
+                              ),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      Colors.transparent,
+                                      Colors.black.withOpacity(0.7),
+                                    ],
                                   ),
                                 ),
-                                const SizedBox(height: 8),
-                                Row(
+                                padding: const EdgeInsets.all(20),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 6,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.2),
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: Text(
-                                        classDetail!.majorName,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w500,
-                                        ),
+                                    Text(
+                                      classDetail!.className,
+                                      style: const TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
                                       ),
                                     ),
-                                    const SizedBox(width: 8),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 6,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.2),
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: Text(
-                                        classDetail!.levelName,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w500,
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 6,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color:
+                                                Colors.white.withOpacity(0.2),
+                                            borderRadius:
+                                                BorderRadius.circular(20),
+                                          ),
+                                          child: Text(
+                                            classDetail!.majorName,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
                                         ),
-                                      ),
+                                        const SizedBox(width: 8),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 6,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color:
+                                                Colors.white.withOpacity(0.2),
+                                            borderRadius:
+                                                BorderRadius.circular(20),
+                                          ),
+                                          child: Text(
+                                            classDetail!.levelName,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),
-                              ],
+                              ),
+                            )
+                          else
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF8C9EFF),
+                                borderRadius: const BorderRadius.only(
+                                  bottomLeft: Radius.circular(30),
+                                  bottomRight: Radius.circular(30),
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.grey.withOpacity(0.3),
+                                    spreadRadius: 2,
+                                    blurRadius: 5,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    classDetail!.className,
+                                    style: const TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 6,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withOpacity(0.2),
+                                          borderRadius:
+                                              BorderRadius.circular(20),
+                                        ),
+                                        child: Text(
+                                          classDetail!.majorName,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 6,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withOpacity(0.2),
+                                          borderRadius:
+                                              BorderRadius.circular(20),
+                                        ),
+                                        child: Text(
+                                          classDetail!.levelName,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
                           Padding(
                             padding: const EdgeInsets.all(20),
                             child: Column(
@@ -875,6 +1112,12 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
                                       'Học phí một buổi',
                                       _formatCurrency(classDetail!.price),
                                     ),
+                                    _buildInfoRow(
+                                      Icons.payments,
+                                      'Tổng học phí',
+                                      _formatCurrency(classDetail!.price *
+                                          classDetail!.totalDays),
+                                    ),
                                   ],
                                 ),
                                 const SizedBox(height: 16),
@@ -882,14 +1125,8 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
                                   'Thông tin khóa học',
                                   [
                                     _buildInfoRow(
-                                      Icons.book,
-                                      'Link giáo trình',
-                                      classDetail!.syllabusLink,
-                                      isLink: true,
-                                    ),
-                                    _buildInfoRow(
                                       Icons.event,
-                                      'Ngày kiểm tra',
+                                      'Ngày kiểm tra chất lượng đầu vào',
                                       classDetail!.testDay,
                                     ),
                                     _buildInfoRow(
@@ -1095,9 +1332,7 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
                   )
                 else if (isLink)
                   InkWell(
-                    onTap: () {
-                      // TODO: Implement link opening
-                    },
+                    onTap: () {},
                     child: Text(
                       value,
                       style: const TextStyle(

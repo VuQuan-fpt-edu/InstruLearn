@@ -15,6 +15,7 @@ import '../service/class_registration.dart';
 import '../service/learner_schedule_center_screen.dart';
 import '../service/attendance_checking.dart';
 import '../service/teacher_evaluation_screen.dart';
+import '../service/feedback_history_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -134,142 +135,13 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _checkBalanceAndNavigate() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
-
-      if (token == null) {
-        _showErrorMessage('Vui lòng đăng nhập lại');
-        return;
-      }
-
-      final response = await http.get(
-        Uri.parse(
-          'https://instrulearnapplication.azurewebsites.net/api/wallet/$learnerId',
-        ),
-        headers: {
-          'Content-Type': 'application/json; charset=UTF-8',
-          'Authorization': 'Bearer $token',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['isSucceed'] == true) {
-          final balance = data['data']['balance'].toDouble();
-          final requiredAmount = 50000.0;
-          final remainingBalance = balance - requiredAmount;
-
-          if (balance < requiredAmount) {
-            showDialog(
-              context: context,
-              builder: (BuildContext context) {
-                return AlertDialog(
-                  title: const Text('Số dư không đủ'),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Số dư hiện có: ${_formatCurrency(balance)}'),
-                      const SizedBox(height: 8),
-                      Text('Phí đăng ký: ${_formatCurrency(requiredAmount)}'),
-                      const SizedBox(height: 8),
-                      const Text('Bạn cần nạp thêm tiền để tiếp tục.'),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Lưu ý: Sau khi học viên gửi đơn thành công số tiền mới bị trừ',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontStyle: FontStyle.italic,
-                          color: Colors.red,
-                        ),
-                      ),
-                    ],
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Hủy'),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                WalletScreen(learnerId: learnerId),
-                          ),
-                        );
-                      },
-                      child: const Text('Nạp tiền'),
-                    ),
-                  ],
-                );
-              },
-            );
-          } else {
-            showDialog(
-              context: context,
-              builder: (BuildContext context) {
-                return AlertDialog(
-                  title: const Text('Xác nhận đăng ký'),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Số dư hiện có: ${_formatCurrency(balance)}'),
-                      const SizedBox(height: 8),
-                      Text('Phí đăng ký: ${_formatCurrency(requiredAmount)}'),
-                      const SizedBox(height: 8),
-                      Text(
-                          'Số dư còn lại: ${_formatCurrency(remainingBalance)}'),
-                      const SizedBox(height: 8),
-                      const Text('Bạn có chắc chắn muốn tiếp tục?'),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Lưu ý: Sau khi học viên gửi đơn thành công số tiền mới bị trừ',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontStyle: FontStyle.italic,
-                          color: Colors.red,
-                        ),
-                      ),
-                    ],
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Hủy'),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                const TutoringRegistrationForm(),
-                          ),
-                        );
-                      },
-                      child: const Text('Xác nhận'),
-                    ),
-                  ],
-                );
-              },
-            );
-          }
-        } else {
-          _showErrorMessage(data['message'] ?? 'Không thể kiểm tra số dư');
-        }
-      } else {
-        _showErrorMessage('Lỗi kết nối: ${response.statusCode}');
-      }
-    } catch (e) {
-      _showErrorMessage('Lỗi: ${e.toString()}');
-    }
+  void _checkBalanceAndNavigate() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const TutoringRegistrationForm(),
+      ),
+    );
   }
 
   void _showErrorMessage(String message) {
@@ -399,26 +271,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   style: const TextStyle(fontSize: 14),
                 ),
                 const SizedBox(height: 20),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 15),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                  child: Row(
-                    children: const [
-                      Expanded(
-                        child: TextField(
-                          decoration: InputDecoration(
-                            hintText: 'Tím Kiếm gói học mà bạn muốn....',
-                            border: InputBorder.none,
-                          ),
-                        ),
-                      ),
-                      Icon(Icons.search),
-                    ],
-                  ),
-                ),
               ],
             ),
           ),
@@ -548,11 +400,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 _buildMenuItem(
                   context: context,
-                  title: 'Lịch sử đơn học',
-                  icon: Icons.history,
-                ),
-                _buildMenuItem(
-                  context: context,
                   title: 'Ví',
                   icon: Icons.account_balance_wallet,
                   onTap: () {
@@ -575,6 +422,19 @@ class _HomeScreenState extends State<HomeScreen> {
                       MaterialPageRoute(
                         builder: (context) =>
                             AttendanceCheckingScreen(learnerId: learnerId),
+                      ),
+                    );
+                  },
+                ),
+                _buildMenuItem(
+                  context: context,
+                  title: 'Lịch sử phản hồi',
+                  icon: Icons.feedback,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const FeedbackHistoryScreen(),
                       ),
                     );
                   },
@@ -615,11 +475,6 @@ class _HomeScreenState extends State<HomeScreen> {
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Trang chủ'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Hồ sơ'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.support_agent),
-            label: 'CSKH',
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Cài đặt'),
         ],
       ),
     );

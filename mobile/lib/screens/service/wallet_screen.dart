@@ -534,7 +534,30 @@ class _WalletScreenState extends State<WalletScreen> {
   }
 
   Future<void> _refreshData() async {
-    await _fetchWalletDetails();
+    setState(() {
+      isLoading = true;
+    });
+    try {
+      await _fetchWalletDetails();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Đã cập nhật thông tin ví'),
+            duration: Duration(seconds: 1),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        _showErrorMessage('Lỗi khi cập nhật: ${e.toString()}');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -544,11 +567,12 @@ class _WalletScreenState extends State<WalletScreen> {
         title: const Text('Ví của tôi'),
         backgroundColor: const Color(0xFF8C9EFF),
       ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _refreshData,
-              child: SingleChildScrollView(
+      body: RefreshIndicator(
+        onRefresh: _refreshData,
+        child: isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
@@ -728,7 +752,7 @@ class _WalletScreenState extends State<WalletScreen> {
                   ),
                 ),
               ),
-            ),
+      ),
     );
   }
 }

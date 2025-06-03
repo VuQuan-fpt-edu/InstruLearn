@@ -30,6 +30,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
   List<Schedule> schedules = [];
   bool isLoading = true;
   String? errorMessage;
+  String? noScheduleMessage;
   FilterType _currentFilter = FilterType.month;
   final ScheduleService _scheduleService = ScheduleService();
 
@@ -57,27 +58,31 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
 
       setState(() {
         if (fetchedSchedules.isEmpty) {
-          errorMessage = 'Không có lịch dạy';
+          noScheduleMessage = _getNoScheduleMessage();
+          errorMessage = null;
         } else {
           schedules = fetchedSchedules;
           errorMessage = null;
+          noScheduleMessage = null;
         }
         isLoading = false;
       });
     } catch (e) {
       if (e
           .toString()
-          .contains('No Learning Registrations found for this teacher')) {
+          .contains('Không tìm thấy đăng ký học tập nào cho giáo viên này.')) {
         setState(() {
-          errorMessage = 'Không có lịch dạy';
-          isLoading = false;
+          noScheduleMessage = _getNoScheduleMessage();
+          errorMessage = null;
           schedules = [];
+          isLoading = false;
         });
       } else {
         setState(() {
           errorMessage = 'Lỗi: $e';
           isLoading = false;
           schedules = [];
+          noScheduleMessage = null;
         });
       }
     }
@@ -191,7 +196,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Lịch dạy'),
+        title: const Text('Lịch dạy theo yêu cầu'),
         backgroundColor: const Color(0xFF8C9EFF),
       ),
       body: Container(
@@ -207,7 +212,8 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
             _buildFilterButtons(),
             _buildMonthNavigation(),
             _buildCalendarGrid(),
-            if (errorMessage != null)
+            if (errorMessage != null &&
+                errorMessage != 'Hiện tại bạn chưa có lịch dạy nào')
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -509,6 +515,29 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
   Widget _buildScheduleList() {
     final filteredSchedules = _getCurrentFilteredSchedules();
     if (filteredSchedules.isEmpty) {
+      if (noScheduleMessage != null) {
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.calendar_today,
+                size: 64,
+                color: Colors.grey,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                noScheduleMessage!,
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        );
+      }
       String message;
       switch (_currentFilter) {
         case FilterType.day:
@@ -751,6 +780,23 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
     return dayNames[weekday % 7];
   }
 
+  String _getNoScheduleMessage() {
+    switch (_currentFilter) {
+      case FilterType.day:
+        return 'Không có lịch dạy vào ngày ' +
+            DateFormat('dd/MM/yyyy').format(_selectedDate);
+      case FilterType.week:
+        final startOfWeek = _getStartOfWeek(_selectedDate);
+        final endOfWeek = startOfWeek.add(const Duration(days: 6));
+        return 'Không có lịch dạy từ ' +
+            DateFormat('dd/MM/yyyy').format(startOfWeek) +
+            ' đến ' +
+            DateFormat('dd/MM/yyyy').format(endOfWeek);
+      case FilterType.month:
+        return 'Không có lịch dạy trong tháng ${_selectedDate.month}/${_selectedDate.year}';
+    }
+  }
+
   void _showAttendanceBottomSheet(BuildContext context, Schedule schedule) {
     showModalBottomSheet(
       context: context,
@@ -913,7 +959,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
       ScaffoldMessenger.of(context).removeCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Lỗi khi cập nhật điểm danh: $e'),
+          content: Text(e.toString().replaceAll('Exception: ', '')),
           backgroundColor: Colors.red,
         ),
       );

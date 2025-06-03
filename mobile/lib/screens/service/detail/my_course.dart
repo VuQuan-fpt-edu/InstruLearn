@@ -322,7 +322,6 @@ class _MyCourseScreenState extends State<MyCourseScreen> {
   }
 
   Widget _buildContentSection(CourseContent content, int contentIndex) {
-    // Tìm tiến độ tương ứng cho content này
     final contentProgress = _courseProgress?.contents
         .firstWhere((c) => c.contentId == content.contentId,
             orElse: () => ContentProgress(
@@ -389,10 +388,8 @@ class _MyCourseScreenState extends State<MyCourseScreen> {
     double totalProgress = 0;
     for (var item in contentProgress.contentItems) {
       if (item.itemTypeId == 3) {
-        // Document
         totalProgress += item.isLearned ? 100 : 0;
       } else if (item.itemTypeId == 2) {
-        // Video
         totalProgress += item.completionPercentage;
       }
     }
@@ -405,7 +402,6 @@ class _MyCourseScreenState extends State<MyCourseScreen> {
     final isSelected = _selectedContentIndex == contentIndex &&
         _selectedItemIndex == itemIndex;
 
-    // Tìm tiến độ tương ứng cho item này
     final itemProgress =
         contentProgress?.contentItems.firstWhere((i) => i.itemId == item.itemId,
             orElse: () => ContentItemProgress(
@@ -418,14 +414,11 @@ class _MyCourseScreenState extends State<MyCourseScreen> {
                   completionPercentage: 0,
                 ));
 
-    // Tính toán giá trị progress dựa vào loại nội dung
     double progressValue = 0;
     if (itemProgress != null) {
       if (item.itemTypeId == 3) {
-        // Tài liệu
         progressValue = itemProgress.isLearned ? 1.0 : 0.0;
       } else if (item.itemTypeId == 2) {
-        // Video
         progressValue = itemProgress.completionPercentage / 100;
       }
     }
@@ -540,7 +533,6 @@ class _MyCourseScreenState extends State<MyCourseScreen> {
     });
 
     if (item.itemTypeId == 1) {
-      // Hiển thị hình ảnh
       setState(() {
         _currentImageUrl = item.itemDes;
         _isImageVisible = true;
@@ -548,14 +540,12 @@ class _MyCourseScreenState extends State<MyCourseScreen> {
         _isDocumentVisible = false;
       });
     } else if (item.itemTypeId == 2) {
-      // Mở video
       setState(() {
         _isImageVisible = false;
         _isDocumentVisible = false;
       });
       _launchVideo(item.itemDes, item);
     } else if (item.itemTypeId == 3) {
-      // Hiển thị tài liệu
       setState(() {
         _currentDocumentUrl = item.itemDes;
         _isDocumentVisible = true;
@@ -563,7 +553,6 @@ class _MyCourseScreenState extends State<MyCourseScreen> {
         _isVideoPlaying = false;
       });
 
-      // Cập nhật tiến độ khi mở tài liệu PDF
       try {
         final prefs = await SharedPreferences.getInstance();
         final learnerId = prefs.getInt('learnerId');
@@ -571,7 +560,6 @@ class _MyCourseScreenState extends State<MyCourseScreen> {
           final courseService = CourseService();
           await courseService.updateContentItemProgress(learnerId, item.itemId);
 
-          // Fetch lại tiến độ sau khi cập nhật
           if (mounted) {
             final progress = await courseService.getCourseContentProgress(
               learnerId,
@@ -614,7 +602,6 @@ class _MyCourseScreenState extends State<MyCourseScreen> {
         return;
       }
 
-      // Tìm tiến độ của video hiện tại
       final itemProgress = _courseProgress?.contents
           .expand((content) => content.contentItems)
           .firstWhere((i) => i.itemId == item.itemId,
@@ -641,7 +628,6 @@ class _MyCourseScreenState extends State<MyCourseScreen> {
         ..initialize().then((_) async {
           setState(() {});
 
-          // Tua video đến thời điểm đã xem trước đó
           if (itemProgress != null && itemProgress.watchTimeInSeconds > 0) {
             await _videoPlayerController?.seekTo(
               Duration(seconds: itemProgress.watchTimeInSeconds),
@@ -650,7 +636,6 @@ class _MyCourseScreenState extends State<MyCourseScreen> {
 
           _videoPlayerController?.play();
 
-          // Cập nhật tổng thời lượng video
           final prefs = await SharedPreferences.getInstance();
           final learnerId = prefs.getInt('learnerId');
           if (learnerId != null) {
@@ -663,13 +648,11 @@ class _MyCourseScreenState extends State<MyCourseScreen> {
               durationInSeconds,
             );
 
-            // Thêm listener để theo dõi thời gian xem video
             int lastReportedTime = 0;
             _videoPlayerController?.addListener(() async {
               final currentPosition =
                   _videoPlayerController!.value.position.inSeconds;
 
-              // Cập nhật thời gian xem mỗi 1 giây hoặc khi video kết thúc
               if ((currentPosition - lastReportedTime >= 1) ||
                   (_videoPlayerController!.value.position ==
                       _videoPlayerController!.value.duration)) {
@@ -680,7 +663,6 @@ class _MyCourseScreenState extends State<MyCourseScreen> {
                   currentPosition,
                 );
 
-                // Fetch lại tiến độ sau mỗi lần cập nhật
                 if (mounted) {
                   final progress = await courseService.getCourseContentProgress(
                     learnerId,
@@ -688,7 +670,6 @@ class _MyCourseScreenState extends State<MyCourseScreen> {
                   );
                   setState(() {
                     _courseProgress = progress;
-                    // Cập nhật lại trạng thái học video
                     _isVideoLearned = progress?.contents
                             .expand((content) => content.contentItems)
                             .firstWhere((i) => i.itemId == item.itemId,
@@ -706,7 +687,6 @@ class _MyCourseScreenState extends State<MyCourseScreen> {
                   });
                 }
 
-                // Kiểm tra nếu video kết thúc
                 if (_videoPlayerController!.value.position ==
                     _videoPlayerController!.value.duration) {
                   setState(() {
@@ -731,7 +711,6 @@ class _MyCourseScreenState extends State<MyCourseScreen> {
 
   Future<void> _downloadDocument(String url) async {
     try {
-      // Kiểm tra và yêu cầu quyền truy cập bộ nhớ
       if (Platform.isAndroid) {
         var status = await Permission.storage.status;
         if (!status.isGranted) {
@@ -750,13 +729,11 @@ class _MyCourseScreenState extends State<MyCourseScreen> {
           }
         }
 
-        // Kiểm tra quyền quản lý bộ nhớ ngoài (Android 11 trở lên)
         if (await Permission.manageExternalStorage.status.isDenied) {
           await Permission.manageExternalStorage.request();
         }
       }
 
-      // Hiển thị dialog loading
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -767,18 +744,15 @@ class _MyCourseScreenState extends State<MyCourseScreen> {
         },
       );
 
-      // Tạo thư mục Downloads nếu chưa tồn tại
       final directory = await getExternalStorageDirectory();
       final downloadDir = Directory('${directory!.path}/Downloads');
       if (!await downloadDir.exists()) {
         await downloadDir.create(recursive: true);
       }
 
-      // Lấy tên file từ URL
       final fileName = url.split('/').last;
       final filePath = '${downloadDir.path}/$fileName';
 
-      // Tải file
       final dio = Dio();
       await dio.download(
         url,
@@ -786,17 +760,14 @@ class _MyCourseScreenState extends State<MyCourseScreen> {
         onReceiveProgress: (received, total) {
           if (total != -1) {
             final progress = (received / total * 100).toStringAsFixed(0);
-            // Có thể cập nhật progress ở đây nếu muốn
           }
         },
       );
 
-      // Đóng dialog loading
       if (mounted) {
         Navigator.pop(context);
       }
 
-      // Mở file
       final result = await OpenFilex.open(filePath);
       if (result.type != ResultType.done) {
         if (mounted) {
@@ -818,7 +789,6 @@ class _MyCourseScreenState extends State<MyCourseScreen> {
         }
       }
     } catch (e) {
-      // Đóng dialog loading nếu có lỗi
       if (mounted) {
         Navigator.pop(context);
       }
