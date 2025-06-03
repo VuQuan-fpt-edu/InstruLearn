@@ -868,17 +868,12 @@ const ClassManagement = () => {
               ]}
               initialValue={1000}
             >
-              <Input
-                type="number"
+              <InputNumber
                 min={1000}
                 max={10000000}
+                step={10000}
                 placeholder="Giá/buổi"
-                onChange={(e) => {
-                  let value = Number(e.target.value);
-                  if (value > 10000000) value = 10000000;
-                  if (value < 1000) value = 1000;
-                  if (form) form.setFieldsValue({ price: value });
-                }}
+                style={{ width: "100%" }}
               />
             </Form.Item>
 
