@@ -100,12 +100,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     ).showSnackBar(const SnackBar(content: Text('Đăng ký với Google')));
   }
 
-  void _registerWithFacebook() {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Đăng ký với Facebook')));
-  }
-
   void _navigateToLogin() {
     Navigator.of(context).pop();
   }
@@ -153,6 +147,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   TextFormField(
                     controller: _usernameController,
                     keyboardType: TextInputType.text,
+                    textInputAction: TextInputAction.next,
+                    enableSuggestions: false,
+                    autocorrect: false,
                     decoration: InputDecoration(
                       labelText: 'Tên đăng nhập',
                       hintText: 'Nhập tên đăng nhập của bạn',
@@ -169,8 +166,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       if (value == null || value.trim().isEmpty) {
                         return 'Vui lòng nhập tên đăng nhập';
                       }
-                      if (value.trim().length < 3) {
-                        return 'Tên đăng nhập phải có ít nhất 3 ký tự';
+                      if (value.trim().length < 3 || value.trim().length > 20) {
+                        return 'Tên đăng nhập phải từ 3-20 ký tự';
+                      }
+                      if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(value)) {
+                        return 'Tên đăng nhập chỉ được chứa chữ cái, số và dấu gạch dưới';
                       }
                       return null;
                     },
@@ -180,6 +180,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     controller: _nameController,
                     keyboardType: TextInputType.name,
                     textCapitalization: TextCapitalization.words,
+                    textInputAction: TextInputAction.next,
                     decoration: InputDecoration(
                       labelText: 'Họ và Tên',
                       hintText: 'Nhập họ và tên của bạn',
@@ -196,8 +197,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       if (value == null || value.trim().isEmpty) {
                         return 'Vui lòng nhập họ và tên';
                       }
-                      if (value.trim().length < 3) {
-                        return 'Tên phải có ít nhất 3 ký tự';
+                      if (value.trim().length < 2 || value.trim().length > 50) {
+                        return 'Họ và tên phải từ 2-50 ký tự';
+                      }
+                      if (!RegExp(r'^[a-zA-ZÀ-ỹ\s]+$').hasMatch(value)) {
+                        return 'Họ và tên chỉ được chứa chữ cái và dấu cách';
                       }
                       return null;
                     },
@@ -206,6 +210,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.next,
                     decoration: InputDecoration(
                       labelText: 'Email',
                       hintText: 'Nhập email của bạn',
@@ -222,7 +227,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       if (value == null || value.trim().isEmpty) {
                         return 'Vui lòng nhập email';
                       }
-                      if (!value.contains('@') || !value.contains('.')) {
+                      if (!RegExp(
+                              r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+                          .hasMatch(value)) {
                         return 'Vui lòng nhập email hợp lệ';
                       }
                       return null;
@@ -232,6 +239,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   TextFormField(
                     controller: _phoneController,
                     keyboardType: TextInputType.phone,
+                    textInputAction: TextInputAction.next,
                     decoration: InputDecoration(
                       labelText: 'Số điện thoại',
                       hintText: 'Nhập số điện thoại của bạn',
@@ -248,9 +256,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       if (value == null || value.trim().isEmpty) {
                         return 'Vui lòng nhập số điện thoại';
                       }
-                      if (value.length != 10 ||
-                          !RegExp(r'^[0-9]+$').hasMatch(value)) {
-                        return 'Số điện thoại phải có đúng 10 số';
+                      if (!RegExp(r'^0[0-9]{9}$').hasMatch(value)) {
+                        return 'Số điện thoại phải bắt đầu bằng số 0 và có 10 chữ số';
                       }
                       return null;
                     },
@@ -373,39 +380,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ],
                   ),
                   const SizedBox(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: _registerWithGoogle,
-                          icon: const Icon(Icons.g_mobiledata, size: 24),
-                          label: const Text('Google'),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            side: const BorderSide(color: Colors.grey),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                        ),
+                  OutlinedButton.icon(
+                    onPressed: _registerWithGoogle,
+                    icon: const Icon(Icons.g_mobiledata, size: 24),
+                    label: const Text('Google'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      side: const BorderSide(color: Colors.grey),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: _registerWithFacebook,
-                          icon: const Icon(Icons.facebook, size: 24),
-                          label: const Text('Facebook'),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            side: const BorderSide(color: Colors.grey),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                   const SizedBox(height: 32),
                   Row(

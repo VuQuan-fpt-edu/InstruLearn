@@ -100,14 +100,14 @@ class ScheduleService {
         }),
       );
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return data['isSucceed'] == true;
+      final data = json.decode(response.body);
+      if (data['isSucceed'] == true) {
+        return true;
       } else {
-        throw Exception('Lỗi kết nối: ${response.statusCode}');
+        throw Exception(data['message']);
       }
     } catch (e) {
-      throw Exception('Lỗi: $e');
+      throw Exception(e.toString().replaceAll('Exception: ', ''));
     }
   }
 }

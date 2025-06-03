@@ -225,11 +225,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Trang chủ'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Hồ sơ'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.support_agent),
-            label: 'CSKH',
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Cài đặt'),
         ],
         onTap: (index) {
           if (index == 0) {
@@ -309,25 +304,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Column(
       children: [
         Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(icon, color: Colors.blue),
             const SizedBox(width: 15),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 3),
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    softWrap: true,
+                  ),
+                ],
+              ),
             ),
           ],
         ),

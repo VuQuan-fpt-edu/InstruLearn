@@ -57,6 +57,10 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
         return 'Đã hoàn tất thanh toán học phí';
       case 'cancelled':
         return 'Lịch học đã bị hủy';
+      case 'payment40rejected':
+        return 'Đã từ chối thanh toán 40%';
+      case 'payment60rejected':
+        return 'Đã từ chối thanh toán 60%';
       default:
         return status ?? '';
     }
@@ -78,7 +82,6 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
           await _videoController!
               .initialize()
               .timeout(const Duration(seconds: 15), onTimeout: () {
-            // Nếu quá thời gian, đánh dấu lỗi nhưng không gây crash
             print('Video initialization timed out');
             return;
           });
@@ -159,31 +162,23 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
     }
   }
 
-  // Theo dõi trạng thái video
   void _onVideoPositionChanged() {
-    // Kiểm tra nếu video kết thúc
     if (_videoController != null &&
         _videoController!.value.position >= _videoController!.value.duration) {
-      // Video đã kết thúc, hiển thị nút replay nếu cần
       if (mounted) {
-        setState(() {
-          // Có thể cập nhật trạng thái ở đây nếu cần hiển thị nút replay
-        });
+        setState(() {});
       }
     }
 
-    // Kiểm tra nếu video bị tua về đầu nhưng không chạy
     if (_videoController != null &&
         _videoController!.value.position == Duration.zero &&
         !_videoController!.value.isPlaying) {
-      // Video đã bị tua về đầu nhưng không chạy, tự động play lại
       _videoController!.play();
     }
   }
 
   @override
   void dispose() {
-    // Dọn dẹp listeners trước khi dispose controller
     if (_videoController != null) {
       _videoController!.removeListener(_onVideoPositionChanged);
     }
@@ -375,8 +370,6 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
           style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
-
-        // Hiển thị thông tin ngày duyệt đơn và trạng thái lộ trình
         if (widget.registration.acceptedDate != null) ...[
           Container(
             width: double.infinity,
@@ -408,7 +401,6 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    // Hiển thị biểu tượng đã hoàn thành nếu có lộ trình học tập
                     if (_learningPathSessions.any((s) => s.isCompleted == true))
                       Icon(Icons.check_circle, color: Colors.green, size: 20),
                   ],
@@ -419,7 +411,6 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
                   style: const TextStyle(fontWeight: FontWeight.w500),
                 ),
                 const SizedBox(height: 4),
-                // Thay đổi thông báo dựa trên việc có lộ trình học tập hay không
                 if (_learningPathSessions.any((s) => s.isCompleted == true))
                   Text(
                     'Giáo viên đã tạo lộ trình học tập cho bạn. Bạn có thể xem chi tiết trong phần Lộ trình học tập bên dưới.',
@@ -431,16 +422,12 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
                     'Giáo viên đang xây dựng lộ trình học tập phù hợp cho bạn',
                     style: TextStyle(color: Colors.black87),
                   ),
-
-                // Hiển thị trạng thái hiện tại của đơn
                 const SizedBox(height: 8),
                 _buildCurrentStatusIndicator(),
               ],
             ),
           ),
         ],
-
-        // Hiển thị thông tin tổng học phí
         Text(
           'Tổng học phí: ${_formatCurrency(widget.registration.price ?? 0)} VNĐ',
           style: const TextStyle(
@@ -449,8 +436,6 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
           ),
         ),
         const SizedBox(height: 16),
-
-        // Lộ trình thanh toán lần 1 (40%)
         if (_getMapValue(
                 widget.registration.firstPaymentPeriod, 'paymentPercent') !=
             null) ...[
@@ -558,8 +543,6 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
                           : FontWeight.normal,
                     ),
                   ),
-
-                // Hiển thị nút thanh toán nếu chưa thanh toán đợt 1 và có lộ trình học tập
                 if ((_getMapValue(widget.registration.firstPaymentPeriod,
                                 'paymentStatus') ??
                             '') ==
@@ -568,25 +551,36 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
                     _learningPathSessions
                         .any((s) => s.isCompleted == true)) ...[
                   const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: _showPaymentConfirmationDialog,
-                      icon: const Icon(Icons.payment),
-                      label: const Text('Thanh toán 40% học phí'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        padding: const EdgeInsets.symmetric(vertical: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: _showPaymentConfirmationDialog,
+                          icon: const Icon(Icons.payment),
+                          label: const Text('Thanh toán 40% học phí'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                          ),
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 8),
+                      OutlinedButton.icon(
+                        onPressed: _rejectPayment,
+                        icon: const Icon(Icons.cancel, color: Colors.red),
+                        label: const Text('Từ chối thanh toán',
+                            style: TextStyle(color: Colors.red)),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.red),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ],
             ),
           ),
         ],
-
-        // Lộ trình thanh toán lần 2 (60%)
         if (_getMapValue(
                 widget.registration.secondPaymentPeriod, 'paymentPercent') !=
             null) ...[
@@ -657,6 +651,28 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
                   style: const TextStyle(fontWeight: FontWeight.w500),
                 ),
                 if (_getMapValue(widget.registration.secondPaymentPeriod,
+                        'paymentDate') !=
+                    null)
+                  Text(
+                    'Ngày thanh toán: ${_getMapValue(widget.registration.secondPaymentPeriod, 'paymentDate')}',
+                    style: const TextStyle(
+                        color: Colors.green, fontWeight: FontWeight.w500),
+                  ),
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Color(0xFFFFF3CD),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Color(0xFFFFEEBA)),
+                  ),
+                  child: Text(
+                    'Sau khi học xong 40% tổng số buổi học viên sẽ phải làm feedback đánh giá để xác định học viên có muốn tiếp tục học tiếp hay không',
+                    style: TextStyle(color: Color(0xFF856404), fontSize: 13),
+                  ),
+                ),
+                if (_getMapValue(widget.registration.secondPaymentPeriod,
                         'paymentDeadline') !=
                     null)
                   Text(
@@ -685,35 +701,60 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
                           : FontWeight.normal,
                     ),
                   ),
-
-                // Hiển thị nút thanh toán nếu chưa thanh toán đợt 2 và đã thanh toán đợt 1
                 if ((_getMapValue(widget.registration.secondPaymentPeriod,
                                 'paymentStatus') ??
                             '') ==
                         'Chưa thanh toán' &&
-                    widget.status == 'FourtyFeedbackDone' &&
+                    widget.status?.toLowerCase() == 'fourtyfeedbackdone' &&
                     _learningPathSessions
                         .any((s) => s.isCompleted == true)) ...[
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: _showRemainingPaymentConfirmationDialog,
-                      icon: const Icon(Icons.payment),
-                      label: const Text('Thanh toán 60% còn lại'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                      ),
-                    ),
-                  ),
+                  ...(() {
+                    final Map<String, dynamic>? teacherChangeStatus =
+                        widget.registration.teacherChangeStatus;
+                    final bool requested =
+                        teacherChangeStatus?['ChangeTeacherRequested'] == true;
+                    final bool processed =
+                        teacherChangeStatus?['TeacherChangeProcessed'] == true;
+                    if (!(requested && !processed)) {
+                      return [
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed:
+                                    _showRemainingPaymentConfirmationDialog,
+                                icon: const Icon(Icons.payment),
+                                label: const Text('Thanh toán 60% còn lại'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.blue,
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 10),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            OutlinedButton.icon(
+                              onPressed: _rejectPayment,
+                              icon: const Icon(Icons.cancel, color: Colors.red),
+                              label: const Text('Từ chối thanh toán',
+                                  style: TextStyle(color: Colors.red)),
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: Colors.red),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ];
+                    } else {
+                      return [];
+                    }
+                  })(),
                 ],
               ],
             ),
           ),
         ],
-
-        // Hiển thị thông báo khi hoàn tất thanh toán
         if (widget.status == 'Sixty') ...[
           const SizedBox(height: 16),
           Container(
@@ -729,7 +770,7 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
                 SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Bạn đã thanh toán toàn bộ học phí. Giáo viên sẽ liên hệ với bạn sớm để bắt đầu quá trình học.',
+                    'Bạn đã hoàn tất toàn bộ học phí. InstruLearn trân trọng cảm ơn sự tin tưởng và đồng hành của bạn trong suốt hành trình học tập.',
                     style: TextStyle(
                       color: Colors.green,
                       fontWeight: FontWeight.bold,
@@ -782,10 +823,7 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
                 ? Stack(
                     fit: StackFit.expand,
                     children: [
-                      // Video player
                       Chewie(controller: _chewieController!),
-
-                      // Nút replay khi video kết thúc
                       if (_videoController != null &&
                           _videoController!.value.position >=
                               _videoController!.value.duration)
@@ -808,7 +846,6 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
                     ? Stack(
                         fit: StackFit.expand,
                         children: [
-                          // Hiển thị hình thu nhỏ hoặc backdrop
                           const Center(
                             child: Icon(
                               Icons.video_library,
@@ -816,15 +853,11 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
                               color: Colors.white54,
                             ),
                           ),
-
-                          // Nút play
                           Center(
                             child: InkWell(
                               onTap: () {
-                                // Thử khởi tạo lại video
                                 _initializeVideo();
 
-                                // Hiển thị thông báo cho người dùng
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
                                     content: Text('Đang tải video...'),
@@ -847,8 +880,6 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
                               ),
                             ),
                           ),
-
-                          // Nút mở trong trình duyệt ở góc phải dưới
                           Positioned(
                             right: 8,
                             bottom: 8,
@@ -858,16 +889,13 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
                                 color: Colors.white,
                               ),
                               onPressed: () {
-                                // Hiển thị URL của video
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text(
                                         'Video URL: ${widget.registration.videoUrl}'),
                                     action: SnackBarAction(
                                       label: 'Copy',
-                                      onPressed: () {
-                                        // Copy URL vào clipboard
-                                      },
+                                      onPressed: () {},
                                     ),
                                   ),
                                 );
@@ -886,7 +914,6 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
                       ),
           ),
         ),
-        // Thêm nút tải lại video
         if (_isVideoInitialized && _videoController != null)
           Padding(
             padding: const EdgeInsets.only(top: 8),
@@ -979,10 +1006,8 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
     return withCommas.reversed.join('');
   }
 
-  // Hàm hiển thị dialog xác nhận thanh toán
   void _showPaymentConfirmationDialog() async {
     try {
-      // Lấy thông tin số dư ví
       final prefs = await SharedPreferences.getInstance();
       final learnerId = prefs.getInt('learnerId');
       final token = prefs.getString('token');
@@ -992,14 +1017,12 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
         return;
       }
 
-      // Hiển thị dialog loading
       showDialog(
         context: context,
         barrierDismissible: false,
         builder: (context) => const Center(child: CircularProgressIndicator()),
       );
 
-      // Gọi API lấy số dư
       final walletResponse = await http.get(
         Uri.parse(
           'https://instrulearnapplication.azurewebsites.net/api/wallet/$learnerId',
@@ -1010,7 +1033,6 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
         },
       );
 
-      // Đóng dialog loading
       Navigator.pop(context);
 
       if (walletResponse.statusCode != 200) {
@@ -1027,13 +1049,11 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
 
       final double balance = walletData['data']['balance'].toDouble();
       final int totalFee = widget.registration.price ?? 0;
-      // Lấy số tiền thanh toán từ firstPaymentPeriod
       final int amountToPay = _getMapValue(
               widget.registration.firstPaymentPeriod, 'paymentAmount') ??
           0;
       final double remainingBalance = balance - amountToPay;
 
-      // Hiển thị dialog xác nhận thanh toán
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
@@ -1076,7 +1096,7 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
             ),
             ElevatedButton(
               onPressed: remainingBalance < 0
-                  ? null // Disable nếu không đủ tiền
+                  ? null
                   : () {
                       Navigator.pop(context);
                       _processPayment(amountToPay);
@@ -1091,7 +1111,6 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
     }
   }
 
-  // Xử lý thanh toán
   Future<void> _processPayment(int amountToPay) async {
     try {
       showDialog(
@@ -1109,7 +1128,6 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
         return;
       }
 
-      // Gọi API thanh toán
       final paymentResponse = await http.post(
         Uri.parse(
           'https://instrulearnapplication.azurewebsites.net/api/Payment/process-learning-payment',
@@ -1144,7 +1162,6 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
     }
   }
 
-  // Hiển thị dialog thành công
   void _showSuccessDialog() {
     showDialog(
       context: context,
@@ -1155,9 +1172,8 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
         actions: [
           ElevatedButton(
             onPressed: () {
-              Navigator.pop(context); // Đóng dialog
+              Navigator.pop(context);
 
-              // Quay về màn hình home (pop đến khi hết stack)
               Navigator.of(context).popUntil((route) => route.isFirst);
             },
             child: const Text('OK'),
@@ -1167,17 +1183,14 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
     );
   }
 
-  // Hiển thị thông báo lỗi
   void _showErrorMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
     );
   }
 
-  // Hiển thị dialog xác nhận thanh toán 60% còn lại
   void _showRemainingPaymentConfirmationDialog() async {
     try {
-      // Lấy thông tin số dư ví
       final prefs = await SharedPreferences.getInstance();
       final learnerId = prefs.getInt('learnerId');
       final token = prefs.getString('token');
@@ -1187,14 +1200,12 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
         return;
       }
 
-      // Hiển thị dialog loading
       showDialog(
         context: context,
         barrierDismissible: false,
         builder: (context) => const Center(child: CircularProgressIndicator()),
       );
 
-      // Gọi API lấy số dư
       final walletResponse = await http.get(
         Uri.parse(
           'https://instrulearnapplication.azurewebsites.net/api/wallet/$learnerId',
@@ -1205,7 +1216,6 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
         },
       );
 
-      // Đóng dialog loading
       Navigator.pop(context);
 
       if (walletResponse.statusCode != 200) {
@@ -1222,13 +1232,11 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
 
       final double balance = walletData['data']['balance'].toDouble();
       final int totalFee = widget.registration.price ?? 0;
-      // Lấy số tiền thanh toán từ secondPaymentPeriod
       final int amountToPay = _getMapValue(
               widget.registration.secondPaymentPeriod, 'paymentAmount') ??
           0;
       final double remainingBalance = balance - amountToPay;
 
-      // Hiển thị dialog xác nhận thanh toán
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
@@ -1271,7 +1279,7 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
             ),
             ElevatedButton(
               onPressed: remainingBalance < 0
-                  ? null // Disable nếu không đủ tiền
+                  ? null
                   : () {
                       Navigator.pop(context);
                       _processRemainingPayment();
@@ -1286,7 +1294,6 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
     }
   }
 
-  // Xử lý thanh toán 60% còn lại
   Future<void> _processRemainingPayment() async {
     try {
       showDialog(
@@ -1304,7 +1311,6 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
         return;
       }
 
-      // Gọi API thanh toán 60% còn lại
       final paymentResponse = await http.post(
         Uri.parse(
           'https://instrulearnapplication.azurewebsites.net/api/Payment/process-remaining-payment/${widget.registration.learningRegisId ?? 0}',
@@ -1359,7 +1365,6 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
   }
 
   Widget _buildLearningPathSessions() {
-    // Nếu trạng thái là pending thì không hiển thị lộ trình học tập
     if (widget.status?.toLowerCase() == 'pending') {
       return const SizedBox.shrink();
     }
@@ -1388,7 +1393,6 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
       );
     }
 
-    // Ẩn hoàn toàn nếu tất cả session đều isCompleted == false
     if (_learningPathSessions.isEmpty ||
         _learningPathSessions.every((s) => s.isCompleted == false)) {
       if (widget.status?.toLowerCase() == 'accepted') {
@@ -1470,7 +1474,6 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
   }
 
   Widget _buildStatusStepper() {
-    // Xác định các bước
     final List<Map<String, String>> steps = [
       {'key': 'pending', 'label': 'Chờ duyệt'},
       {'key': 'accepted', 'label': 'Chờ giáo viên tạo lộ trình'},
@@ -1480,7 +1483,6 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
       {'key': 'sixty', 'label': 'Hoàn tất học phí'},
     ];
 
-    // Xác định trạng thái hiện tại
     String? status = widget.status?.toLowerCase();
     bool hasLearningPath =
         _learningPathSessions.any((s) => s.isCompleted == true);
@@ -1488,8 +1490,16 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
     int currentStep = 0;
     if (status == 'pending') {
       currentStep = 0;
-    } else if (status == 'rejected') {
-      // Nếu bị từ chối thì chỉ hiện rejected
+    } else if (status == 'rejected' ||
+        status == 'payment40rejected' ||
+        status == 'payment60rejected') {
+      String message = 'Đơn đã bị từ chối bởi trung tâm';
+      if (status == 'payment40rejected') {
+        message = 'Bạn đã từ chối thanh toán 40% học phí';
+      } else if (status == 'payment60rejected') {
+        message = 'Bạn đã từ chối thanh toán 60% học phí';
+      }
+
       return Container(
         margin: const EdgeInsets.symmetric(vertical: 16),
         padding: const EdgeInsets.all(16),
@@ -1499,12 +1509,16 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
           border: Border.all(color: Colors.red),
         ),
         child: Row(
-          children: const [
-            Icon(Icons.cancel, color: Colors.red),
-            SizedBox(width: 8),
-            Text('Đơn đã bị từ chối bởi trung tâm',
-                style:
-                    TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+          children: [
+            const Icon(Icons.cancel, color: Colors.red),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                    color: Colors.red, fontWeight: FontWeight.bold),
+              ),
+            ),
           ],
         ),
       );
@@ -1544,11 +1558,9 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
         children: List.generate(steps.length, (index) {
           final isActive = index == currentStep;
           final isDone = index < currentStep;
-          // Ẩn bước "Đã có lộ trình học" nếu chưa có lộ trình
           if (steps[index]['key'] == 'accepted_path' && !hasLearningPath) {
             return const SizedBox.shrink();
           }
-          // Ẩn bước "Chờ giáo viên tạo lộ trình" nếu đã có lộ trình
           if (steps[index]['key'] == 'accepted' && hasLearningPath) {
             return const SizedBox.shrink();
           }
@@ -1594,21 +1606,17 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
     );
   }
 
-  // Hàm hỗ trợ lấy giá trị từ map với cả key viết hoa và viết thường
   dynamic _getMapValue(Map<String, dynamic>? map, String key) {
     if (map == null) return null;
-    // Thử cả key viết thường và viết hoa
     return map[key] ??
         map[key.substring(0, 1).toUpperCase() + key.substring(1)];
   }
 
-  // Phương thức để hiển thị chỉ báo trạng thái hiện tại của đơn
   Widget _buildCurrentStatusIndicator() {
     bool hasLearningPath =
         _learningPathSessions.any((s) => s.isCompleted == true);
     String status = widget.status?.toLowerCase() ?? '';
 
-    // Xác định trạng thái hiện tại
     String currentStatus = '';
     Color statusColor = Colors.blue;
     IconData statusIcon = Icons.info_outline;
@@ -1636,7 +1644,6 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
       statusIcon = Icons.check_circle;
     }
 
-    // Nếu không có trạng thái đặc biệt
     if (currentStatus.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -1661,5 +1668,86 @@ class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _rejectPayment() async {
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Xác nhận từ chối thanh toán'),
+        content: const Text(
+          'Học viên có chắc sẽ từ chối thanh toán học phí không? Khi từ chối thanh toán lịch học của học viên trong tương lai sẽ bị hủy, điều này không thể hoàn tác',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Hủy'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Xác nhận'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      if (token == null) {
+        Navigator.pop(context);
+        _showErrorMessage('Vui lòng đăng nhập lại');
+        return;
+      }
+
+      final response = await http.post(
+        Uri.parse(
+          'https://instrulearnapplication.azurewebsites.net/api/Payment/reject-payment/${widget.registration.learningRegisId ?? 0}',
+        ),
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      Navigator.pop(context);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['isSucceed'] == true) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Từ chối thanh toán thành công'),
+              content: const Text('Bạn đã từ chối thanh toán thành công.'),
+              actions: [
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    Navigator.of(context).popUntil((route) => route.isFirst);
+                  },
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          );
+        } else {
+          _showErrorMessage(data['message'] ?? 'Từ chối thanh toán thất bại');
+        }
+      } else {
+        _showErrorMessage('Lỗi kết nối: {response.statusCode}');
+      }
+    } catch (e) {
+      Navigator.pop(context);
+      _showErrorMessage('Lỗi: ${e.toString()}');
+    }
   }
 }

@@ -523,7 +523,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Bạn có thể đăng ký học kèm 1:1 để có lịch học',
+              'Bạn có thể đăng ký học theo yêu cầu để có lịch học',
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.grey[600],

@@ -10,6 +10,8 @@ import 'teacher_profile_screen.dart';
 import 'teacher_center_schedule_screen.dart';
 import 'application_screen_teacher.dart';
 import 'teacher_evaluation_screen.dart';
+import 'teacher_class_management_screen.dart';
+import 'teacher_grade_management_screen.dart';
 
 class TeacherHomeScreen extends StatefulWidget {
   const TeacherHomeScreen({Key? key}) : super(key: key);
@@ -216,35 +218,6 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                   style: const TextStyle(fontSize: 14, color: Colors.white),
                 ),
                 const SizedBox(height: 20),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 15),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(25),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        spreadRadius: 1,
-                        blurRadius: 5,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: const [
-                      Expanded(
-                        child: TextField(
-                          decoration: InputDecoration(
-                            hintText: 'Tìm kiếm...',
-                            border: InputBorder.none,
-                            hintStyle: TextStyle(color: Colors.grey),
-                          ),
-                        ),
-                      ),
-                      Icon(Icons.search, color: Color(0xFF536DFE)),
-                    ],
-                  ),
-                ),
               ],
             ),
           ),
@@ -257,7 +230,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
               children: [
                 _buildMenuItem(
                   context: context,
-                  title: 'Lịch dạy',
+                  title: 'Lịch dạy theo yêu cầu',
                   icon: Icons.calendar_today,
                   onTap: () {
                     Navigator.push(
@@ -323,6 +296,34 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                 ),
                 _buildMenuItem(
                   context: context,
+                  title: 'Quản lý lớp học',
+                  icon: Icons.class_,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            const TeacherClassManagementScreen(),
+                      ),
+                    );
+                  },
+                ),
+                _buildMenuItem(
+                  context: context,
+                  title: 'Quản lý điểm',
+                  icon: Icons.grade,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            const TeacherGradeManagementScreen(),
+                      ),
+                    );
+                  },
+                ),
+                _buildMenuItem(
+                  context: context,
                   title: 'Đăng xuất',
                   icon: Icons.logout,
                   onTap: () => _logout(),
@@ -357,11 +358,6 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Trang chủ'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Hồ sơ'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.support_agent),
-            label: 'Hỗ trợ',
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Cài đặt'),
         ],
       ),
     );

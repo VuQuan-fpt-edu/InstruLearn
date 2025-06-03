@@ -205,7 +205,8 @@ class _TeacherCenterScheduleScreenState
             _buildFilterButtons(),
             _buildMonthNavigation(),
             _buildCalendarGrid(),
-            if (errorMessage != null)
+            if (errorMessage != null &&
+                errorMessage != 'Không tìm thấy lịch dạy của giáo viên.')
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -769,7 +770,6 @@ class _TeacherCenterScheduleScreenState
                                   onPressed: () {
                                     _markAttendance(
                                         participant['scheduleId'], 1);
-                                    Navigator.of(context).pop();
                                   },
                                   icon: const Icon(Icons.check_circle),
                                   color: Colors.green,
@@ -781,7 +781,6 @@ class _TeacherCenterScheduleScreenState
                                   onPressed: () {
                                     _markAttendance(
                                         participant['scheduleId'], 2);
-                                    Navigator.of(context).pop();
                                   },
                                   icon: const Icon(Icons.cancel),
                                   color: Colors.red,
@@ -868,8 +867,24 @@ class _TeacherCenterScheduleScreenState
       final token = prefs.getString('token');
 
       if (token == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Vui lòng đăng nhập lại')),
+        await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Row(
+              children: const [
+                Icon(Icons.error, color: Colors.red),
+                SizedBox(width: 8),
+                Text('Thông báo'),
+              ],
+            ),
+            content: const Text('Vui lòng đăng nhập lại'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Đóng'),
+              ),
+            ],
+          ),
         );
         return;
       }
@@ -888,31 +903,95 @@ class _TeacherCenterScheduleScreenState
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['isSucceed'] == true) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
+          await showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Row(
+                children: [
+                  Icon(
+                    status == 1 ? Icons.check_circle : Icons.cancel,
+                    color: status == 1 ? Colors.green : Colors.red,
+                  ),
+                  const SizedBox(width: 8),
+                  const Text('Thành công'),
+                ],
+              ),
               content: Text(
                 status == 1
                     ? 'Đã điểm danh thành công'
                     : 'Đã đánh dấu vắng mặt',
               ),
-              backgroundColor: status == 1 ? Colors.green : Colors.red,
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Đóng'),
+                ),
+              ],
             ),
           );
           await _fetchSchedules();
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-                content: Text(data['message'] ?? 'Lỗi cập nhật điểm danh')),
+          await showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Row(
+                children: const [
+                  Icon(Icons.error, color: Colors.red),
+                  SizedBox(width: 8),
+                  Text('Lỗi'),
+                ],
+              ),
+              content: Text(data['message'] ?? 'Lỗi cập nhật điểm danh'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Đóng'),
+                ),
+              ],
+            ),
           );
         }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi kết nối: ${response.statusCode}')),
+        final data = json.decode(response.body);
+        await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Row(
+              children: const [
+                Icon(Icons.error, color: Colors.red),
+                SizedBox(width: 8),
+                Text('Lỗi'),
+              ],
+            ),
+            content: Text(data['message'] ?? 'Lỗi cập nhật điểm danh'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Đóng'),
+              ),
+            ],
+          ),
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi: $e')),
+      await showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Row(
+            children: const [
+              Icon(Icons.error, color: Colors.red),
+              SizedBox(width: 8),
+              Text('Lỗi'),
+            ],
+          ),
+          content: Text('Lỗi: $e'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Đóng'),
+            ),
+          ],
+        ),
       );
     }
   }
