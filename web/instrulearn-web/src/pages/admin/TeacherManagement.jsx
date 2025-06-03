@@ -840,10 +840,6 @@ const TeacherManagement = () => {
                         max: 50,
                         message: "Họ và tên không được vượt quá 50 ký tự!",
                       },
-                      {
-                        pattern: /^[a-zA-Z0-9\s]*$/,
-                        message: "Họ và tên không được chứa ký tự đặc biệt!",
-                      },
                     ]}
                   >
                     <Input prefix={<UserOutlined />} maxLength={50} showCount />

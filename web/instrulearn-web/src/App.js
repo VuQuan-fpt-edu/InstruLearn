@@ -93,6 +93,7 @@ import PaymentRegistration from "./pages/staff/PaymentRegistration";
 import TuitionManagement from "./pages/staff/TuitionManagement";
 import ProtectedRoute from "./pages/protectRoute/ProtectedRoute";
 import PaymentSuccess from "./pages/home/PaymentSuccess";
+import Certificate from "./pages/home/Certificate";
 
 export default function App() {
   return (
@@ -134,6 +135,7 @@ export default function App() {
           </Route>
         </Route>
         <Route path="/payment-success" element={<PaymentSuccess />} />
+        <Route path="/certificate/:id" element={<Certificate />} />
         {/* Admin Routes */}
 
         <Route element={<ProtectedRoute allowedRoles={["Admin"]} />}>

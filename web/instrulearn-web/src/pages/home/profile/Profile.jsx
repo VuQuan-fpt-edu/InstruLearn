@@ -64,6 +64,7 @@ import MySchedule from "./MySchedule";
 import TransactionHistory from "./TransactionHistory";
 import MyLibrary from "./MyLibrary";
 import TeacherEvaluations from "./MyCourse";
+import MyCertificate from "./MyCertificate";
 
 // Firebase configuration
 const firebaseConfig = {
@@ -618,6 +619,8 @@ const Profile = () => {
         return <TransactionHistory />;
       case "library":
         return <MyLibrary />;
+      case "certificate":
+        return <MyCertificate />;
       default:
         return (
           <div className="text-center py-12">
@@ -647,6 +650,11 @@ const Profile = () => {
       key: "library",
       icon: <ReadOutlined className="text-lg" />,
       label: "Thư viện khóa học online",
+    },
+    {
+      key: "certificate",
+      icon: <SafetyCertificateOutlined className="text-lg" />,
+      label: "Chứng chỉ của tôi",
     },
     {
       key: "courses",
