@@ -436,6 +436,19 @@ const ClassDetail = () => {
                     </div>
                   </div>
                 </div>
+                <div className="flex items-center">
+                  <CalendarOutlined className="text-purple-600 text-xl mr-4" />
+                  <div>
+                    <div className="text-gray-500 text-sm">Ngày kiểm tra</div>
+                    <div className="font-medium text-lg">
+                      {classData.testDay
+                        ? new Date(classData.testDay).toLocaleDateString(
+                            "vi-VN"
+                          )
+                        : "Chưa có thông tin"}
+                    </div>
+                  </div>
+                </div>
                 {/* {classData.syllabusLink && (
                   <div className="flex items-center">
                     <a

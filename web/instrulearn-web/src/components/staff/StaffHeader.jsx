@@ -63,7 +63,7 @@ const StaffHeader = ({ collapsed, toggleCollapsed, selectedMenu }) => {
 
   const userMenuItems = [
     { key: "profile", icon: <UserOutlined />, label: "Hồ sơ nhân viên" },
-    { key: "settings", icon: <SettingOutlined />, label: "Cài đặt tài khoản" },
+    // { key: "settings", icon: <SettingOutlined />, label: "Cài đặt tài khoản" },
     { type: "divider" },
     { key: "logout", icon: <LogoutOutlined />, label: "Đăng xuất" },
   ];
@@ -158,9 +158,9 @@ const StaffHeader = ({ collapsed, toggleCollapsed, selectedMenu }) => {
         </Typography.Title>
       </div>
       <div className="flex items-center">
-        <Badge count={5} className="mr-4">
+        {/* <Badge count={5} className="mr-4">
           <BellOutlined className="text-xl cursor-pointer" />
-        </Badge>
+        </Badge> */}
         <Dropdown
           menu={{
             items: userMenuItems,

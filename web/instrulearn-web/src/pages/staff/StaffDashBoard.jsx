@@ -326,9 +326,9 @@ const StaffDashboard = () => {
       title: "Trạng thái",
       dataIndex: "Status",
       key: "Status",
-      render: (status) => (
+      render: (status, record) => (
         <Chip
-          label={status}
+          label={getStatusTag(status, record)}
           color={
             status === "Pending"
               ? "warning"

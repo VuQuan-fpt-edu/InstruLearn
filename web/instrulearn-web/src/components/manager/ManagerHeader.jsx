@@ -61,7 +61,7 @@ const ManagerHeader = ({ collapsed, toggleCollapsed, selectedMenu }) => {
 
   const userMenuItems = [
     { key: "profile", icon: <UserOutlined />, label: "Hồ sơ quản lý" },
-    { key: "settings", icon: <SettingOutlined />, label: "Cài đặt tài khoản" },
+    // { key: "settings", icon: <SettingOutlined />, label: "Cài đặt tài khoản" },
     { type: "divider" },
     { key: "logout", icon: <LogoutOutlined />, label: "Đăng xuất" },
   ];
@@ -106,9 +106,9 @@ const ManagerHeader = ({ collapsed, toggleCollapsed, selectedMenu }) => {
         </Typography.Title>
       </div>
       <div className="flex items-center">
-        <Badge count={3} className="mr-4">
+        {/* <Badge count={3} className="mr-4">
           <BellOutlined className="text-xl cursor-pointer" />
-        </Badge>
+        </Badge> */}
         <Dropdown
           menu={{
             items: userMenuItems,
