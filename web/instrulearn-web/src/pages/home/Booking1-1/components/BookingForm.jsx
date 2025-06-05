@@ -739,7 +739,8 @@ const BookingForm = ({
                         <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
                           <img
                             src={
-                              teacher.avatar || "https://via.placeholder.com/40"
+                              teacher.avatar ||
+                              "https://img.freepik.com/premium-vector/people-avatar-icons-teacher_755164-20666.jpg"
                             }
                             alt={teacher.fullname}
                             className="w-full h-full object-cover"

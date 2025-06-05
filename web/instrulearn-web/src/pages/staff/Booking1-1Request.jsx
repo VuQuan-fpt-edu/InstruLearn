@@ -1212,7 +1212,7 @@ const Booking11Management = () => {
         >
           <Card>
             <div className="flex justify-between items-center mb-4">
-              <Title level={4}>Quản lý đơn học 1-1</Title>
+              <Title level={4}>Quản lý đơn học theo yêu cầu</Title>
               <Space>
                 <Input
                   placeholder="Tìm kiếm theo tên học viên, giáo viên..."
