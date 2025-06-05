@@ -60,7 +60,9 @@ export default function MusicTeachersList() {
                 name: teacher.fullname,
                 experience: "Chưa có thông tin",
                 details: "Chưa có mô tả",
-                image: "https://randomuser.me/api/portraits/men/1.jpg",
+                image:
+                  teacher.avatar ||
+                  "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTRXESAz_6Ql63_OaIpEzv5djVtdENVuKrFOg&s",
                 phoneNumber: "Chưa cập nhật",
                 gender: "Chưa cập nhật",
                 address: "Chưa cập nhật",

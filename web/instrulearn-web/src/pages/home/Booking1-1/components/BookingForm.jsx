@@ -684,6 +684,22 @@ const BookingForm = ({
             <Title level={4} className="mb-6 text-gray-800">
               Thông tin giáo viên
             </Title>
+            <div className="mb-4">
+              <Link
+                to="/teacher-list"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button
+                  type="primary"
+                  ghost
+                  icon={<InfoCircleOutlined />}
+                  className="w-full"
+                >
+                  Xem tất cả giáo viên
+                </Button>
+              </Link>
+            </div>
             <Form.Item
               name="teacherId"
               label="Giáo viên"
@@ -719,19 +735,28 @@ const BookingForm = ({
                 >
                   {availableTeachers.map((teacher) => (
                     <Option key={teacher.teacherId} value={teacher.teacherId}>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <span className="font-medium text-gray-800">
-                            {teacher.fullname}
-                          </span>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
+                          <img
+                            src={
+                              teacher.avatar || "https://via.placeholder.com/40"
+                            }
+                            alt={teacher.fullname}
+                            className="w-full h-full object-cover"
+                          />
                         </div>
-                        <div className="text-gray-500 text-sm">
-                          {teacher.majors
-                            ? teacher.majors
-                                .filter((major) => major.status === 1)
-                                .map((major) => major.majorName)
-                                .join(", ")
-                            : ""}
+                        <div className="flex-1">
+                          <div className="font-medium text-gray-800">
+                            {teacher.fullname}
+                          </div>
+                          <div className="text-gray-500 text-sm">
+                            {teacher.majors
+                              ? teacher.majors
+                                  .filter((major) => major.status === 1)
+                                  .map((major) => major.majorName)
+                                  .join(", ")
+                              : ""}
+                          </div>
                         </div>
                       </div>
                     </Option>

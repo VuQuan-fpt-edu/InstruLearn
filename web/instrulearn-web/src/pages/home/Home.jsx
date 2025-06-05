@@ -406,9 +406,9 @@ export default function Home() {
             khoá học nâng cao giúp bạn thành thạo nhạc cụ yêu thích!
           </p>
 
-          <div className="mb-8">
+          {/* <div className="mb-8">
             <SearchBar />
-          </div>
+          </div> */}
 
           <div className="flex gap-4">
             <button className="bg-purple-600 hover:bg-purple-700 text-white font-bold px-6 py-3 rounded-sm transition duration-300">

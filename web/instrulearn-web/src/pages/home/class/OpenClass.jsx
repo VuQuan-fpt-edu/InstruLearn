@@ -441,7 +441,7 @@ export default function OpenClasses() {
                 </Select>
               </div>
 
-              <div>
+              {/* <div>
                 <div className="mb-2 font-semibold">Tình trạng chỗ ngồi</div>
                 <Select
                   value={filters.availability}
@@ -453,7 +453,7 @@ export default function OpenClasses() {
                   <Option value="limited">Sắp đầy (≤ 3 chỗ)</Option>
                   <Option value="full">Đã đầy</Option>
                 </Select>
-              </div>
+              </div> */}
             </div>
 
             <div className="mt-4 flex justify-end">

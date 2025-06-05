@@ -47,36 +47,38 @@ const TeacherProfilePage = () => {
     try {
       setLoading(true);
       const response = await axios.get(
-        `https://instrulearnapplication.azurewebsites.net/api/Teacher/${id}`
+        `https://instrulearnapplication.azurewebsites.net/api/TeacherMajor/teacher/${id}`
       );
 
-      if (response.data?.isSucceed) {
-        const teacherData = response.data.data;
-        const availableMajors = teacherData.majors.filter(
-          (major) => major.status === 1
-        );
+      if (response.data && Array.isArray(response.data)) {
+        // Lấy tất cả majors có status = 1
+        const majors = response.data
+          .filter((item) => item.data.status === 1)
+          .map((item) => item.data.teacher.majors[0]);
+        // Lấy thông tin giáo viên từ phần tử đầu tiên
+        const teacherInfo = response.data[0]?.data.teacher;
         setTeacher({
-          id: teacherData.teacherId,
-          name: teacherData.fullname,
-          specialty: availableMajors[0]?.majorName,
-          experience: teacherData.heading || "Chưa có thông tin",
-          description: teacherData.details || "Chưa có mô tả",
+          id: teacherInfo.teacherId,
+          name: teacherInfo.fullname,
+          specialty: majors[0]?.majorName,
+          experience: teacherInfo.heading || "Chưa có thông tin",
+          description: teacherInfo.details || "Chưa có mô tả",
           image:
-            teacherData.avatar ||
-            "https://randomuser.me/api/portraits/men/1.jpg",
+            teacherInfo.avatar ||
+            "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTRXESAz_6Ql63_OaIpEzv5djVtdENVuKrFOg&s",
           contactInfo: {
-            phone: teacherData.phoneNumber || "Chưa có thông tin",
+            phone: teacherInfo.phoneNumber || "Chưa có thông tin",
             email: "Chưa có thông tin",
-            address: teacherData.address || "Chưa có thông tin",
-            links: teacherData.links || "Chưa có thông tin",
+            address: teacherInfo.address || "Chưa có thông tin",
+            links: teacherInfo.links || "Chưa có thông tin",
           },
-          gender: teacherData.gender,
-          dateOfEmployment: teacherData.dateOfEmployment,
-          majors: availableMajors.map((major) => ({
+          gender: teacherInfo.gender,
+          dateOfEmployment: teacherInfo.dateOfEmployment,
+          majors: majors.map((major) => ({
             majorId: major.majorId,
             majorName: major.majorName,
           })),
-          accountId: teacherData.accountId,
+          accountId: teacherInfo.accountId,
         });
       }
     } catch (error) {
