@@ -487,6 +487,9 @@ export default function OpenClasses() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {filteredClasses.map((classItem) => (
                     <Card
+                      onClick={() =>
+                        navigate(`/class-detail/${classItem.classId}`)
+                      }
                       key={classItem.classId}
                       hoverable
                       className="overflow-hidden shadow-md border border-gray-200 rounded-md hover:shadow-lg transition-shadow"

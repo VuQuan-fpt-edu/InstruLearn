@@ -97,7 +97,7 @@ const TeacherSidebar = ({
       children: [
         // { key: "students", label: "Danh sách học viên" },
         // { key: "class-progress", label: "Theo dõi tiến độ" },
-        { key: "student-feedback", label: "Phản hồi học viên" },
+        { key: "student-feedback", label: "Chấm điểm học viên" },
         { key: "class-management", label: "Quản lý lớp học" },
       ],
     },

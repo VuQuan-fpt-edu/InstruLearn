@@ -205,9 +205,9 @@ const StaffSidebar = ({ collapsed, setCollapsed, selectedMenu }) => {
       label: "Theo dõi lớp học",
       children: [
         { key: "class-management", label: "Quản lý lớp học" },
-        { key: "class-progress", label: "Tiến độ lớp" },
-        { key: "syllabus", label: "Giáo trình" },
-        { key: "grades", label: "Điểm số" },
+        // { key: "class-progress", label: "Tiến độ lớp" },
+        // { key: "syllabus", label: "Giáo trình" },
+        // { key: "grades", label: "Điểm số" },
       ],
     },
     {

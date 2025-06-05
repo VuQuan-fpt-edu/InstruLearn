@@ -51,8 +51,8 @@ const TeacherHeader = ({ collapsed, toggleCollapsed, selectedMenu }) => {
   };
 
   const userMenuItems = [
-    { key: "profile", icon: <UserOutlined />, label: "Hồ sơ giảng dạy" },
-    { key: "settings", icon: <SettingOutlined />, label: "Cài đặt tài khoản" },
+    { key: "profile", icon: <UserOutlined />, label: "Hồ sơ giáo viên" },
+    // { key: "settings", icon: <SettingOutlined />, label: "Cài đặt tài khoản" },
     { type: "divider" },
     { key: "logout", icon: <LogoutOutlined />, label: "Đăng xuất" },
   ];
@@ -128,9 +128,9 @@ const TeacherHeader = ({ collapsed, toggleCollapsed, selectedMenu }) => {
           arrow
           trigger={["click"]}
         >
-          <Badge count={notificationItems.length} size="small">
+          {/* <Badge count={notificationItems.length} size="small">
             <Button type="text" icon={<BellOutlined />} />
-          </Badge>
+          </Badge> */}
         </Dropdown>
         <Dropdown
           menu={{
