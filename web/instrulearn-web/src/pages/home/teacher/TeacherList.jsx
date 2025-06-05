@@ -249,7 +249,7 @@ export default function MusicTeachersList() {
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                             <div className="absolute top-4 right-4">
-                              <button
+                              {/* <button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   toggleFavorite(teacher.id);
@@ -261,13 +261,13 @@ export default function MusicTeachersList() {
                                 ) : (
                                   <HeartOutlined className="text-gray-500 text-2xl" />
                                 )}
-                              </button>
+                              </button> */}
                             </div>
                             <div className="absolute bottom-0 left-0 right-0 p-6">
                               <div className="flex items-center gap-2">
-                                <div className="bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full text-base font-medium text-gray-700 shadow-lg">
+                                {/* <div className="bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full text-base font-medium text-gray-700 shadow-lg">
                                   {teacher.experience}
-                                </div>
+                                </div> */}
                               </div>
                             </div>
                           </div>
@@ -277,7 +277,7 @@ export default function MusicTeachersList() {
                               {teacher.name}
                             </h3>
                             <p className="text-gray-600 mb-6 line-clamp-2 text-lg">
-                              {teacher.details}
+                              {/* {teacher.details} */}
                             </p>
 
                             <div className="flex gap-4">

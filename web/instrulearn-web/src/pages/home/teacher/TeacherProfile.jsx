@@ -176,7 +176,7 @@ const TeacherProfilePage = () => {
                       value={teacher.majors
                         ?.map((major) => major.majorName)
                         .join(", ")}
-                      prefix={<TrophyOutlined />}
+                      // prefix={<TrophyOutlined />}
                     />
                   </Col>
                   <Col span={8}>
